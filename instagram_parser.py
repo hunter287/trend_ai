@@ -42,7 +42,11 @@ class InstagramParser:
         
         try:
             from apify_client import ApifyClient
+            import time
+            
+            print("🔗 Подключение к Apify...")
             client = ApifyClient(self.apify_token)
+            print("✅ Подключение установлено")
             
             # Запуск Instagram scraper
             run_input = {
@@ -52,12 +56,26 @@ class InstagramParser:
                 "addParentData": False
             }
             
+            print("📋 Параметры запуска:")
+            print(f"   • URL: {run_input['directUrls'][0]}")
+            print(f"   • Тип данных: {run_input['resultsType']}")
+            print(f"   • Лимит: {run_input['resultsLimit']}")
+            
             print("🚀 Запуск Apify актора...")
+            print("⏳ Это может занять 30-60 секунд...")
+            
+            start_time = time.time()
             run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+            elapsed_time = time.time() - start_time
+            
+            print(f"⏱️ Актор выполнен за {elapsed_time:.1f} секунд")
             
             if run and run.get("defaultDatasetId"):
-                print("📥 Получение данных...")
-                dataset_items = client.dataset(run["defaultDatasetId"]).list_items().items
+                print("📥 Получение данных из датасета...")
+                dataset_id = run["defaultDatasetId"]
+                print(f"   • ID датасета: {dataset_id}")
+                
+                dataset_items = client.dataset(dataset_id).list_items().items
                 
                 print(f"✅ Получено {len(dataset_items)} постов")
                 return {
@@ -68,10 +86,14 @@ class InstagramParser:
                 }
             else:
                 print("❌ Не удалось получить данные")
+                print(f"   • Результат run: {run}")
                 return None
                 
         except Exception as e:
             print(f"❌ Ошибка парсинга: {e}")
+            import traceback
+            print("📋 Детали ошибки:")
+            traceback.print_exc()
             return None
     
     def extract_image_urls(self, posts: List[Dict]) -> List[Dict]:
@@ -140,9 +162,13 @@ class InstagramParser:
         # Создаем папку для изображений
         images_dir = Path("images")
         images_dir.mkdir(exist_ok=True)
+        print(f"📁 Папка для изображений: {images_dir.absolute()}")
         
         downloaded_data = []
         downloaded_count = 0
+        total_to_download = min(max_images, len(image_data))
+        
+        print(f"📊 Всего к скачиванию: {total_to_download} изображений")
         
         for i, img_data in enumerate(image_data[:max_images]):
             try:
@@ -154,26 +180,29 @@ class InstagramParser:
                 filename = f"{post_id}_{img_type}_{i+1:04d}.jpg"
                 filepath = images_dir / filename
                 
+                print(f"📥 [{i+1}/{total_to_download}] Скачивание: {filename}")
+                
                 # Скачиваем изображение
                 response = requests.get(url, timeout=30)
                 if response.status_code == 200:
                     with open(filepath, 'wb') as f:
                         f.write(response.content)
                     
+                    file_size = filepath.stat().st_size
+                    print(f"✅ Скачано: {filename} ({file_size} байт)")
+                    
                     # Добавляем информацию о скачанном файле
                     downloaded_data.append({
                         **img_data,
                         "local_filename": filename,
                         "local_path": str(filepath),
-                        "file_size": filepath.stat().st_size,
+                        "file_size": file_size,
                         "downloaded_at": datetime.now().isoformat()
                     })
                     
                     downloaded_count += 1
-                    if downloaded_count % 10 == 0:
-                        print(f"📥 Скачано: {downloaded_count}/{min(max_images, len(image_data))}")
                 else:
-                    print(f"❌ Ошибка скачивания {url}: {response.status_code}")
+                    print(f"❌ Ошибка скачивания {filename}: HTTP {response.status_code}")
                     
             except Exception as e:
                 print(f"❌ Ошибка скачивания изображения {i+1}: {e}")
