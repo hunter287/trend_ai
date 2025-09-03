@@ -51,8 +51,14 @@ def check_mongodb():
                     
                     # Проверяем теги
                     if 'ximilar_tags' in first_img:
-                        tags = first_img['ximilar_tags']
-                        print(f"   • Теги Ximilar: {len(tags.get('tags', []))} тегов")
+                        tags_data = first_img['ximilar_tags']
+                        if isinstance(tags_data, dict) and 'tags' in tags_data:
+                            tags = tags_data['tags']
+                            print(f"   • Теги Ximilar: {len(tags)} тегов")
+                        elif isinstance(tags_data, list):
+                            print(f"   • Теги Ximilar: {len(tags_data)} тегов")
+                        else:
+                            print(f"   • Теги Ximilar: {tags_data}")
                     else:
                         print(f"   • Теги Ximilar: НЕТ")
                 else:
