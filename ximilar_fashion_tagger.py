@@ -64,7 +64,7 @@ class XimilarFashionTagger:
         """Тегирование одного изображения через Ximilar API"""
         try:
             headers = {
-                "Authorization": f"Bearer {self.ximilar_api_key}",
+                "Authorization": f"Token {self.ximilar_api_key}",
                 "Content-Type": "application/json"
             }
             
