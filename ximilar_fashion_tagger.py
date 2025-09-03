@@ -98,17 +98,33 @@ class XimilarFashionTagger:
                     if result.get("records") and len(result["records"]) > 0:
                         record = result["records"][0]
                         
-                        # Извлекаем теги
+                        # Извлекаем теги из _objects
                         tags = []
-                        if record.get("_tags"):
-                            for tag in record["_tags"]:
-                                if isinstance(tag, dict):
-                                    tags.append({
-                                        "name": tag.get("name", ""),
-                                        "confidence": tag.get("confidence", 0.0),
-                                        "category": tag.get("category", ""),
-                                        "subcategory": tag.get("subcategory", "")
-                                    })
+                        if record.get("_objects"):
+                            for obj in record["_objects"]:
+                                if obj.get("_tags"):
+                                    obj_tags = obj["_tags"]
+                                    # Извлекаем простые теги
+                                    if obj_tags.get("_tags_simple"):
+                                        for tag_name in obj_tags["_tags_simple"]:
+                                            tags.append({
+                                                "name": tag_name,
+                                                "confidence": 1.0,  # Простые теги без confidence
+                                                "category": obj.get("name", ""),
+                                                "object_id": obj.get("id", "")
+                                            })
+                                    
+                                    # Извлекаем детальные теги по категориям
+                                    for category, tag_list in obj_tags.items():
+                                        if category not in ["_tags_simple", "_tags_map"] and isinstance(tag_list, list):
+                                            for tag in tag_list:
+                                                if isinstance(tag, dict):
+                                                    tags.append({
+                                                        "name": tag.get("name", ""),
+                                                        "confidence": tag.get("prob", 0.0),
+                                                        "category": category,
+                                                        "object_id": obj.get("id", "")
+                                                    })
                         
                         return {
                             "success": True,
