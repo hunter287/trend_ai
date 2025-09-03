@@ -1,0 +1,3 @@
+# Apify API Token
+# Получите ваш токен на https://console.apify.com/account/integrations
+APIFY_API_TOKEN=your_apify_api_token_here
