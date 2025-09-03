@@ -233,9 +233,13 @@ class InstagramParser:
                 
                 # Добавляем информацию о локальном файле, если есть
                 if "local_filename" in img_data:
+                    # Полный URL к изображению на сервере
+                    full_image_url = f"http://89.169.176.64/images/{img_data['local_filename']}"
+                    
                     doc.update({
                         "local_filename": img_data["local_filename"],
                         "local_path": img_data["local_path"],
+                        "full_image_url": full_image_url,  # Полный URL к изображению
                         "file_size": img_data["file_size"],
                         "downloaded_at": img_data["downloaded_at"]
                     })
@@ -354,7 +358,8 @@ class InstagramParser:
         # Добавляем изображения
         for img_data in image_data:
             if "local_filename" in img_data:
-                img_src = f"/images/{img_data['local_filename']}"
+                # Используем полный URL к изображению на сервере
+                img_src = f"http://89.169.176.64/images/{img_data['local_filename']}"
             else:
                 img_src = img_data["image_url"]
                 
