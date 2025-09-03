@@ -4,3 +4,5 @@ python-dotenv==1.0.0
 pandas==2.1.4
 pymongo==4.6.0
 Pillow==10.1.0
+selenium==4.15.2
+webdriver-manager==4.0.1
