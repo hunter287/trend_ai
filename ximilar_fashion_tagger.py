@@ -60,75 +60,96 @@ class XimilarFashionTagger:
             print(f"❌ Ошибка получения изображений: {e}")
             return []
     
-    def tag_image_with_ximilar(self, image_url: str) -> Optional[Dict]:
-        """Тегирование одного изображения через Ximilar API"""
-        try:
-            headers = {
-                "Authorization": f"Token {self.ximilar_api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "records": [
-                    {
-                        "_id": "1",
-                        "_url": image_url
-                    }
-                ]
-            }
-            
-            print(f"🏷️ Тегирование: {image_url[:50]}...")
-            
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
+    def tag_image_with_ximilar(self, image_url: str, max_retries: int = 3) -> Optional[Dict]:
+        """Тегирование одного изображения через Ximilar API с retry"""
+        headers = {
+            "Authorization": f"Token {self.ximilar_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "records": [
+                {
+                    "_id": "1",
+                    "_url": image_url
+                }
+            ]
+        }
+        
+        print(f"🏷️ Тегирование: {image_url[:50]}...")
+        
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    print(f"   🔄 Попытка {attempt + 1}/{max_retries}")
+                    import time
+                    time.sleep(2)  # Пауза между попытками
                 
-                if result.get("records") and len(result["records"]) > 0:
-                    record = result["records"][0]
+                response = requests.post(
+                    self.api_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=60  # Увеличиваем timeout до 60 секунд
+                )
+            
+                if response.status_code == 200:
+                    result = response.json()
                     
-                    # Извлекаем теги
-                    tags = []
-                    if record.get("_tags"):
-                        for tag in record["_tags"]:
-                            if isinstance(tag, dict):
-                                tags.append({
-                                    "name": tag.get("name", ""),
-                                    "confidence": tag.get("confidence", 0.0),
-                                    "category": tag.get("category", ""),
-                                    "subcategory": tag.get("subcategory", "")
-                                })
-                    
-                    return {
-                        "success": True,
-                        "tags": tags,
-                        "total_tags": len(tags),
-                        "api_response": result
-                    }
+                    if result.get("records") and len(result["records"]) > 0:
+                        record = result["records"][0]
+                        
+                        # Извлекаем теги
+                        tags = []
+                        if record.get("_tags"):
+                            for tag in record["_tags"]:
+                                if isinstance(tag, dict):
+                                    tags.append({
+                                        "name": tag.get("name", ""),
+                                        "confidence": tag.get("confidence", 0.0),
+                                        "category": tag.get("category", ""),
+                                        "subcategory": tag.get("subcategory", "")
+                                    })
+                        
+                        return {
+                            "success": True,
+                            "tags": tags,
+                            "total_tags": len(tags),
+                            "api_response": result
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": "No tags returned",
+                            "api_response": result
+                        }
                 else:
+                    if attempt == max_retries - 1:  # Последняя попытка
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status_code}: {response.text}",
+                            "api_response": None
+                        }
+                    else:
+                        print(f"   ⚠️ HTTP {response.status_code}, повторяем...")
+                        continue
+                        
+            except Exception as e:
+                if attempt == max_retries - 1:  # Последняя попытка
                     return {
                         "success": False,
-                        "error": "No tags returned",
-                        "api_response": result
+                        "error": str(e),
+                        "api_response": None
                     }
-            else:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}",
-                    "api_response": None
-                }
-                
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "api_response": None
-            }
+                else:
+                    print(f"   ⚠️ Ошибка: {str(e)[:50]}..., повторяем...")
+                    continue
+        
+        # Если все попытки исчерпаны
+        return {
+            "success": False,
+            "error": f"Все {max_retries} попыток исчерпаны",
+            "api_response": None
+        }
     
     def update_image_with_tags(self, image_id: str, tags_data: Dict) -> bool:
         """Обновление изображения в MongoDB с тегами"""
