@@ -28,9 +28,10 @@ def check_existing_actors():
         actors = client.actors().list()
         
         for actor in actors.items:
-            print(f"   • {actor.name} (ID: {actor.id})")
-            print(f"     - Статус: {actor.stats.get('runs', 0)} запусков")
-            print(f"     - Последний запуск: {actor.stats.get('lastRunStartedAt', 'N/A')}")
+            print(f"   • {actor.get('name', 'N/A')} (ID: {actor.get('id', 'N/A')})")
+            stats = actor.get('stats', {})
+            print(f"     - Статус: {stats.get('runs', 0)} запусков")
+            print(f"     - Последний запуск: {stats.get('lastRunStartedAt', 'N/A')}")
             print()
         
         # Получаем список запусков
@@ -38,23 +39,25 @@ def check_existing_actors():
         runs = client.runs().list(limit=10)
         
         for run in runs.items:
-            print(f"   • Актор: {run.actorId}")
-            print(f"     - Статус: {run.status}")
-            print(f"     - Запущен: {run.startedAt}")
-            print(f"     - Завершен: {run.finishedAt}")
-            print(f"     - ID запуска: {run.id}")
+            print(f"   • Актор: {run.get('actorId', 'N/A')}")
+            print(f"     - Статус: {run.get('status', 'N/A')}")
+            print(f"     - Запущен: {run.get('startedAt', 'N/A')}")
+            print(f"     - Завершен: {run.get('finishedAt', 'N/A')}")
+            print(f"     - ID запуска: {run.get('id', 'N/A')}")
             
             # Проверяем есть ли данные
-            if run.status == "SUCCEEDED":
+            if run.get('status') == "SUCCEEDED":
                 try:
-                    dataset = client.dataset(run.defaultDatasetId)
-                    items = dataset.list_items(limit=5)
-                    print(f"     - Данных в датасете: {items.total} элементов")
-                    
-                    if items.items:
-                        print(f"     - Пример данных:")
-                        for i, item in enumerate(items.items[:2]):
-                            print(f"       {i+1}. {list(item.keys())}")
+                    dataset_id = run.get('defaultDatasetId')
+                    if dataset_id:
+                        dataset = client.dataset(dataset_id)
+                        items = dataset.list_items(limit=5)
+                        print(f"     - Данных в датасете: {items.total} элементов")
+                        
+                        if items.items:
+                            print(f"     - Пример данных:")
+                            for i, item in enumerate(items.items[:2]):
+                                print(f"       {i+1}. {list(item.keys())}")
                 except Exception as e:
                     print(f"     - Ошибка получения данных: {e}")
             
@@ -65,14 +68,15 @@ def check_existing_actors():
         datasets = client.datasets().list(limit=10)
         
         for dataset in datasets.items:
-            print(f"   • Датасет: {dataset.name}")
-            print(f"     - ID: {dataset.id}")
-            print(f"     - Элементов: {dataset.itemCount}")
-            print(f"     - Создан: {dataset.createdAt}")
+            print(f"   • Датасет: {dataset.get('name', 'N/A')}")
+            print(f"     - ID: {dataset.get('id', 'N/A')}")
+            print(f"     - Элементов: {dataset.get('itemCount', 0)}")
+            print(f"     - Создан: {dataset.get('createdAt', 'N/A')}")
             
-            if dataset.itemCount > 0:
+            if dataset.get('itemCount', 0) > 0:
                 try:
-                    items = dataset.list_items(limit=3)
+                    dataset_client = client.dataset(dataset.get('id'))
+                    items = dataset_client.list_items(limit=3)
                     print(f"     - Примеры данных:")
                     for i, item in enumerate(items.items):
                         print(f"       {i+1}. Ключи: {list(item.keys())}")
