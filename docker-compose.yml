@@ -21,8 +21,8 @@ services:
     image: nginx:alpine
     container_name: linda_sza_nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8000:80"
+      - "8443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./images:/usr/share/nginx/html/images
