@@ -15,7 +15,7 @@ def extract_image_urls():
     
     # Ищем JSON файлы с данными
     import glob
-    json_files = glob.glob("*account_data_*.json")
+    json_files = glob.glob("image_urls_*.json")
     
     if not json_files:
         print("❌ JSON файлы с данными не найдены")
