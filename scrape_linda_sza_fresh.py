@@ -18,34 +18,35 @@ def scrape_linda_sza_fresh():
     client = ApifyClient(os.getenv('APIFY_API_TOKEN'))
     print("✅ Подключение к Apify API установлено")
     
-    # ID Instagram скрапера
-    actor_id = "shu8hvrXbJbY3Eb9W"
+    # ID Instagram скрапера (используем рабочий актор)
+    actor_id = "apify/instagram-scraper"
     
-    # Входные данные для скрапинга @linda.sza
+    # Входные данные для скрапинга @linda.sza (оптимизированные)
     input_data = {
-        "addParentData": False,
-        "resultsType": "details",
-        "resultsLimit": 100,  # Ограничиваем для теста
-        "searchType": "user",
-        "searchQueries": [
-            "https://www.instagram.com/linda.sza/"  # Конкретный URL профиля
-        ],
-        "maxRequestRetries": 3,
-        "maxConcurrency": 1
+        "directUrls": ["https://www.instagram.com/linda.sza/"],
+        "resultsType": "posts",  # Вместо "details" для быстрого выполнения
+        "resultsLimit": 50,      # Меньше для теста
+        "addParentData": False
     }
     
     print(f"\n🎯 СВЕЖИЙ СКРАПИНГ ПРОФИЛЯ @linda.sza")
     print("="*60)
-    print(f"🔍 URL профиля: {input_data['searchQueries'][0]}")
+    print(f"🔍 URL профиля: {input_data['directUrls'][0]}")
     print(f"📊 Максимум результатов: {input_data['resultsLimit']}")
-    print(f"🔄 Максимум параллельных запросов: {input_data['maxConcurrency']}")
+    print(f"🎯 Тип данных: {input_data['resultsType']}")
     
     try:
         # Запускаем актор
         print(f"\n🚀 Запускаем актор {actor_id}...")
+        print("⏳ Это может занять 30-60 секунд...")
+        
+        start_time = time.time()
         run = client.actor(actor_id).call(run_input=input_data)
+        elapsed_time = time.time() - start_time
+        
         run_id = run['id']
         print(f"✅ Актор запущен с ID: {run_id}")
+        print(f"⏱️ Время выполнения: {elapsed_time:.1f} секунд")
         
         # Ждем завершения
         print(f"\n⏳ Ожидаем завершения...")
