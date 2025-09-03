@@ -36,7 +36,7 @@ class InstagramParser:
             print(f"❌ Ошибка подключения к MongoDB: {e}")
             return False
     
-    def parse_instagram_account(self, username: str) -> Optional[Dict]:
+    def parse_instagram_account(self, username: str, posts_limit: int = 100) -> Optional[Dict]:
         """Парсинг Instagram аккаунта через Apify"""
         print(f"🔍 Парсинг аккаунта: @{username}")
         
@@ -52,7 +52,7 @@ class InstagramParser:
             run_input = {
                 "directUrls": [f"https://www.instagram.com/{username}/"],
                 "resultsType": "posts",
-                "resultsLimit": 1000,
+                "resultsLimit": posts_limit,  # Используем переданный лимит
                 "addParentData": False
             }
             
@@ -386,17 +386,19 @@ class InstagramParser:
         
         print(f"🌐 HTML галерея создана: gallery_{username}.html")
     
-    def run_full_parsing(self, username: str, max_images: int = 100):
+    def run_full_parsing(self, username: str, max_images: int = 100, posts_limit: int = 100):
         """Полный цикл парсинга"""
         print(f"🚀 ЗАПУСК ПОЛНОГО ПАРСИНГА ДЛЯ @{username}")
         print("="*60)
+        print(f"📊 Лимит постов: {posts_limit}")
+        print(f"📥 Макс. изображений: {max_images}")
         
         # 1. Подключение к MongoDB
         if not self.connect_mongodb():
             return False
         
         # 2. Парсинг Instagram
-        parsed_data = self.parse_instagram_account(username)
+        parsed_data = self.parse_instagram_account(username, posts_limit)
         if not parsed_data:
             return False
         

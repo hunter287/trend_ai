@@ -58,6 +58,26 @@ def get_username():
         else:
             print("   ❌ Имя пользователя не может быть пустым")
 
+def get_posts_limit():
+    """Получение лимита постов для парсинга"""
+    print(f"\n📊 Лимит постов для парсинга:")
+    print(f"   • 10-50: Быстро (30-60 сек)")
+    print(f"   • 100-200: Средне (2-5 мин)")
+    print(f"   • 500-1000: Медленно (10+ мин)")
+    
+    while True:
+        try:
+            posts_limit = input("   Лимит постов (Enter для 100): ").strip()
+            if not posts_limit:
+                return 100
+            posts_limit = int(posts_limit)
+            if posts_limit > 0:
+                return posts_limit
+            else:
+                print("   ❌ Лимит должен быть больше 0")
+        except ValueError:
+            print("   ❌ Введите корректное число")
+
 def get_max_images():
     """Получение максимального количества изображений"""
     print(f"\n📥 Максимальное количество изображений для скачивания:")
@@ -76,12 +96,23 @@ def get_max_images():
         except ValueError:
             print("   ❌ Введите корректное число")
 
-def confirm_settings(username, max_images, mongodb_uri):
+def confirm_settings(username, posts_limit, max_images, mongodb_uri):
     """Подтверждение настроек"""
     print(f"\n⚙️  НАСТРОЙКИ ПАРСИНГА:")
     print(f"   👤 Пользователь: @{username}")
+    print(f"   📊 Лимит постов: {posts_limit}")
     print(f"   📥 Макс. изображений: {max_images}")
     print(f"   🗄️  MongoDB URI: {mongodb_uri}")
+    
+    # Показываем ожидаемое время
+    if posts_limit <= 50:
+        estimated_time = "30-60 секунд"
+    elif posts_limit <= 200:
+        estimated_time = "2-5 минут"
+    else:
+        estimated_time = "10+ минут"
+    
+    print(f"   ⏱️  Ожидаемое время: {estimated_time}")
     
     while True:
         confirm = input(f"\n   Продолжить? (y/n): ").strip().lower()
@@ -115,10 +146,11 @@ def main():
     # Получаем настройки
     mongodb_uri = get_mongodb_uri()
     username = get_username()
+    posts_limit = get_posts_limit()
     max_images = get_max_images()
     
     # Подтверждаем настройки
-    if not confirm_settings(username, max_images, mongodb_uri):
+    if not confirm_settings(username, posts_limit, max_images, mongodb_uri):
         print("❌ Парсинг отменен")
         return
     
@@ -128,7 +160,7 @@ def main():
     # Создаем парсер и запускаем
     try:
         parser = InstagramParser(apify_token, mongodb_uri)
-        success = parser.run_full_parsing(username, max_images)
+        success = parser.run_full_parsing(username, max_images, posts_limit)
         
         if success:
             print(f"\n🎉 ПАРСИНГ ЗАВЕРШЕН УСПЕШНО!")
