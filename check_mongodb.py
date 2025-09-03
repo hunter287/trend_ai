@@ -28,11 +28,11 @@ def check_mongodb():
         dbs = client.list_database_names()
         print(f"📊 Базы данных: {dbs}")
         
-        # Проверяем базу instagram_images
-        if 'instagram_images' in dbs:
-            db = client.instagram_images
+        # Проверяем базу instagram_gallery
+        if 'instagram_gallery' in dbs:
+            db = client.instagram_gallery
             collections = db.list_collection_names()
-            print(f"📂 Коллекции в instagram_images: {collections}")
+            print(f"📂 Коллекции в instagram_gallery: {collections}")
             
             if 'images' in collections:
                 count = db.images.count_documents({})
@@ -60,7 +60,7 @@ def check_mongodb():
             else:
                 print("❌ Коллекция images не найдена")
         else:
-            print("❌ База данных instagram_images не найдена")
+            print("❌ База данных instagram_gallery не найдена")
             
         client.close()
         

@@ -18,7 +18,7 @@ def analyze_images():
     # Подключение к MongoDB
     mongodb_uri = "mongodb://localhost:27017/"
     client = MongoClient(mongodb_uri)
-    db = client.instagram_images
+    db = client.instagram_gallery
     collection = db.images
     
     print("🔍 АНАЛИЗ ИЗОБРАЖЕНИЙ В MONGODB")

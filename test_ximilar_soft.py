@@ -106,7 +106,7 @@ def test_ximilar_soft():
     try:
         from pymongo import MongoClient
         client = MongoClient("mongodb://localhost:27017/")
-        db = client.instagram_images
+        db = client.instagram_gallery
         collection = db.images
         
         # Берем первое изображение
