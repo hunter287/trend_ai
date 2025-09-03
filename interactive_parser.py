@@ -4,7 +4,11 @@
 
 import os
 import sys
+from dotenv import load_dotenv
 from instagram_parser import InstagramParser
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 def print_banner():
     """Печать баннера"""

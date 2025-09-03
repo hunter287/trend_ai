@@ -10,6 +10,10 @@ from datetime import datetime
 from pathlib import Path
 import argparse
 from typing import List, Dict, Optional
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 class InstagramParser:
     def __init__(self, apify_token: str, mongodb_uri: str = "mongodb://localhost:27017/"):
