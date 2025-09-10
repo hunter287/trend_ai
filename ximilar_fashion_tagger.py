@@ -98,38 +98,67 @@ class XimilarFashionTagger:
                     if result.get("records") and len(result["records"]) > 0:
                         record = result["records"][0]
                         
-                        # Извлекаем теги из _objects
-                        tags = []
+                        # Извлекаем объекты с их тегами
+                        objects = []
                         if record.get("_objects"):
                             for obj in record["_objects"]:
+                                object_data = {
+                                    "object_id": obj.get("id", ""),
+                                    "name": obj.get("name", ""),
+                                    "top_category": obj.get("Top Category", ""),
+                                    "bound_box": obj.get("bound_box", []),
+                                    "probability": obj.get("prob", 0.0),
+                                    "area": obj.get("area", 0.0),
+                                    "tags": {},
+                                    "tags_simple": [],
+                                    "tags_map": {}
+                                }
+                                
+                                # Извлекаем теги объекта
                                 if obj.get("_tags"):
                                     obj_tags = obj["_tags"]
-                                    # Извлекаем простые теги
-                                    if obj_tags.get("_tags_simple"):
-                                        for tag_name in obj_tags["_tags_simple"]:
-                                            tags.append({
-                                                "name": tag_name,
-                                                "confidence": 1.0,  # Простые теги без confidence
-                                                "category": obj.get("name", ""),
-                                                "object_id": obj.get("id", "")
-                                            })
                                     
-                                    # Извлекаем детальные теги по категориям
+                                    # Простые теги
+                                    if obj_tags.get("_tags_simple"):
+                                        object_data["tags_simple"] = obj_tags["_tags_simple"]
+                                    
+                                    # Карта тегов
+                                    if obj_tags.get("_tags_map"):
+                                        object_data["tags_map"] = obj_tags["_tags_map"]
+                                    
+                                    # Детальные теги по категориям
                                     for category, tag_list in obj_tags.items():
                                         if category not in ["_tags_simple", "_tags_map"] and isinstance(tag_list, list):
+                                            object_data["tags"][category] = []
                                             for tag in tag_list:
                                                 if isinstance(tag, dict):
-                                                    tags.append({
+                                                    object_data["tags"][category].append({
                                                         "name": tag.get("name", ""),
                                                         "confidence": tag.get("prob", 0.0),
-                                                        "category": category,
-                                                        "object_id": obj.get("id", "")
+                                                        "id": tag.get("id", "")
                                                     })
+                                
+                                objects.append(object_data)
+                        
+                        # Создаем плоский список тегов для обратной совместимости
+                        tags = []
+                        for obj in objects:
+                            for category, tag_list in obj["tags"].items():
+                                for tag in tag_list:
+                                    tags.append({
+                                        "name": tag["name"],
+                                        "confidence": tag["confidence"],
+                                        "category": category,
+                                        "object_id": obj["object_id"],
+                                        "object_name": obj["name"]
+                                    })
                         
                         return {
                             "success": True,
                             "tags": tags,
+                            "objects": objects,
                             "total_tags": len(tags),
+                            "total_objects": len(objects),
                             "api_response": result
                         }
                     else:
@@ -172,7 +201,9 @@ class XimilarFashionTagger:
         try:
             update_data = {
                 "ximilar_tags": tags_data.get("tags", []),
+                "ximilar_objects": tags_data.get("objects", []),
                 "ximilar_total_tags": tags_data.get("total_tags", 0),
+                "ximilar_total_objects": tags_data.get("total_objects", 0),
                 "ximilar_tagged_at": datetime.now().isoformat(),
                 "ximilar_success": tags_data.get("success", False)
             }
