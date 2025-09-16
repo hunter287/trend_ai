@@ -352,7 +352,7 @@ class InstagramSeleniumParser:
                             "local_path": img_data["local_path"],
                             "file_size": img_data["file_size"],
                             "downloaded_at": img_data["downloaded_at"],
-                            "full_image_url": f"http://89.169.176.64/images/{img_data['local_filename']}"
+                            "full_image_url": f"http://51.250.108.8/images/{img_data['local_filename']}"
                         }
                         
                         self.collection.insert_one(doc)
