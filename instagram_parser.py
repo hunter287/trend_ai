@@ -211,14 +211,71 @@ class InstagramParser:
         print(f"✅ Скачано {downloaded_count} изображений")
         return downloaded_data
     
+    def is_image_exists(self, image_url: str, post_id: str = None) -> bool:
+        """Проверка существования изображения в MongoDB"""
+        try:
+            # Проверяем по URL изображения
+            if self.collection.find_one({"image_url": image_url}):
+                return True
+            
+            # Дополнительная проверка по post_id, если указан
+            if post_id and self.collection.find_one({"post_id": post_id}):
+                return True
+                
+            return False
+        except Exception as e:
+            print(f"❌ Ошибка проверки дубликатов: {e}")
+            return False
+
+    def get_existing_images(self, image_urls: List[str], post_ids: List[str] = None) -> set:
+        """Массовая проверка существующих изображений"""
+        try:
+            existing_urls = set()
+            existing_posts = set()
+            
+            # Проверяем по URL изображений
+            if image_urls:
+                cursor = self.collection.find(
+                    {"image_url": {"$in": image_urls}}, 
+                    {"image_url": 1, "_id": 0}
+                )
+                existing_urls = {doc["image_url"] for doc in cursor}
+            
+            # Проверяем по post_id, если указаны
+            if post_ids:
+                cursor = self.collection.find(
+                    {"post_id": {"$in": post_ids}}, 
+                    {"post_id": 1, "_id": 0}
+                )
+                existing_posts = {doc["post_id"] for doc in cursor}
+            
+            return existing_urls, existing_posts
+        except Exception as e:
+            print(f"❌ Ошибка массовой проверки дубликатов: {e}")
+            return set(), set()
+
     def save_to_mongodb(self, image_data: List[Dict], username: str):
-        """Сохранение данных в MongoDB"""
+        """Сохранение данных в MongoDB с проверкой дубликатов"""
         print("💾 Сохранение в MongoDB...")
         
         try:
-            # Подготавливаем данные для MongoDB
+            # Массовая проверка дубликатов для оптимизации
+            image_urls = [img_data["image_url"] for img_data in image_data]
+            post_ids = [img_data["post_id"] for img_data in image_data]
+            existing_urls, existing_posts = self.get_existing_images(image_urls, post_ids)
+            
+            # Подготавливаем данные для MongoDB с проверкой дубликатов
             mongo_docs = []
+            skipped_count = 0
+            
             for img_data in image_data:
+                # Проверяем, существует ли изображение
+                if (img_data["image_url"] in existing_urls or 
+                    img_data["post_id"] in existing_posts):
+                    print(f"⏭️ Пропуск дубликата: {img_data['image_url']}")
+                    skipped_count += 1
+                    continue
+                
                 doc = {
                     "instagram_url": f"https://www.instagram.com/{username}/",
                     "username": username,
@@ -250,7 +307,7 @@ class InstagramParser:
             # Вставляем в MongoDB
             if mongo_docs:
                 result = self.collection.insert_many(mongo_docs)
-                print(f"✅ Сохранено {len(result.inserted_ids)} записей в MongoDB")
+                print(f"✅ Сохранено {len(result.inserted_ids)} новых записей в MongoDB")
                 
                 # Создаем индексы для быстрого поиска
                 self.collection.create_index("username")
@@ -258,7 +315,14 @@ class InstagramParser:
                 self.collection.create_index("timestamp")
                 print("✅ Созданы индексы для быстрого поиска")
             else:
-                print("❌ Нет данных для сохранения")
+                print("❌ Нет новых данных для сохранения")
+            
+            # Выводим статистику
+            total_processed = len(image_data)
+            new_saved = len(mongo_docs)
+            print(f"📊 Статистика: обработано {total_processed}, сохранено {new_saved}, пропущено дубликатов {skipped_count}")
+            
+            return new_saved
                 
         except Exception as e:
             print(f"❌ Ошибка сохранения в MongoDB: {e}")
