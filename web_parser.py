@@ -75,15 +75,7 @@ def api_parse():
         if not success:
             return jsonify({'success': False, 'message': message})
         
-        # Запускаем парсинг в отдельном потоке
-        thread = threading.Thread(
-            target=run_parsing_session,
-            args=(session_id, accounts, max_posts)
-        )
-        thread.daemon = True
-        thread.start()
-        
-        # Регистрируем сессию
+        # Сначала регистрируем сессию
         active_parsing_sessions[session_id] = {
             'status': 'starting',
             'accounts': accounts,
@@ -93,6 +85,14 @@ def api_parse():
             'current_account': None,
             'results': []
         }
+        
+        # Затем запускаем парсинг в отдельном потоке
+        thread = threading.Thread(
+            target=run_parsing_session,
+            args=(session_id, accounts, max_posts)
+        )
+        thread.daemon = True
+        thread.start()
         
         return jsonify({
             'success': True,
@@ -123,9 +123,13 @@ def run_parsing_session(session_id, accounts, max_posts):
     """Запуск парсинга в отдельном потоке"""
     session_data = None
     try:
+        # Небольшая задержка для гарантии регистрации сессии
+        time.sleep(0.1)
+        
         # Проверяем, что сессия существует
         if session_id not in active_parsing_sessions:
             print(f"⚠️ Сессия {session_id} не найдена в активных сессиях")
+            print(f"Доступные сессии: {list(active_parsing_sessions.keys())}")
             return
         
         session_data = active_parsing_sessions[session_id]
