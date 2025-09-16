@@ -5,184 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@{username} - Instagram Gallery</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
+            box-sizing: border-box;
         }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            padding: 40px 20px;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #e0e0e0;
         }
+        
+        .header h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #212121;
+        }
+        
         .stats {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            margin: 20px 0;
+            gap: 40px;
+            margin: 0;
         }
+        
         .stat {
             text-align: center;
-            padding: 10px;
-            background: #e3f2fd;
-            border-radius: 5px;
+        }
+        
+        .stat h3 {
+            margin: 0 0 5px 0;
+            font-size: 2rem;
+            font-weight: 200;
+            color: #666;
+        }
+        
+        .stat p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         /* Фильтры */
         .filters {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            padding: 30px;
+            margin: 0 20px 40px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        
         .filters h3 {
-            margin-top: 0;
-            color: #333;
+            margin: 0 0 25px 0;
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #424242;
         }
+        
         .filter-row {
             display: flex;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 15px;
+            gap: 30px;
+            align-items: end;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
+        
         .filter-group {
             display: flex;
             flex-direction: column;
-            min-width: 200px;
+            min-width: 180px;
         }
+        
         .filter-group label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+        
         .filter-group select {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
             font-size: 14px;
             background: white;
             cursor: pointer;
-            transition: border-color 0.3s ease;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
         }
+        
         .filter-group select:focus {
             outline: none;
-            border-color: #1976d2;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
         }
+        
         .filter-group select:hover {
-            border-color: #1976d2;
+            border-color: #bdbdbd;
         }
+        
+        .apply-btn, .clear-btn {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            height: fit-content;
+        }
+        
         .apply-btn {
-            background: #1976d2;
+            background: #2196f3;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-            height: fit-content;
-            margin-top: 20px;
         }
+        
         .apply-btn:hover {
-            background: #1565c0;
+            background: #1976d2;
+            transform: translateY(-1px);
         }
-        .apply-btn:active {
-            background: #0d47a1;
-        }
+        
         .clear-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-            height: fit-content;
-            margin-top: 20px;
+            background: transparent;
+            color: #666;
+            border: 1px solid #e0e0e0;
             margin-left: 10px;
         }
+        
         .clear-btn:hover {
-            background: #d32f2f;
+            background: #f5f5f5;
+            border-color: #bdbdbd;
         }
+        
         .filter-info {
-            background: #e8f5e8;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-top: 20px;
             font-size: 14px;
-            color: #2e7d32;
+            color: #666;
+            border-left: 3px solid #2196f3;
         }
         
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 0 20px;
+            margin-bottom: 40px;
         }
+        
         .image-card {
             background: white;
-            border-radius: 10px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
         }
+        
         .image-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+        
         .image-card.hidden {
             display: none;
         }
+        
         .image-card img {
             width: 100%;
-            height: 200px;
+            height: 240px;
             object-fit: cover;
+            background: #f5f5f5;
         }
+        
         .image-info {
-            padding: 15px;
+            padding: 20px;
         }
+        
         .post-id {
-            font-weight: bold;
-            color: #1976d2;
+            font-weight: 500;
+            color: #2196f3;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
         }
+        
         .likes {
-            color: #e91e63;
-            font-size: 14px;
-        }
-        .timestamp {
             color: #666;
-            font-size: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        
+        .timestamp {
+            color: #999;
+            font-size: 0.8rem;
         }
         
         /* Теги объектов (для будущего использования) */
         .object-tags {
-            margin-top: 10px;
+            margin-top: 12px;
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 6px;
         }
+        
         .object-tag {
             background: #e3f2fd;
             color: #1976d2;
-            padding: 2px 8px;
+            padding: 4px 8px;
             border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
+        
         .color-tag {
             background: #f3e5f5;
             color: #7b1fa2;
-            padding: 2px 8px;
+            padding: 4px 8px;
             border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
         
         /* Адаптивность */
@@ -221,7 +286,7 @@
         <div class="filter-row">
             <div class="filter-group">
                 <label for="clothing-type">Тип одежды</label>
-                <select id="clothing-type" multiple>
+                <select id="clothing-type">
                     <option value="">Все типы</option>
                     <option value="jacket">Куртки</option>
                     <option value="coat">Пальто</option>
@@ -248,7 +313,7 @@
             
             <div class="filter-group">
                 <label for="color-filter">Цвет</label>
-                <select id="color-filter" multiple>
+                <select id="color-filter">
                     <option value="">Все цвета</option>
                     <option value="black">Черный</option>
                     <option value="white">Белый</option>
@@ -272,7 +337,7 @@
             
             <div class="filter-group">
                 <label for="style-filter">Стиль</label>
-                <select id="style-filter" multiple>
+                <select id="style-filter">
                     <option value="">Все стили</option>
                     <option value="casual">Повседневный</option>
                     <option value="formal">Деловой</option>
@@ -307,9 +372,9 @@
         const imageData = {image_data_json};
         
         function applyFilters() {
-            const clothingType = Array.from(document.getElementById('clothing-type').selectedOptions).map(opt => opt.value).filter(v => v);
-            const colors = Array.from(document.getElementById('color-filter').selectedOptions).map(opt => opt.value).filter(v => v);
-            const styles = Array.from(document.getElementById('style-filter').selectedOptions).map(opt => opt.value).filter(v => v);
+            const clothingType = document.getElementById('clothing-type').value;
+            const color = document.getElementById('color-filter').value;
+            const style = document.getElementById('style-filter').value;
             
             const cards = document.querySelectorAll('.image-card');
             let visibleCount = 0;
@@ -322,6 +387,9 @@
                 
                 // Пока что просто показываем все изображения, так как данных об объектах нет
                 // В будущем здесь будет логика фильтрации по объектам
+                // if (clothingType && !hasClothingType(imageData, clothingType)) show = false;
+                // if (color && !hasColor(imageData, color)) show = false;
+                // if (style && !hasStyle(imageData, style)) show = false;
                 
                 if (show) {
                     card.classList.remove('hidden');
@@ -338,7 +406,7 @@
             
             // Показываем информацию о фильтрах
             const filterInfo = document.getElementById('filter-info');
-            if (clothingType.length > 0 || colors.length > 0 || styles.length > 0) {
+            if (clothingType || color || style) {
                 filterInfo.style.display = 'block';
             } else {
                 filterInfo.style.display = 'none';
@@ -347,9 +415,9 @@
         
         function clearFilters() {
             // Сбрасываем все селекты
-            document.getElementById('clothing-type').selectedIndex = -1;
-            document.getElementById('color-filter').selectedIndex = -1;
-            document.getElementById('style-filter').selectedIndex = -1;
+            document.getElementById('clothing-type').value = '';
+            document.getElementById('color-filter').value = '';
+            document.getElementById('style-filter').value = '';
             
             // Показываем все изображения
             const cards = document.querySelectorAll('.image-card');
