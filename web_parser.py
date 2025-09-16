@@ -121,7 +121,13 @@ def api_sessions():
 
 def run_parsing_session(session_id, accounts, max_posts):
     """Запуск парсинга в отдельном потоке"""
+    session_data = None
     try:
+        # Проверяем, что сессия существует
+        if session_id not in active_parsing_sessions:
+            print(f"⚠️ Сессия {session_id} не найдена в активных сессиях")
+            return
+        
         session_data = active_parsing_sessions[session_id]
         session_data['status'] = 'running'
         
@@ -227,9 +233,19 @@ def run_parsing_session(session_id, accounts, max_posts):
         threading.Timer(300, lambda: active_parsing_sessions.pop(session_id, None)).start()
         
     except Exception as e:
-        session_data['status'] = 'error'
-        session_data['error'] = str(e)
-        socketio.emit('parsing_error', session_data, room=session_id)
+        if session_data is not None:
+            session_data['status'] = 'error'
+            session_data['error'] = str(e)
+            socketio.emit('parsing_error', session_data, room=session_id)
+        else:
+            # Если сессия не найдена, создаем временную запись об ошибке
+            error_data = {
+                'session_id': session_id,
+                'status': 'error',
+                'error': f'Сессия не найдена: {str(e)}',
+                'timestamp': datetime.now().isoformat()
+            }
+            socketio.emit('parsing_error', error_data, room=session_id)
 
 @socketio.on('connect')
 def handle_connect():
