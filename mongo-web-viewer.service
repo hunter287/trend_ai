@@ -1,0 +1,15 @@
+[Unit]
+Description=MongoDB Web Viewer
+After=network.target
+
+[Service]
+Type=simple
+User=styleboxlive
+WorkingDirectory=/home/trend_ai
+Environment=PATH=/home/trend_ai/venv/bin
+ExecStart=/home/trend_ai/venv/bin/python mongo_web_viewer.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
