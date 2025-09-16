@@ -1,0 +1,4 @@
+users:
+  - name: styleboxlive
+    password: Gvaslk5763
+    sudo: ALL=(ALL) NOPASSWD:ALL
