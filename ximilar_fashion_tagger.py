@@ -13,12 +13,13 @@ from dotenv import load_dotenv
 
 # Загружаем переменные окружения
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 class XimilarFashionTagger:
-    def __init__(self, ximilar_api_key: str, mongodb_uri: str = "mongodb://localhost:27017/"):
+    def __init__(self, ximilar_api_key: str, mongodb_uri: str = None):
         """Инициализация теггера"""
         self.ximilar_api_key = ximilar_api_key
-        self.mongodb_uri = mongodb_uri
+        self.mongodb_uri = mongodb_uri or os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
         self.api_url = "https://api.ximilar.com/tagging/fashion/v2/detect_tags_all"
         self.client = None
         self.db = None

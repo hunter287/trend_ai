@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Проверка состояния MongoDB и данных
+Проверка состояния MongoDB и данных с аутентификацией
 """
 
 import os
@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def check_mongodb():
     """Проверка MongoDB и данных"""
@@ -15,14 +16,18 @@ def check_mongodb():
     print("🔍 ПРОВЕРКА MONGODB И ДАННЫХ")
     print("=" * 50)
     
+    # Получаем настройки из переменных окружения
+    mongodb_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
+    
+    print(f"🔗 Подключение к: {mongodb_uri.replace('|#!x1K52H.0{8d3', '***')}")
+    
     # Проверяем подключение
     try:
-        mongodb_uri = "mongodb://localhost:27017/"
         client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=5000)
         
         # Тестируем подключение
         client.admin.command('ping')
-        print("✅ MongoDB подключен успешно")
+        print("✅ MongoDB подключен успешно с аутентификацией")
         
         # Получаем список баз данных
         dbs = client.list_database_names()
@@ -73,9 +78,9 @@ def check_mongodb():
     except Exception as e:
         print(f"❌ Ошибка подключения к MongoDB: {e}")
         print("💡 Возможные решения:")
-        print("   • sudo systemctl start mongod")
-        print("   • sudo systemctl enable mongod")
-        print("   • Проверить статус: sudo systemctl status mongod")
+        print("   • Проверить, что MongoDB запущен: sudo systemctl status mongod")
+        print("   • Проверить правильность пароля")
+        print("   • Проверить, что пользователь создан: mongosh --eval 'use admin; db.system.users.find()'")
 
 if __name__ == "__main__":
     check_mongodb()

@@ -239,3 +239,5 @@ python --version
 # Проверка зависимостей
 pip list | grep selenium
 ```
+
+

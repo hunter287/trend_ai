@@ -14,12 +14,13 @@ from dotenv import load_dotenv
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 class InstagramParser:
-    def __init__(self, apify_token: str, mongodb_uri: str = "mongodb://localhost:27017/"):
+    def __init__(self, apify_token: str, mongodb_uri: str = None):
         """Инициализация парсера"""
         self.apify_token = apify_token
-        self.mongodb_uri = mongodb_uri
+        self.mongodb_uri = mongodb_uri or os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
         self.client = None
         self.db = None
         self.collection = None

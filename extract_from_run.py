@@ -10,6 +10,7 @@ from apify_client import ApifyClient
 from pymongo import MongoClient
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def extract_from_run(run_id: str, limit: int = 100):
     """Извлечение данных из конкретного запуска"""
@@ -131,7 +132,7 @@ def extract_from_run(run_id: str, limit: int = 100):
 def save_to_mongodb(images_data):
     """Сохранение данных в MongoDB"""
     try:
-        client = MongoClient("mongodb://localhost:27017/")
+        client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery'))
         db = client["instagram_gallery"]
         collection = db["images"]
         
@@ -168,3 +169,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

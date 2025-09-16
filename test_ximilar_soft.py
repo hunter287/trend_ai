@@ -8,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def test_ximilar_soft():
     """Тестирование Ximilar API с мягкими настройками"""
@@ -105,7 +106,7 @@ def test_ximilar_soft():
     
     try:
         from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017/")
+        client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery'))
         db = client.instagram_gallery
         collection = db.images
         

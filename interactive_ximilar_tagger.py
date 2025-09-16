@@ -9,6 +9,7 @@ from ximilar_fashion_tagger import XimilarFashionTagger
 
 # Загружаем переменные окружения
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def print_banner():
     """Печать баннера"""
@@ -34,7 +35,7 @@ def get_ximilar_token():
 
 def get_mongodb_uri():
     """Получение URI MongoDB"""
-    default_uri = "mongodb://localhost:27017/"
+    default_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
     print(f"\n📊 Настройка MongoDB:")
     print(f"   По умолчанию: {default_uri}")
     
@@ -158,3 +159,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

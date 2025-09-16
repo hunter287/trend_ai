@@ -4,18 +4,19 @@
 """
 
 import os
+import json
 from dotenv import load_dotenv
 from pymongo import MongoClient
-import json
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def view_object_structure():
     """Просмотр структуры объектов в MongoDB"""
     
     try:
         # Подключение к MongoDB
-        client = MongoClient("mongodb://localhost:27017/")
+        client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery'))
         db = client["instagram_gallery"]
         collection = db["images"]
         
@@ -87,7 +88,7 @@ def view_object_structure():
 def export_object_structure():
     """Экспорт структуры объектов в JSON"""
     try:
-        client = MongoClient("mongodb://localhost:27017/")
+        client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery'))
         db = client["instagram_gallery"]
         collection = db["images"]
         
@@ -139,3 +140,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

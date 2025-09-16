@@ -4,19 +4,20 @@
 """
 
 import os
-from dotenv import load_dotenv
-from pymongo import MongoClient
 import requests
 from PIL import Image
 import io
+from dotenv import load_dotenv
+from pymongo import MongoClient
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def analyze_images():
     """Анализ изображений в MongoDB"""
     
     # Подключение к MongoDB
-    mongodb_uri = "mongodb://localhost:27017/"
+    mongodb_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
     client = MongoClient(mongodb_uri)
     db = client.instagram_gallery
     collection = db.images

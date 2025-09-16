@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from instagram_selenium_parser import InstagramSeleniumParser
 
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 def get_parsing_settings():
     """Получение настроек парсинга"""
@@ -68,7 +69,7 @@ def confirm_settings(settings):
     print(f"   👤 Пользователь: @{settings['username']}")
     print(f"   📥 Макс. постов: {settings['posts_limit']}")
     print(f"   🖥️ Режим браузера: {'headless' if settings['headless'] else 'visible'}")
-    print(f"   🗄️ MongoDB URI: mongodb://localhost:27017/")
+    print(f"   🗄️ MongoDB URI: {os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')}")
     
     # Оценка времени
     estimated_time = settings['posts_limit'] * 2  # ~2 секунды на пост
@@ -131,3 +132,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

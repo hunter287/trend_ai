@@ -21,11 +21,12 @@ import pymongo
 
 # Загружаем переменные окружения
 load_dotenv()
+load_dotenv('mongodb_config.env')
 
 class InstagramSeleniumParser:
-    def __init__(self, mongodb_uri: str = "mongodb://localhost:27017/"):
+    def __init__(self, mongodb_uri: str = None):
         """Инициализация парсера"""
-        self.mongodb_uri = mongodb_uri
+        self.mongodb_uri = mongodb_uri or os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
         self.driver = None
         self.wait = None
         self.client = None
@@ -417,3 +418,5 @@ if __name__ == "__main__":
     
     # Запуск парсинга
     parser.run_full_parsing(username, password, posts_limit)
+
+
