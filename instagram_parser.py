@@ -328,8 +328,57 @@ class InstagramParser:
             print(f"❌ Ошибка сохранения в MongoDB: {e}")
     
     def create_gallery_html(self, image_data: List[Dict], username: str):
-        """Создание HTML галереи"""
-        print("🌐 Создание HTML галереи...")
+        """Создание HTML галереи с фильтрами"""
+        print("🌐 Создание HTML галереи с фильтрами...")
+        
+        # Читаем шаблон
+        template_path = "templates/gallery_template.html"
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template = f.read()
+        except FileNotFoundError:
+            print(f"❌ Шаблон {template_path} не найден, используем встроенный")
+            return self._create_simple_gallery_html(image_data, username)
+        
+        # Генерируем контент галереи
+        gallery_content = ""
+        for img_data in image_data:
+            if "local_filename" in img_data:
+                img_src = f"http://51.250.108.8/images/{img_data['local_filename']}"
+            else:
+                img_src = img_data["image_url"]
+                
+            gallery_content += f"""
+        <div class="image-card" data-post-id="{img_data['post_id']}">
+            <img src="{img_src}" alt="{img_data['post_id']}" loading="lazy">
+            <div class="image-info">
+                <div class="post-id">{img_data['post_id']}</div>
+                <div class="likes">❤️ {img_data['likes_count']}</div>
+                <div class="timestamp">{img_data['timestamp'][:10] if img_data['timestamp'] != 'N/A' else 'N/A'}</div>
+                <div class="object-tags">
+                    <!-- Здесь будут теги объектов, когда они появятся -->
+                </div>
+            </div>
+        </div>
+        """
+        
+        # Заменяем плейсхолдеры в шаблоне
+        html_content = template.replace("{username}", username)
+        html_content = html_content.replace("{total_images}", str(len(image_data)))
+        html_content = html_content.replace("{parsing_date}", datetime.now().strftime('%d.%m.%Y'))
+        html_content = html_content.replace("{gallery_content}", gallery_content)
+        html_content = html_content.replace("{image_data_json}", json.dumps(image_data, ensure_ascii=False))
+        
+        # Сохраняем HTML файл
+        with open(f"gallery_{username}.html", 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        print(f"🌐 HTML галерея с фильтрами создана: gallery_{username}.html")
+        return html_content
+
+    def _create_simple_gallery_html(self, image_data: List[Dict], username: str):
+        """Создание простой HTML галереи (fallback)"""
+        print("🌐 Создание простой HTML галереи...")
         
         html_content = f"""
 <!DOCTYPE html>
@@ -352,18 +401,6 @@ class InstagramParser:
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }}
-        .stats {{
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 20px 0;
-        }}
-        .stat {{
-            text-align: center;
-            padding: 10px;
-            background: #e3f2fd;
-            border-radius: 5px;
         }}
         .gallery {{
             display: grid;
@@ -388,42 +425,18 @@ class InstagramParser:
         .image-info {{
             padding: 15px;
         }}
-        .post-id {{
-            font-weight: bold;
-            color: #1976d2;
-        }}
-        .likes {{
-            color: #e91e63;
-            font-size: 14px;
-        }}
-        .timestamp {{
-            color: #666;
-            font-size: 12px;
-        }}
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🖼️ @{username} - Instagram Gallery</h1>
-        <div class="stats">
-            <div class="stat">
-                <h3>{len(image_data)}</h3>
-                <p>Изображений</p>
-            </div>
-            <div class="stat">
-                <h3>{datetime.now().strftime('%d.%m.%Y')}</h3>
-                <p>Дата парсинга</p>
-            </div>
-        </div>
+        <p>{len(image_data)} изображений</p>
     </div>
-    
     <div class="gallery">
 """
-
-        # Добавляем изображения
+        
         for img_data in image_data:
             if "local_filename" in img_data:
-                # Используем полный URL к изображению на сервере
                 img_src = f"http://51.250.108.8/images/{img_data['local_filename']}"
             else:
                 img_src = img_data["image_url"]
@@ -432,24 +445,23 @@ class InstagramParser:
         <div class="image-card">
             <img src="{img_src}" alt="{img_data['post_id']}" loading="lazy">
             <div class="image-info">
-                <div class="post-id">{img_data['post_id']}</div>
-                <div class="likes">❤️ {img_data['likes_count']}</div>
-                <div class="timestamp">{img_data['timestamp'][:10] if img_data['timestamp'] != 'N/A' else 'N/A'}</div>
+                <div>{img_data['post_id']}</div>
+                <div>❤️ {img_data['likes_count']}</div>
             </div>
         </div>
         """
-
+        
         html_content += """
     </div>
 </body>
 </html>
         """
         
-        # Сохраняем HTML файл
         with open(f"gallery_{username}.html", 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        print(f"🌐 HTML галерея создана: gallery_{username}.html")
+        print(f"🌐 Простая HTML галерея создана: gallery_{username}.html")
+        return html_content
     
     def run_full_parsing(self, username: str, max_images: int = 100, posts_limit: int = 100):
         """Полный цикл парсинга"""
