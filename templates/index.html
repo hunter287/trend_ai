@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Parser - Веб-интерфейс</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.running {
+            background: #28a745;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-indicator.completed {
+            background: #28a745;
+        }
+        
+        .status-indicator.error {
+            background: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e1e5e9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .log-container {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #4a5568;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .results-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+        }
+        
+        .result-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .result-item.error {
+            border-left-color: #dc3545;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .result-account {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .result-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .result-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .result-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .result-details {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .gallery-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .gallery-link:hover {
+            background: #5a6fd8;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+        
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Instagram Parser</h1>
+            <p>Парсинг Instagram аккаунтов с веб-интерфейсом</p>
+        </div>
+        
+        <div class="content">
+            <!-- Форма парсинга -->
+            <div class="form-section">
+                <h2>📝 Настройки парсинга</h2>
+                
+                <div class="form-group">
+                    <label for="accounts">Instagram аккаунты (по одному на строку):</label>
+                    <textarea id="accounts" placeholder="linda.sza&#10;selenagomez&#10;therock"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max_posts">Количество постов с каждого аккаунта:</label>
+                    <input type="number" id="max_posts" value="20" min="1" max="100">
+                </div>
+                
+                <button class="btn" id="startBtn" onclick="startParsing()">
+                    🚀 Запустить парсинг
+                </button>
+            </div>
+            
+            <!-- Статус парсинга -->
+            <div class="status-section" id="statusSection">
+                <div class="status-header">
+                    <h3>
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">Готов к запуску</span>
+                    </h3>
+                    <span id="progressText">0%</span>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">Готов к запуску парсинга...</div>
+                </div>
+            </div>
+            
+            <!-- Результаты -->
+            <div class="results-section" id="resultsSection">
+                <h3>📊 Результаты парсинга</h3>
+                <div id="resultsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let currentSessionId = null;
+        
+        // Инициализация WebSocket
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Подключен к серверу');
+            });
+            
+            socket.on('parsing_update', function(data) {
+                updateStatus(data);
+            });
+            
+            socket.on('parsing_log', function(data) {
+                addLogEntry(data.message, data.timestamp);
+            });
+            
+            socket.on('parsing_complete', function(data) {
+                updateStatus(data);
+                showResults(data.results);
+            });
+            
+            socket.on('parsing_error', function(data) {
+                updateStatus(data);
+                addLogEntry('❌ Ошибка: ' + data.error, new Date().toISOString());
+            });
+        }
+        
+        // Запуск парсинга
+        function startParsing() {
+            const accounts = document.getElementById('accounts').value.trim();
+            const maxPosts = parseInt(document.getElementById('max_posts').value);
+            
+            if (!accounts) {
+                alert('Введите список аккаунтов');
+                return;
+            }
+            
+            const accountList = accounts.split('\n').map(acc => acc.trim()).filter(acc => acc);
+            if (accountList.length === 0) {
+                alert('Введите корректный список аккаунтов');
+                return;
+            }
+            
+            // Отправляем запрос на парсинг
+            fetch('/api/parse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accounts: accountList,
+                    max_posts: maxPosts,
+                    session_id: 'session_' + Date.now()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('statusSection').style.display = 'block';
+                    document.getElementById('resultsSection').style.display = 'none';
+                    clearLog();
+                    addLogEntry('🚀 Парсинг запущен для ' + accountList.length + ' аккаунтов', new Date().toISOString());
+                    
+                    // Присоединяемся к сессии
+                    socket.emit('join_session', { session_id: currentSessionId });
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка при запуске парсинга');
+            });
+        }
+        
+        // Обновление статуса
+        function updateStatus(data) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const progressText = document.getElementById('progressText');
+            const progressFill = document.getElementById('progressFill');
+            
+            statusIndicator.className = 'status-indicator ' + data.status;
+            progressFill.style.width = data.progress + '%';
+            progressText.textContent = data.progress + '%';
+            
+            if (data.status === 'running') {
+                statusText.textContent = 'Парсинг выполняется...';
+                if (data.current_account) {
+                    statusText.textContent = 'Парсинг @' + data.current_account + '...';
+                }
+            } else if (data.status === 'completed') {
+                statusText.textContent = 'Парсинг завершен';
+                document.getElementById('startBtn').disabled = false;
+            } else if (data.status === 'error') {
+                statusText.textContent = 'Ошибка парсинга';
+                document.getElementById('startBtn').disabled = false;
+            }
+        }
+        
+        // Добавление записи в лог
+        function addLogEntry(message, timestamp) {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            const time = new Date(timestamp).toLocaleTimeString();
+            logEntry.textContent = `[${time}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Очистка лога
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+        
+        // Показ результатов
+        function showResults(results) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            resultsContainer.innerHTML = '';
+            
+            results.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result-item ' + (result.success ? '' : 'error');
+                
+                let html = `
+                    <div class="result-header">
+                        <span class="result-account">@${result.account}</span>
+                        <span class="result-status ${result.success ? 'success' : 'error'}">
+                            ${result.success ? 'Успешно' : 'Ошибка'}
+                        </span>
+                    </div>
+                `;
+                
+                if (result.success) {
+                    html += `
+                        <div class="result-details">
+                            Скачано изображений: ${result.images_downloaded}<br>
+                            Сохранено в БД: ${result.images_saved}
+                        </div>
+                    `;
+                    
+                    if (result.gallery_url) {
+                        html += `<a href="${result.gallery_url}" class="gallery-link" target="_blank">🌐 Открыть галерею</a>`;
+                    }
+                } else {
+                    html += `<div class="result-details">Ошибка: ${result.error}</div>`;
+                }
+                
+                resultDiv.innerHTML = html;
+                resultsContainer.appendChild(resultDiv);
+            });
+            
+            resultsSection.style.display = 'block';
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            initSocket();
+        });
+    </script>
+</body>
+</html>
