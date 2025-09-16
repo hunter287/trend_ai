@@ -197,7 +197,7 @@ def run_parsing_session(session_id, accounts, max_posts):
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
-                web_parser.parser.create_html_gallery(downloaded_data, account)
+                web_parser.parser.create_gallery_html(downloaded_data, account)
                 
                 result = {
                     'account': account,
