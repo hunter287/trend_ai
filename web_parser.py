@@ -119,6 +119,30 @@ def api_sessions():
         'count': len(active_parsing_sessions)
     })
 
+@app.route('/gallery_<username>.html')
+def serve_gallery(username):
+    """Обслуживание HTML галерей"""
+    import os
+    gallery_file = f"gallery_{username}.html"
+    if os.path.exists(gallery_file):
+        with open(gallery_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        return f"Галерея для @{username} не найдена", 404
+
+@app.route('/images/<filename>')
+def serve_image(filename):
+    """Обслуживание изображений"""
+    from flask import send_from_directory
+    import os
+    
+    # Проверяем, существует ли папка с изображениями
+    images_dir = "instagram_images"
+    if os.path.exists(images_dir):
+        return send_from_directory(images_dir, filename)
+    else:
+        return "Изображение не найдено", 404
+
 def run_parsing_session(session_id, accounts, max_posts):
     """Запуск парсинга в отдельном потоке"""
     session_data = None
