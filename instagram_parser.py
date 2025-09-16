@@ -20,7 +20,7 @@ class InstagramParser:
     def __init__(self, apify_token: str, mongodb_uri: str = None):
         """Инициализация парсера"""
         self.apify_token = apify_token
-        self.mongodb_uri = mongodb_uri or os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
+        self.mongodb_uri = mongodb_uri or os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
         self.client = None
         self.db = None
         self.collection = None

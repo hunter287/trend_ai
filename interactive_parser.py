@@ -38,7 +38,7 @@ def get_apify_token():
 
 def get_mongodb_uri():
     """Получение URI MongoDB"""
-    default_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:|#!x1K52H.0{8d3@localhost:27017/instagram_gallery')
+    default_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
     print(f"\n📊 Настройка MongoDB:")
     print(f"   По умолчанию: {default_uri}")
     
