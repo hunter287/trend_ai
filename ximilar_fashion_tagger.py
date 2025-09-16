@@ -40,6 +40,34 @@ class XimilarFashionTagger:
             print(f"❌ Ошибка подключения к MongoDB: {e}")
             return False
     
+    def _categorize_property(self, category: str) -> str:
+        """Категоризация свойств по типам"""
+        category_lower = category.lower()
+        
+        # Визуальные атрибуты
+        if any(word in category_lower for word in ['color', 'pattern', 'texture', 'shape', 'size', 'length', 'width', 'height']):
+            return "visual_attributes"
+        
+        # Стилевые атрибуты
+        elif any(word in category_lower for word in ['style', 'fashion', 'trend', 'design', 'cut', 'fit', 'silhouette']):
+            return "style_attributes"
+        
+        # Цветовые атрибуты
+        elif any(word in category_lower for word in ['color', 'hue', 'shade', 'tone', 'brightness']):
+            return "color_attributes"
+        
+        # Материальные атрибуты
+        elif any(word in category_lower for word in ['material', 'fabric', 'textile', 'leather', 'cotton', 'silk', 'wool']):
+            return "material_attributes"
+        
+        # Брендовые атрибуты
+        elif any(word in category_lower for word in ['brand', 'logo', 'label', 'manufacturer']):
+            return "brand_attributes"
+        
+        # Остальные атрибуты
+        else:
+            return "other_attributes"
+    
     def get_untagged_images(self, limit: int = 100) -> List[Dict]:
         """Получение изображений без тегов Ximilar"""
         try:
@@ -99,7 +127,7 @@ class XimilarFashionTagger:
                     if result.get("records") and len(result["records"]) > 0:
                         record = result["records"][0]
                         
-                        # Извлекаем объекты с их тегами
+                        # Извлекаем объекты с их тегами (объектно-ориентированная структура)
                         objects = []
                         if record.get("_objects"):
                             for obj in record["_objects"]:
@@ -110,12 +138,25 @@ class XimilarFashionTagger:
                                     "bound_box": obj.get("bound_box", []),
                                     "probability": obj.get("prob", 0.0),
                                     "area": obj.get("area", 0.0),
-                                    "tags": {},
+                                    "properties": {
+                                        "basic_info": {
+                                            "name": obj.get("name", ""),
+                                            "category": obj.get("Top Category", ""),
+                                            "confidence": obj.get("prob", 0.0),
+                                            "area": obj.get("area", 0.0)
+                                        },
+                                        "visual_attributes": {},
+                                        "style_attributes": {},
+                                        "color_attributes": {},
+                                        "material_attributes": {},
+                                        "brand_attributes": {},
+                                        "other_attributes": {}
+                                    },
                                     "tags_simple": [],
                                     "tags_map": {}
                                 }
                                 
-                                # Извлекаем теги объекта
+                                # Извлекаем теги объекта и группируем по типам свойств
                                 if obj.get("_tags"):
                                     obj_tags = obj["_tags"]
                                     
@@ -127,32 +168,44 @@ class XimilarFashionTagger:
                                     if obj_tags.get("_tags_map"):
                                         object_data["tags_map"] = obj_tags["_tags_map"]
                                     
-                                    # Детальные теги по категориям
+                                    # Группируем теги по типам свойств
                                     for category, tag_list in obj_tags.items():
                                         if category not in ["_tags_simple", "_tags_map"] and isinstance(tag_list, list):
-                                            object_data["tags"][category] = []
+                                            # Определяем тип свойства по категории
+                                            property_type = self._categorize_property(category)
+                                            
+                                            if property_type not in object_data["properties"]:
+                                                object_data["properties"][property_type] = {}
+                                            
+                                            object_data["properties"][property_type][category] = []
                                             for tag in tag_list:
                                                 if isinstance(tag, dict):
-                                                    object_data["tags"][category].append({
+                                                    tag_data = {
                                                         "name": tag.get("name", ""),
                                                         "confidence": tag.get("prob", 0.0),
-                                                        "id": tag.get("id", "")
-                                                    })
+                                                        "id": tag.get("id", ""),
+                                                        "category": category
+                                                    }
+                                                    object_data["properties"][property_type][category].append(tag_data)
                                 
                                 objects.append(object_data)
                         
                         # Создаем плоский список тегов для обратной совместимости
                         tags = []
                         for obj in objects:
-                            for category, tag_list in obj["tags"].items():
-                                for tag in tag_list:
-                                    tags.append({
-                                        "name": tag["name"],
-                                        "confidence": tag["confidence"],
-                                        "category": category,
-                                        "object_id": obj["object_id"],
-                                        "object_name": obj["name"]
-                                    })
+                            for property_type, properties in obj["properties"].items():
+                                if isinstance(properties, dict):
+                                    for category, tag_list in properties.items():
+                                        if isinstance(tag_list, list):
+                                            for tag in tag_list:
+                                                tags.append({
+                                                    "name": tag["name"],
+                                                    "confidence": tag["confidence"],
+                                                    "category": category,
+                                                    "property_type": property_type,
+                                                    "object_id": obj["object_id"],
+                                                    "object_name": obj["name"]
+                                                })
                         
                         return {
                             "success": True,
@@ -198,9 +251,14 @@ class XimilarFashionTagger:
         }
     
     def update_image_with_tags(self, image_id: str, tags_data: Dict) -> bool:
-        """Обновление изображения в MongoDB с тегами"""
+        """Обновление изображения в MongoDB с тегами (объектно-ориентированная структура)"""
         try:
             update_data = {
+                # Новая объектно-ориентированная структура
+                "ximilar_objects_structured": tags_data.get("objects", []),
+                "ximilar_properties_summary": self._create_properties_summary(tags_data.get("objects", [])),
+                
+                # Обратная совместимость
                 "ximilar_tags": tags_data.get("tags", []),
                 "ximilar_objects": tags_data.get("objects", []),
                 "ximilar_total_tags": tags_data.get("total_tags", 0),
@@ -218,7 +276,7 @@ class XimilarFashionTagger:
             )
             
             if result.modified_count > 0:
-                print(f"✅ Обновлено изображение {image_id}")
+                print(f"✅ Обновлено изображение {image_id} с объектно-ориентированной структурой")
                 return True
             else:
                 print(f"❌ Не удалось обновить изображение {image_id}")
@@ -227,6 +285,32 @@ class XimilarFashionTagger:
         except Exception as e:
             print(f"❌ Ошибка обновления изображения {image_id}: {e}")
             return False
+    
+    def _create_properties_summary(self, objects: List[Dict]) -> Dict:
+        """Создание сводки по свойствам объектов"""
+        summary = {
+            "total_objects": len(objects),
+            "property_types": {},
+            "most_common_properties": {},
+            "objects_by_category": {}
+        }
+        
+        for obj in objects:
+            # Группируем по категориям
+            category = obj.get("top_category", "unknown")
+            if category not in summary["objects_by_category"]:
+                summary["objects_by_category"][category] = 0
+            summary["objects_by_category"][category] += 1
+            
+            # Анализируем свойства
+            properties = obj.get("properties", {})
+            for property_type, property_data in properties.items():
+                if isinstance(property_data, dict):
+                    if property_type not in summary["property_types"]:
+                        summary["property_types"][property_type] = 0
+                    summary["property_types"][property_type] += len(property_data)
+        
+        return summary
     
     def tag_batch_images(self, batch_size: int = 10, max_images: int = 100):
         """Тегирование пакета изображений"""
@@ -357,6 +441,49 @@ class XimilarFashionTagger:
             
         except Exception as e:
             print(f"❌ Ошибка получения статистики: {e}")
+    
+    def show_object_structure(self, image_id: str = None):
+        """Показать структуру объекта для конкретного изображения"""
+        try:
+            if not self.connect_mongodb():
+                return
+            
+            if image_id:
+                # Показать конкретное изображение
+                image = self.collection.find_one({"_id": image_id})
+                if not image:
+                    print(f"❌ Изображение {image_id} не найдено")
+                    return
+                
+                print(f"\n🔍 СТРУКТУРА ОБЪЕКТОВ ДЛЯ ИЗОБРАЖЕНИЯ {image_id}")
+                print("="*60)
+                
+                if "ximilar_objects_structured" in image:
+                    for i, obj in enumerate(image["ximilar_objects_structured"], 1):
+                        print(f"\n📦 ОБЪЕКТ {i}: {obj.get('name', 'Unknown')}")
+                        print(f"   Категория: {obj.get('top_category', 'Unknown')}")
+                        print(f"   Уверенность: {obj.get('probability', 0):.2f}")
+                        print(f"   Область: {obj.get('bound_box', [])}")
+                        
+                        properties = obj.get("properties", {})
+                        for prop_type, prop_data in properties.items():
+                            if isinstance(prop_data, dict) and prop_data:
+                                print(f"   {prop_type.upper()}:")
+                                for category, tags in prop_data.items():
+                                    if isinstance(tags, list) and tags:
+                                        print(f"     {category}: {[tag.get('name', '') for tag in tags]}")
+                else:
+                    print("❌ Нет объектно-ориентированных данных для этого изображения")
+            else:
+                # Показать пример структуры
+                image = self.collection.find_one({"ximilar_objects_structured": {"$exists": True, "$ne": []}})
+                if image:
+                    self.show_object_structure(str(image["_id"]))
+                else:
+                    print("❌ Нет изображений с объектно-ориентированными данными")
+                    
+        except Exception as e:
+            print(f"❌ Ошибка показа структуры: {e}")
 
 def main():
     """Главная функция"""
@@ -380,9 +507,10 @@ def main():
     print(f"\n🤔 Что хотите сделать?")
     print("1. Тегировать новые изображения")
     print("2. Показать статистику")
-    print("3. Выход")
+    print("3. Показать структуру объектов")
+    print("4. Выход")
     
-    choice = input("\nВыберите (1-3): ").strip()
+    choice = input("\nВыберите (1-4): ").strip()
     
     if choice == "1":
         try:
@@ -394,6 +522,9 @@ def main():
             print("❌ Введите корректное число")
     elif choice == "2":
         tagger.get_tagged_images_stats()
+    elif choice == "3":
+        image_id = input("ID изображения (Enter для примера): ").strip()
+        tagger.show_object_structure(image_id if image_id else None)
     else:
         print("👋 До свидания!")
 
