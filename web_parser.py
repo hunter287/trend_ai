@@ -189,7 +189,7 @@ def run_parsing_session(session_id, accounts, max_posts):
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
-                saved_count = web_parser.parser.save_to_mongodb(downloaded_data)
+                saved_count = web_parser.parser.save_to_mongodb(downloaded_data, account)
                 
                 # Создаем HTML галерею
                 socketio.emit('parsing_log', {
