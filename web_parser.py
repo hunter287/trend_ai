@@ -155,11 +155,11 @@ def serve_image(filename):
     import os
     
     # Проверяем, существует ли папка с изображениями
-    images_dir = "instagram_images"
+    images_dir = "images"
     if os.path.exists(images_dir):
         return send_from_directory(images_dir, filename)
     else:
-        return "Изображение не найдено", 404
+        return f"Папка {images_dir} не найдена", 404
 
 @app.route('/api/mark-for-tagging', methods=['POST'])
 def api_mark_for_tagging():
