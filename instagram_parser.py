@@ -294,7 +294,7 @@ class InstagramParser:
                 # Добавляем информацию о локальном файле, если есть
                 if "local_filename" in img_data:
                     # Полный URL к изображению на сервере
-                    full_image_url = f"http://158.160.19.119/images/{img_data['local_filename']}"
+                    full_image_url = f"http://158.160.19.119:5000/images/{img_data['local_filename']}"
                     
                     doc.update({
                         "local_filename": img_data["local_filename"],
@@ -347,7 +347,7 @@ class InstagramParser:
         gallery_content = ""
         for img_data in image_data:
             if "local_filename" in img_data:
-                img_src = f"http://158.160.19.119/images/{img_data['local_filename']}"
+                img_src = f"http://158.160.19.119:5000/images/{img_data['local_filename']}"
             else:
                 img_src = img_data["image_url"]
                 
@@ -440,7 +440,7 @@ class InstagramParser:
         
         for img_data in image_data:
             if "local_filename" in img_data:
-                img_src = f"http://158.160.19.119/images/{img_data['local_filename']}"
+                img_src = f"http://158.160.19.119:5000/images/{img_data['local_filename']}"
             else:
                 img_src = img_data["image_url"]
                 
@@ -499,7 +499,7 @@ class InstagramParser:
             gallery_content = ""
             for img_data in images:
                 if "local_filename" in img_data:
-                    img_src = f"http://158.160.19.119/images/{img_data['local_filename']}"
+                    img_src = f"http://158.160.19.119:5000/images/{img_data['local_filename']}"
                 else:
                     img_src = img_data["image_url"]
                 
