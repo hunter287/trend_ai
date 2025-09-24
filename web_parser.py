@@ -300,13 +300,13 @@ def run_parsing_session(session_id, accounts, max_posts):
                     'account': account,
                     'success': True,
                     'images_downloaded': len(downloaded_data),
-                    'images_saved': saved_count,
-                    'images_skipped': len(downloaded_data) - saved_count,
+                    'images_saved': saved_count or 0,
+                    'images_skipped': len(downloaded_data) - (saved_count or 0),
                     'gallery_url': f'/gallery_{account}.html'
                 }
                 
                 socketio.emit('parsing_log', {
-                    'message': f'✅ @{account} завершен: {len(downloaded_data)} изображений, сохранено {saved_count}, пропущено дубликатов {len(downloaded_data) - saved_count}',
+                    'message': f'✅ @{account} завершен: {len(downloaded_data)} изображений, сохранено {saved_count or 0}, пропущено дубликатов {len(downloaded_data) - (saved_count or 0)}',
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
