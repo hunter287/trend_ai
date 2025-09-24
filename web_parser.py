@@ -130,6 +130,24 @@ def serve_gallery(username):
     else:
         return f"Галерея для @{username} не найдена", 404
 
+@app.route('/all_accounts_gallery.html')
+@app.route('/all_accounts_gallery_page_<int:page>.html')
+def serve_combined_gallery(page=1):
+    """Обслуживание общей галереи всех аккаунтов"""
+    import os
+    
+    # Определяем имя файла
+    if page == 1:
+        gallery_file = "all_accounts_gallery.html"
+    else:
+        gallery_file = f"all_accounts_gallery_page_{page}.html"
+    
+    if os.path.exists(gallery_file):
+        with open(gallery_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        return f"Общая галерея (страница {page}) не найдена", 404
+
 @app.route('/images/<filename>')
 def serve_image(filename):
     """Обслуживание изображений"""
@@ -142,6 +160,61 @@ def serve_image(filename):
         return send_from_directory(images_dir, filename)
     else:
         return "Изображение не найдено", 404
+
+@app.route('/api/mark-for-tagging', methods=['POST'])
+def api_mark_for_tagging():
+    """API для отметки изображений для теггирования"""
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        if not image_ids:
+            return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
+        
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Обновляем статус изображений
+        from pymongo import ObjectId
+        from datetime import datetime
+        
+        # Преобразуем строковые ID в ObjectId
+        object_ids = []
+        for img_id in image_ids:
+            try:
+                object_ids.append(ObjectId(img_id))
+            except Exception as e:
+                print(f"❌ Ошибка преобразования ID {img_id}: {e}")
+                continue
+        
+        if not object_ids:
+            return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
+        
+        # Обновляем документы в MongoDB
+        result = web_parser.parser.collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {
+                "$set": {
+                    "selected_for_tagging": True,
+                    "selected_at": datetime.now().isoformat()
+                }
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Отмечено {result.modified_count} изображений для теггирования',
+            'marked_count': result.modified_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
 def run_parsing_session(session_id, accounts, max_posts):
     """Запуск парсинга в отдельном потоке"""
@@ -251,6 +324,30 @@ def run_parsing_session(session_id, accounts, max_posts):
             
             results.append(result)
             session_data['results'] = results
+        
+        # Создаем общую галерею всех аккаунтов
+        socketio.emit('parsing_log', {
+            'message': f'🌐 Создание общей галереи всех аккаунтов...',
+            'timestamp': datetime.now().isoformat()
+        }, room=session_id)
+        
+        try:
+            combined_gallery_html = web_parser.parser.create_combined_gallery_html(page=1, per_page=200)
+            if combined_gallery_html:
+                socketio.emit('parsing_log', {
+                    'message': f'✅ Общая галерея создана: /all_accounts_gallery.html',
+                    'timestamp': datetime.now().isoformat()
+                }, room=session_id)
+            else:
+                socketio.emit('parsing_log', {
+                    'message': f'⚠️ Не удалось создать общую галерею',
+                    'timestamp': datetime.now().isoformat()
+                }, room=session_id)
+        except Exception as e:
+            socketio.emit('parsing_log', {
+                'message': f'❌ Ошибка создания общей галереи: {e}',
+                'timestamp': datetime.now().isoformat()
+            }, room=session_id)
         
         # Завершаем сессию
         session_data['status'] = 'completed'

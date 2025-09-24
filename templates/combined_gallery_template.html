@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Общая галерея всех аккаунтов</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #212121;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 0;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat h3 {
+            margin: 0 0 5px 0;
+            font-size: 2rem;
+            font-weight: 200;
+            color: #666;
+        }
+        
+        .stat p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Панель управления выбором */
+        .selection-panel {
+            background: white;
+            padding: 20px;
+            margin: 0 20px 20px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .selection-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .select-all-btn, .mark-for-tagging-btn {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .select-all-btn {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .select-all-btn:hover {
+            background: #1976d2;
+        }
+        
+        .mark-for-tagging-btn {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .mark-for-tagging-btn:hover {
+            background: #45a049;
+        }
+        
+        .mark-for-tagging-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .selection-counter {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        /* Фильтры */
+        .filters {
+            background: white;
+            padding: 30px;
+            margin: 0 20px 40px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .filters h3 {
+            margin: 0 0 25px 0;
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #424242;
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 30px;
+            align-items: end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 180px;
+        }
+        
+        .filter-group label {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-group select {
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+        }
+        
+        .filter-group select:hover {
+            border-color: #bdbdbd;
+        }
+        
+        .apply-btn, .clear-btn {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            height: fit-content;
+        }
+        
+        .apply-btn {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .apply-btn:hover {
+            background: #1976d2;
+            transform: translateY(-1px);
+        }
+        
+        .clear-btn {
+            background: transparent;
+            color: #666;
+            border: 1px solid #e0e0e0;
+            margin-left: 10px;
+        }
+        
+        .clear-btn:hover {
+            background: #f5f5f5;
+            border-color: #bdbdbd;
+        }
+        
+        .filter-info {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            border-left: 3px solid #2196f3;
+        }
+        
+        /* Галерея */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 0 20px;
+            margin-bottom: 40px;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            position: relative;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .image-card.hidden {
+            display: none;
+        }
+        
+        .image-card.selected {
+            border: 2px solid #4caf50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        
+        .image-checkbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        .image-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #4caf50;
+        }
+        
+        .image-card img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            background: #f5f5f5;
+        }
+        
+        .image-info {
+            padding: 20px;
+        }
+        
+        .post-id {
+            font-weight: 500;
+            color: #2196f3;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        
+        .username {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        
+        .likes {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        
+        .timestamp {
+            color: #999;
+            font-size: 0.8rem;
+        }
+        
+        /* Пагинация */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 40px 0;
+            padding: 0 20px;
+        }
+        
+        .page-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #666;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .page-btn:hover {
+            background: #f5f5f5;
+            border-color: #bdbdbd;
+        }
+        
+        .page-btn.current {
+            background: #2196f3;
+            color: white;
+            border-color: #2196f3;
+        }
+        
+        .page-btn.prev, .page-btn.next {
+            font-weight: 500;
+        }
+        
+        /* Теги объектов */
+        .object-tags {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .object-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .color-tag {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-group {
+                min-width: auto;
+            }
+            .selection-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .selection-controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖼️ Общая галерея всех аккаунтов</h1>
+        <div class="stats">
+            <div class="stat">
+                <h3 id="total-images">{total_images}</h3>
+                <p>Всего изображений</p>
+            </div>
+            <div class="stat">
+                <h3 id="current-page">{current_page}</h3>
+                <p>Страница из {total_pages}</p>
+            </div>
+            <div class="stat">
+                <h3 id="per-page">{per_page}</h3>
+                <p>На странице</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="selection-panel">
+        <div class="selection-controls">
+            <button class="select-all-btn" onclick="selectAllImages()">Выбрать все</button>
+            <button class="mark-for-tagging-btn" onclick="markSelectedForTagging()" disabled id="mark-btn">
+                Отметить для теггирования
+            </button>
+        </div>
+        <div class="selection-counter">
+            Выбрано: <span id="selected-count">0</span> из <span id="total-count">{per_page}</span>
+        </div>
+    </div>
+    
+    <div class="filters">
+        <h3>🔍 Фильтры</h3>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="account-filter">Аккаунт</label>
+                <select id="account-filter">
+                    <option value="">Все аккаунты</option>
+                    {account_options}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="clothing-type">Тип одежды</label>
+                <select id="clothing-type">
+                    <option value="">Все типы</option>
+                    <option value="jacket">Куртки</option>
+                    <option value="coat">Пальто</option>
+                    <option value="dress">Платья</option>
+                    <option value="skirt">Юбки</option>
+                    <option value="pants">Брюки</option>
+                    <option value="jeans">Джинсы</option>
+                    <option value="shirt">Рубашки</option>
+                    <option value="blouse">Блузки</option>
+                    <option value="sweater">Свитеры</option>
+                    <option value="hoodie">Толстовки</option>
+                    <option value="t-shirt">Футболки</option>
+                    <option value="shorts">Шорты</option>
+                    <option value="shoes">Обувь</option>
+                    <option value="boots">Сапоги</option>
+                    <option value="sneakers">Кроссовки</option>
+                    <option value="heels">Туфли</option>
+                    <option value="accessories">Аксессуары</option>
+                    <option value="bag">Сумки</option>
+                    <option value="hat">Головные уборы</option>
+                    <option value="jewelry">Украшения</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="color-filter">Цвет</label>
+                <select id="color-filter">
+                    <option value="">Все цвета</option>
+                    <option value="black">Черный</option>
+                    <option value="white">Белый</option>
+                    <option value="red">Красный</option>
+                    <option value="blue">Синий</option>
+                    <option value="green">Зеленый</option>
+                    <option value="yellow">Желтый</option>
+                    <option value="pink">Розовый</option>
+                    <option value="purple">Фиолетовый</option>
+                    <option value="orange">Оранжевый</option>
+                    <option value="brown">Коричневый</option>
+                    <option value="gray">Серый</option>
+                    <option value="beige">Бежевый</option>
+                    <option value="navy">Темно-синий</option>
+                    <option value="maroon">Бордовый</option>
+                    <option value="turquoise">Бирюзовый</option>
+                    <option value="gold">Золотой</option>
+                    <option value="silver">Серебряный</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-row">
+            <button class="apply-btn" onclick="applyFilters()">Применить фильтры</button>
+            <button class="clear-btn" onclick="clearFilters()">Очистить</button>
+        </div>
+        
+        <div class="filter-info" id="filter-info" style="display: none;">
+            Фильтры применены. Показано <span id="filtered-count">0</span> из <span id="total-count">0</span> изображений.
+        </div>
+    </div>
+    
+    <div class="gallery" id="gallery">
+        {gallery_content}
+    </div>
+    
+    {pagination_html}
+
+    <script>
+        // Данные аккаунтов для фильтрации
+        const accounts = {accounts_json};
+        
+        // Генерируем опции для фильтра аккаунтов
+        function generateAccountOptions() {
+            const select = document.getElementById('account-filter');
+            accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = `@${account}`;
+                select.appendChild(option);
+            });
+        }
+        
+        // Обновляем счетчик выбранных изображений
+        function updateSelectionCounter() {
+            const selectedCheckboxes = document.querySelectorAll('.image-select:checked');
+            const selectedCount = selectedCheckboxes.length;
+            const totalCount = document.querySelectorAll('.image-card:not(.hidden)').length;
+            
+            document.getElementById('selected-count').textContent = selectedCount;
+            document.getElementById('total-count').textContent = totalCount;
+            
+            // Включаем/выключаем кнопку "Отметить для теггирования"
+            const markBtn = document.getElementById('mark-btn');
+            markBtn.disabled = selectedCount === 0;
+        }
+        
+        // Выбрать все изображения на странице
+        function selectAllImages() {
+            const visibleCards = document.querySelectorAll('.image-card:not(.hidden)');
+            const allChecked = Array.from(visibleCards).every(card => 
+                card.querySelector('.image-select').checked
+            );
+            
+            visibleCards.forEach(card => {
+                const checkbox = card.querySelector('.image-select');
+                checkbox.checked = !allChecked;
+                card.classList.toggle('selected', !allChecked);
+            });
+            
+            updateSelectionCounter();
+        }
+        
+        // Отметить выбранные изображения для теггирования
+        async function markSelectedForTagging() {
+            const selectedCheckboxes = document.querySelectorAll('.image-select:checked');
+            const imageIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.imageId);
+            
+            if (imageIds.length === 0) {
+                alert('Выберите изображения для теггирования');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/mark-for-tagging', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_ids: imageIds
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Отмечено ${result.marked_count} изображений для теггирования`);
+                    
+                    // Обновляем визуальное состояние
+                    selectedCheckboxes.forEach(checkbox => {
+                        const card = checkbox.closest('.image-card');
+                        card.classList.add('selected');
+                    });
+                    
+                    // Сбрасываем выбор
+                    selectedCheckboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    updateSelectionCounter();
+                } else {
+                    alert('Ошибка при отметке изображений');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при отметке изображений');
+            }
+        }
+        
+        // Применение фильтров
+        function applyFilters() {
+            const account = document.getElementById('account-filter').value;
+            const clothingType = document.getElementById('clothing-type').value;
+            const color = document.getElementById('color-filter').value;
+            
+            const cards = document.querySelectorAll('.image-card');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const username = card.querySelector('.username').textContent.replace('@', '');
+                
+                let show = true;
+                
+                // Фильтрация по аккаунту
+                if (account && username !== account) {
+                    show = false;
+                }
+                
+                // Пока что другие фильтры не работают, так как данных об объектах нет
+                // В будущем здесь будет логика фильтрации по типу одежды и цвету
+                
+                if (show) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+            
+            // Обновляем счетчики
+            document.getElementById('filtered-count').textContent = visibleCount;
+            document.getElementById('total-count').textContent = visibleCount;
+            
+            // Показываем информацию о фильтрах
+            const filterInfo = document.getElementById('filter-info');
+            if (account || clothingType || color) {
+                filterInfo.style.display = 'block';
+            } else {
+                filterInfo.style.display = 'none';
+            }
+            
+            updateSelectionCounter();
+        }
+        
+        // Очистка фильтров
+        function clearFilters() {
+            document.getElementById('account-filter').value = '';
+            document.getElementById('clothing-type').value = '';
+            document.getElementById('color-filter').value = '';
+            
+            const cards = document.querySelectorAll('.image-card');
+            cards.forEach(card => card.classList.remove('hidden'));
+            
+            const totalCount = cards.length;
+            document.getElementById('filtered-count').textContent = totalCount;
+            document.getElementById('total-count').textContent = totalCount;
+            
+            document.getElementById('filter-info').style.display = 'none';
+            updateSelectionCounter();
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            generateAccountOptions();
+            updateSelectionCounter();
+            
+            // Добавляем обработчики для чекбоксов
+            document.querySelectorAll('.image-select').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const card = this.closest('.image-card');
+                    card.classList.toggle('selected', this.checked);
+                    updateSelectionCounter();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

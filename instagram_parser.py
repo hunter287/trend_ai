@@ -286,7 +286,9 @@ class InstagramParser:
                     "comments_count": img_data["comments_count"],
                     "caption": img_data["caption"],
                     "image_type": img_data["image_type"],
-                    "parsed_at": datetime.now().isoformat()
+                    "parsed_at": datetime.now().isoformat(),
+                    "selected_for_tagging": False,
+                    "selected_at": None
                 }
                 
                 # Добавляем информацию о локальном файле, если есть
@@ -313,6 +315,7 @@ class InstagramParser:
                 self.collection.create_index("username")
                 self.collection.create_index("image_url")
                 self.collection.create_index("timestamp")
+                self.collection.create_index("selected_for_tagging")
                 print("✅ Созданы индексы для быстрого поиска")
             else:
                 print("❌ Нет новых данных для сохранения")
@@ -462,6 +465,129 @@ class InstagramParser:
         
         print(f"🌐 Простая HTML галерея создана: gallery_{username}.html")
         return html_content
+
+    def create_combined_gallery_html(self, page: int = 1, per_page: int = 200):
+        """Создание общей галереи всех аккаунтов с пагинацией"""
+        print(f"🌐 Создание общей галереи (страница {page})...")
+        
+        try:
+            # Получаем данные из MongoDB с пагинацией
+            skip = (page - 1) * per_page
+            images_cursor = self.collection.find().sort("parsed_at", -1).skip(skip).limit(per_page)
+            images = list(images_cursor)
+            
+            # Получаем общее количество изображений
+            total_images = self.collection.count_documents({})
+            
+            # Получаем список всех аккаунтов для фильтрации
+            accounts = self.collection.distinct("username")
+            
+            if not images:
+                print("❌ Нет изображений для создания галереи")
+                return None
+            
+            # Читаем шаблон общей галереи
+            template_path = "templates/combined_gallery_template.html"
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    template = f.read()
+            except FileNotFoundError:
+                print(f"❌ Шаблон {template_path} не найден")
+                return None
+            
+            # Генерируем контент галереи
+            gallery_content = ""
+            for img_data in images:
+                if "local_filename" in img_data:
+                    img_src = f"http://51.250.108.8/images/{img_data['local_filename']}"
+                else:
+                    img_src = img_data["image_url"]
+                
+                # Определяем статус выбора
+                selected_class = "selected" if img_data.get("selected_for_tagging", False) else ""
+                checked_attr = "checked" if img_data.get("selected_for_tagging", False) else ""
+                
+                gallery_content += f"""
+        <div class="image-card {selected_class}" data-post-id="{img_data['post_id']}" data-image-id="{img_data['_id']}">
+            <div class="image-checkbox">
+                <input type="checkbox" class="image-select" {checked_attr} data-image-id="{img_data['_id']}">
+            </div>
+            <img src="{img_src}" alt="{img_data['post_id']}" loading="lazy">
+            <div class="image-info">
+                <div class="post-id">{img_data['post_id']}</div>
+                <div class="username">@{img_data['username']}</div>
+                <div class="likes">❤️ {img_data['likes_count']}</div>
+                <div class="timestamp">{img_data['timestamp'][:10] if img_data['timestamp'] != 'N/A' else 'N/A'}</div>
+                <div class="object-tags">
+                    <!-- Здесь будут теги объектов, когда они появятся -->
+                </div>
+            </div>
+        </div>
+        """
+            
+            # Генерируем пагинацию
+            total_pages = (total_images + per_page - 1) // per_page
+            pagination_html = self._generate_pagination_html(page, total_pages)
+            
+            # Генерируем опции аккаунтов для фильтра
+            account_options = ""
+            for account in accounts:
+                account_options += f'<option value="{account}">@{account}</option>\n                    '
+            
+            # Заменяем плейсхолдеры в шаблоне
+            html_content = template.replace("{total_images}", str(total_images))
+            html_content = html_content.replace("{current_page}", str(page))
+            html_content = html_content.replace("{total_pages}", str(total_pages))
+            html_content = html_content.replace("{per_page}", str(per_page))
+            html_content = html_content.replace("{gallery_content}", gallery_content)
+            html_content = html_content.replace("{pagination_html}", pagination_html)
+            html_content = html_content.replace("{accounts_json}", json.dumps(accounts, ensure_ascii=False))
+            html_content = html_content.replace("{account_options}", account_options)
+            
+            # Сохраняем HTML файл
+            filename = f"all_accounts_gallery_page_{page}.html" if page > 1 else "all_accounts_gallery.html"
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            print(f"🌐 Общая галерея создана: {filename}")
+            return html_content
+            
+        except Exception as e:
+            print(f"❌ Ошибка создания общей галереи: {e}")
+            return None
+
+    def _generate_pagination_html(self, current_page: int, total_pages: int):
+        """Генерация HTML для пагинации"""
+        if total_pages <= 1:
+            return ""
+        
+        pagination_html = '<div class="pagination">'
+        
+        # Предыдущая страница
+        if current_page > 1:
+            prev_page = current_page - 1
+            filename = f"all_accounts_gallery_page_{prev_page}.html" if prev_page > 1 else "all_accounts_gallery.html"
+            pagination_html += f'<a href="{filename}" class="page-btn prev">← Предыдущая</a>'
+        
+        # Номера страниц
+        start_page = max(1, current_page - 2)
+        end_page = min(total_pages, current_page + 2)
+        
+        for page_num in range(start_page, end_page + 1):
+            if page_num == current_page:
+                pagination_html += f'<span class="page-btn current">{page_num}</span>'
+            else:
+                filename = f"all_accounts_gallery_page_{page_num}.html" if page_num > 1 else "all_accounts_gallery.html"
+                pagination_html += f'<a href="{filename}" class="page-btn">{page_num}</a>'
+        
+        # Следующая страница
+        if current_page < total_pages:
+            next_page = current_page + 1
+            filename = f"all_accounts_gallery_page_{next_page}.html"
+            pagination_html += f'<a href="{filename}" class="page-btn next">Следующая →</a>'
+        
+        pagination_html += '</div>'
+        return pagination_html
     
     def run_full_parsing(self, username: str, max_images: int = 100, posts_limit: int = 100):
         """Полный цикл парсинга"""
