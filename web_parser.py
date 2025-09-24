@@ -148,18 +148,8 @@ def serve_combined_gallery(page=1):
     else:
         return f"Общая галерея (страница {page}) не найдена", 404
 
-@app.route('/images/<filename>')
-def serve_image(filename):
-    """Обслуживание изображений"""
-    from flask import send_from_directory
-    import os
-    
-    # Проверяем, существует ли папка с изображениями
-    images_dir = "images"
-    if os.path.exists(images_dir):
-        return send_from_directory(images_dir, filename)
-    else:
-        return f"Папка {images_dir} не найдена", 404
+# Статические файлы теперь обслуживаются автоматически Flask
+# через настройку static_folder='images', static_url_path='/images'
 
 @app.route('/api/mark-for-tagging', methods=['POST'])
 def api_mark_for_tagging():
@@ -399,4 +389,4 @@ if __name__ == '__main__':
     print("🔗 WebSocket: ws://0.0.0.0:5000/socket.io/")
     print("="*60)
     
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
