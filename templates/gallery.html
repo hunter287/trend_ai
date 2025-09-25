@@ -210,35 +210,24 @@
             font-weight: 500;
         }
         
-        .object-summary {
+        .category-group {
             margin: 2px 0;
             padding: 3px 6px;
             background: #ffffff;
             border-radius: 4px;
             border: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 10px;
         }
         
-        .object-name {
+        .category-name {
             font-weight: 600;
             color: #495057;
-            font-size: 11px;
+            text-transform: capitalize;
         }
         
-        .object-details {
-            display: flex;
-            gap: 4px;
-        }
-        
-        .detail {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-size: 9px;
-            font-weight: 500;
+        .category-objects {
+            color: #6c757d;
+            margin-left: 4px;
         }
         
         .gallery {
@@ -455,25 +444,28 @@
                         <div class="caption">{{ image.caption or 'Без описания' }}</div>
                         {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                             <div class="ximilar-tags">
-                                {% for obj in image.ximilar_objects_structured[:2] %}
-                                    <div class="object-summary">
-                                        <span class="object-name">{{ obj.name }}</span>
-                                        {% if obj.properties %}
-                                            {% set props_list = obj.properties.items()|list %}
-                                            {% set color = props_list|selectattr('0', 'equalto', 'color')|map(attribute='1')|first %}
-                                            {% set material = props_list|selectattr('0', 'equalto', 'material')|map(attribute='1')|first %}
-                                            {% if color or material %}
-                                                <span class="object-details">
-                                                    {% if color %}<span class="detail">{{ color }}</span>{% endif %}
-                                                    {% if material %}<span class="detail">{{ material }}</span>{% endif %}
-                                                </span>
-                                            {% endif %}
-                                        {% endif %}
+                                {% set categories = {} %}
+                                {% for obj in image.ximilar_objects_structured %}
+                                    {% set props_list = obj.properties.items()|list %}
+                                    {% set color = props_list|selectattr('0', 'equalto', 'color')|map(attribute='1')|first %}
+                                    {% set material = props_list|selectattr('0', 'equalto', 'material')|map(attribute='1')|first %}
+                                    {% set category = obj.top_category or 'other' %}
+                                    {% if category not in categories %}
+                                        {% set _ = categories.update({category: []}) %}
+                                    {% endif %}
+                                    {% set obj_info = obj.name %}
+                                    {% if color or material %}
+                                        {% set obj_info = obj_info + ' (' + (color or '') + (', ' if color and material else '') + (material or '') + ')' %}
+                                    {% endif %}
+                                    {% set _ = categories[category].append(obj_info) %}
+                                {% endfor %}
+                                
+                                {% for category, objects in categories.items() %}
+                                    <div class="category-group">
+                                        <span class="category-name">{{ category }}:</span>
+                                        <span class="category-objects">{{ objects|join(', ') }}</span>
                                     </div>
                                 {% endfor %}
-                                {% if image.ximilar_objects_structured|length > 2 %}
-                                    <span class="tag-more">+{{ image.ximilar_objects_structured|length - 2 }} объектов</span>
-                                {% endif %}
                             </div>
                         {% elif current_page == 'gallery_tagged' and image.ximilar_tags %}
                             <div class="ximilar-tags">
