@@ -157,7 +157,7 @@ class InstagramParser:
         return image_data
     
     def download_images(self, image_data: List[Dict], max_images: int = 100) -> List[Dict]:
-        """Скачивание изображений"""
+        """Скачивание изображений с проверкой дубликатов"""
         print(f"⬇️ Скачивание изображений (максимум {max_images})...")
         
         # Создаем папку для изображений
@@ -167,6 +167,7 @@ class InstagramParser:
         
         downloaded_data = []
         downloaded_count = 0
+        skipped_count = 0
         total_to_download = min(max_images, len(image_data))
         
         print(f"📊 Всего к скачиванию: {total_to_download} изображений")
@@ -177,9 +178,20 @@ class InstagramParser:
                 post_id = img_data["post_id"]
                 img_type = img_data["image_type"]
                 
-                # Создаем имя файла
+                # Проверяем, нужно ли скачивать изображение
+                if self.is_image_exists(url, post_id):
+                    print(f"⏭️ [{i+1}/{total_to_download}] Пропуск дубликата: {post_id}_{img_type}")
+                    skipped_count += 1
+                    continue
+                
+                # Проверяем, существует ли файл локально
                 filename = f"{post_id}_{img_type}_{i+1:04d}.jpg"
                 filepath = images_dir / filename
+                
+                if filepath.exists():
+                    print(f"⏭️ [{i+1}/{total_to_download}] Файл уже существует: {filename}")
+                    skipped_count += 1
+                    continue
                 
                 print(f"📥 [{i+1}/{total_to_download}] Скачивание: {filename}")
                 
@@ -209,6 +221,7 @@ class InstagramParser:
                 print(f"❌ Ошибка скачивания изображения {i+1}: {e}")
         
         print(f"✅ Скачано {downloaded_count} изображений")
+        print(f"⏭️ Пропущено {skipped_count} дубликатов")
         return downloaded_data
     
     def is_image_exists(self, image_url: str, post_id: str = None) -> bool:
