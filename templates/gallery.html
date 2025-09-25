@@ -446,17 +446,37 @@
                             <div class="ximilar-tags">
                                 {% set categories = {} %}
                                 {% for obj in image.ximilar_objects_structured %}
-                                    {% set props_list = obj.properties.items()|list %}
-                                    {% set color = props_list|selectattr('0', 'equalto', 'color')|map(attribute='1')|first %}
-                                    {% set material = props_list|selectattr('0', 'equalto', 'material')|map(attribute='1')|first %}
                                     {% set category = obj.top_category or 'other' %}
                                     {% if category not in categories %}
                                         {% set _ = categories.update({category: []}) %}
                                     {% endif %}
+                                    
                                     {% set obj_info = obj.name %}
-                                    {% if color or material %}
-                                        {% set obj_info = obj_info + ' (' + (color or '') + (', ' if color and material else '') + (material or '') + ')' %}
+                                    {% set color = '' %}
+                                    {% set material = '' %}
+                                    
+                                    {% if obj.properties %}
+                                        {% if obj.properties.visual_attributes %}
+                                            {% for attr_name, attr_value in obj.properties.visual_attributes.items() %}
+                                                {% if 'color' in attr_name.lower() %}
+                                                    {% set color = attr_value %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        
+                                        {% if obj.properties.material_attributes %}
+                                            {% for attr_name, attr_value in obj.properties.material_attributes.items() %}
+                                                {% if 'material' in attr_name.lower() or 'fabric' in attr_name.lower() %}
+                                                    {% set material = attr_value %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        
+                                        {% if color or material %}
+                                            {% set obj_info = obj_info + ' (' + (color or '') + (', ' if color and material else '') + (material or '') + ')' %}
+                                        {% endif %}
                                     {% endif %}
+                                    
                                     {% set _ = categories[category].append(obj_info) %}
                                 {% endfor %}
                                 
