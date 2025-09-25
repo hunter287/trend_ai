@@ -451,25 +451,46 @@
                                         {% set _ = categories.update({category: []}) %}
                                     {% endif %}
                                     
-                                    {% set obj_info = obj.properties.basic_info.name if obj.properties and obj.properties.basic_info and obj.properties.basic_info.name else obj.name %}
+                                    {% set obj_info = '' %}
                                     {% set color = '' %}
                                     {% set material = '' %}
                                     
                                     {% if obj.properties %}
-                                        {% if obj.properties.color_attributes %}
-                                            {% for attr_name, attr_list in obj.properties.color_attributes.items() %}
-                                                {% if attr_list and attr_list|length > 0 %}
-                                                    {% set color = attr_list[0].name %}
-                                                {% endif %}
-                                            {% endfor %}
+                                        {# Получаем конкретное название объекта из Subcategory #}
+                                        {% if obj.properties.other_attributes and obj.properties.other_attributes.Subcategory %}
+                                            {% set subcategory_list = obj.properties.other_attributes.Subcategory %}
+                                            {% if subcategory_list and subcategory_list|length > 0 %}
+                                                {% set obj_info = subcategory_list[0].name %}
+                                            {% endif %}
                                         {% endif %}
                                         
-                                        {% if obj.properties.material_attributes %}
-                                            {% for attr_name, attr_list in obj.properties.material_attributes.items() %}
-                                                {% if attr_list and attr_list|length > 0 %}
-                                                    {% set material = attr_list[0].name %}
-                                                {% endif %}
-                                            {% endfor %}
+                                        {# Если нет Subcategory, используем Category #}
+                                        {% if not obj_info and obj.properties.other_attributes and obj.properties.other_attributes.Category %}
+                                            {% set category_list = obj.properties.other_attributes.Category %}
+                                            {% if category_list and category_list|length > 0 %}
+                                                {% set obj_info = category_list[0].name %}
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {# Если ничего не найдено, используем name #}
+                                        {% if not obj_info %}
+                                            {% set obj_info = obj.name %}
+                                        {% endif %}
+                                        
+                                        {# Получаем цвет из visual_attributes.Color #}
+                                        {% if obj.properties.visual_attributes and obj.properties.visual_attributes.Color %}
+                                            {% set color_list = obj.properties.visual_attributes.Color %}
+                                            {% if color_list and color_list|length > 0 %}
+                                                {% set color = color_list[0].name %}
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {# Получаем материал из material_attributes.Material #}
+                                        {% if obj.properties.material_attributes and obj.properties.material_attributes.Material %}
+                                            {% set material_list = obj.properties.material_attributes.Material %}
+                                            {% if material_list and material_list|length > 0 %}
+                                                {% set material = material_list[0].name %}
+                                            {% endif %}
                                         {% endif %}
                                         
                                         {% if color or material %}
