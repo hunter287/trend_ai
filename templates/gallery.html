@@ -163,6 +163,53 @@
             transform: translateY(-2px);
         }
         
+        .btn-orange {
+            background: #ff6b35;
+            color: white;
+        }
+        
+        .btn-orange:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+        
+        .ximilar-tags {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #ff6b35;
+        }
+        
+        .ximilar-tags strong {
+            color: #495057;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin: 2px 2px 2px 0;
+            font-weight: 500;
+        }
+        
+        .tag-more {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin: 2px 2px 2px 0;
+            font-weight: 500;
+        }
+        
         .gallery {
             padding: 30px;
             display: grid;
@@ -303,8 +350,10 @@
             <h1>🖼️ Галерея изображений</h1>
             {% if current_page == 'gallery' %}
                 <p>Выберите изображения для теггирования</p>
-            {% else %}
+            {% elif current_page == 'gallery_to_tag' %}
                 <p>Изображения, выбранные для теггирования</p>
+            {% else %}
+                <p>Изображения с тегами Ximilar</p>
             {% endif %}
             
             <!-- Навигация -->
@@ -314,6 +363,9 @@
                 </a>
                 <a href="/gallery_to_tag" class="nav-btn {% if current_page == 'gallery_to_tag' %}active{% endif %}">
                     🏷️ Выбрано для теггирования
+                </a>
+                <a href="/gallery_tagged" class="nav-btn {% if current_page == 'gallery_tagged' %}active{% endif %}">
+                    ✅ Оттегированы
                 </a>
             </div>
         </div>
@@ -337,13 +389,20 @@
                         Отметить для теггирования
                         <span class="selected-count" id="selectedCount">0</span>
                     </button>
-                {% else %}
+                {% elif current_page == 'gallery_to_tag' %}
                     <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
                     <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
                     <button class="btn btn-secondary" id="unmarkBtn" disabled>
                         Убрать из теггирования
                         <span class="selected-count" id="selectedCount">0</span>
                     </button>
+                    <button class="btn btn-orange" id="tagImagesBtn" disabled>
+                        🏷️ Теггировать
+                        <span class="selected-count" id="selectedCount">0</span>
+                    </button>
+                {% else %}
+                    <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
+                    <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
                 {% endif %}
             </div>
         </div>
@@ -363,6 +422,17 @@
                             <span>💬 {{ image.comments_count or 0 }}</span>
                         </div>
                         <div class="caption">{{ image.caption or 'Без описания' }}</div>
+                        {% if current_page == 'gallery_tagged' and image.ximilar_tags %}
+                            <div class="ximilar-tags">
+                                <strong>🏷️ Теги:</strong>
+                                {% for tag in image.ximilar_tags[:5] %}
+                                    <span class="tag">{{ tag.name }} ({{ "%.1f"|format(tag.confidence * 100) }}%)</span>
+                                {% endfor %}
+                                {% if image.ximilar_tags|length > 5 %}
+                                    <span class="tag-more">+{{ image.ximilar_tags|length - 5 }} еще</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -402,11 +472,13 @@
             const clearSelectionBtn = document.getElementById('clearSelectionBtn');
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
+            const tagImagesBtn = document.getElementById('tagImagesBtn');
             
             if (selectAllBtn) selectAllBtn.addEventListener('click', selectAll);
             if (clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
             if (markForTaggingBtn) markForTaggingBtn.addEventListener('click', markForTagging);
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
+            if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
         }
         
         function toggleSelection(imageId) {
@@ -448,17 +520,19 @@
         
         function updateSelectedCount() {
             const count = selectedImages.size;
-            const selectedCountElement = document.getElementById('selectedCount');
+            const selectedCountElements = document.querySelectorAll('#selectedCount');
             
-            if (selectedCountElement) {
-                selectedCountElement.textContent = count;
-            }
+            selectedCountElements.forEach(element => {
+                element.textContent = count;
+            });
             
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
+            const tagImagesBtn = document.getElementById('tagImagesBtn');
             
             if (markForTaggingBtn) markForTaggingBtn.disabled = count === 0;
             if (unmarkBtn) unmarkBtn.disabled = count === 0;
+            if (tagImagesBtn) tagImagesBtn.disabled = count === 0;
         }
         
         function filterImages() {
@@ -553,6 +627,51 @@
             
             try {
                 const response = await fetch('/api/unmark-for-tagging', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_ids: imageIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ ${result.message}`, 'success');
+                    clearSelection();
+                    // Перезагружаем страницу, чтобы обновить список
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        async function tagImages() {
+            if (selectedImages.size === 0) return;
+            
+            const imageIds = Array.from(selectedImages);
+            const button = document.getElementById('tagImagesBtn');
+            
+            if (!button) {
+                console.error('Кнопка tagImagesBtn не найдена');
+                return;
+            }
+            
+            const originalText = button.innerHTML;
+            
+            // Показываем индикатор загрузки
+            button.innerHTML = '⏳ Теггирование...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/tag-images', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

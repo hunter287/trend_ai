@@ -168,13 +168,37 @@ def gallery_to_tag():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения, выбранные для теггирования
+        # Получаем изображения, выбранные для теггирования (только без тегов Ximilar)
         images = list(parser.collection.find(
-            {"local_filename": {"$exists": True}, "selected_for_tagging": True},
+            {"local_filename": {"$exists": True}, "selected_for_tagging": True, "ximilar_tags": {"$exists": False}},
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
         ).sort("selected_at", -1).limit(100))
         
         return render_template('gallery.html', images=images, current_page='gallery_to_tag')
+    except Exception as e:
+        return f"Ошибка: {e}", 500
+
+@app.route('/gallery_tagged')
+def gallery_tagged():
+    """Галерея изображений с тегами Ximilar"""
+    try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return "Ошибка подключения к базе данных", 500
+        
+        # Получаем изображения с тегами Ximilar
+        images = list(parser.collection.find(
+            {"local_filename": {"$exists": True}, "ximilar_tags": {"$exists": True}},
+            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "ximilar_tags": 1, "tagged_at": 1}
+        ).sort("tagged_at", -1).limit(100))
+        
+        return render_template('gallery.html', images=images, current_page='gallery_tagged')
     except Exception as e:
         return f"Ошибка: {e}", 500
 
@@ -479,6 +503,101 @@ def api_unmark_for_tagging():
             'success': True,
             'message': f'Снята отметка с {result.modified_count} изображений',
             'unmarked_count': result.modified_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/tag-images', methods=['POST'])
+def api_tag_images():
+    """API для теггирования изображений через Ximilar"""
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        if not image_ids:
+            return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
+        
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        from bson import ObjectId
+        
+        # Преобразуем строковые ID в ObjectId
+        object_ids = []
+        for img_id in image_ids:
+            try:
+                object_ids.append(ObjectId(img_id))
+            except Exception as e:
+                print(f"❌ Ошибка преобразования ID {img_id}: {e}")
+                continue
+        
+        if not object_ids:
+            return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
+        
+        # Получаем изображения из базы данных
+        images = list(web_parser.parser.collection.find(
+            {"_id": {"$in": object_ids}},
+            {"_id": 1, "local_filename": 1, "local_path": 1}
+        ))
+        
+        if not images:
+            return jsonify({'success': False, 'message': 'Изображения не найдены в базе данных'})
+        
+        # Создаем экземпляр Ximilar теггера
+        from ximilar_fashion_tagger import XimilarFashionTagger
+        ximilar_api_key = os.getenv("XIMILAR_API_KEY")
+        
+        if not ximilar_api_key:
+            return jsonify({'success': False, 'message': 'XIMILAR_API_KEY не найден в переменных окружения'})
+        
+        tagger = XimilarFashionTagger(ximilar_api_key, web_parser.parser.mongodb_uri)
+        
+        # Подключаемся к MongoDB
+        if not tagger.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB для теггирования'})
+        
+        # Теггируем изображения через Ximilar
+        tagged_count = 0
+        for image in images:
+            try:
+                # Формируем URL изображения
+                image_url = f"http://158.160.19.119:5000/images/{image['local_filename']}"
+                
+                # Используем существующую функциональность теггирования
+                tags_result = tagger.tag_image_with_ximilar(image_url)
+                
+                if tags_result and 'tags' in tags_result:
+                    # Обновляем документ в базе данных
+                    web_parser.parser.collection.update_one(
+                        {"_id": image['_id']},
+                        {
+                            "$set": {
+                                "ximilar_tags": tags_result['tags'],
+                                "tagged_at": datetime.now().isoformat(),
+                                "selected_for_tagging": False  # Убираем из списка для теггирования
+                            }
+                        }
+                    )
+                    tagged_count += 1
+                    print(f"✅ Изображение {image['local_filename']} оттегировано")
+                else:
+                    print(f"❌ Не удалось оттегировать {image['local_filename']}")
+                    
+            except Exception as e:
+                print(f"❌ Ошибка теггирования {image['local_filename']}: {e}")
+                continue
+        
+        return jsonify({
+            'success': True,
+            'message': f'Оттегировано {tagged_count} из {len(images)} изображений',
+            'tagged_count': tagged_count
         })
         
     except Exception as e:
