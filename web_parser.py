@@ -144,9 +144,13 @@ def gallery():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения из базы данных (только не выбранные для теггирования)
+        # Получаем изображения из базы данных (только не выбранные для теггирования и без тегов Ximilar)
         images = list(parser.collection.find(
-            {"local_filename": {"$exists": True}, "selected_for_tagging": {"$ne": True}},
+            {
+                "local_filename": {"$exists": True}, 
+                "selected_for_tagging": {"$ne": True},
+                "ximilar_tags": {"$exists": False}
+            },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
         ).sort("parsed_at", -1).limit(100))
         
