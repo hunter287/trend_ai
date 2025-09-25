@@ -338,6 +338,8 @@
                         <span class="selected-count" id="selectedCount">0</span>
                     </button>
                 {% else %}
+                    <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
+                    <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
                     <button class="btn btn-secondary" id="unmarkBtn" disabled>
                         Убрать из теггирования
                         <span class="selected-count" id="selectedCount">0</span>
@@ -487,6 +489,12 @@
             if (selectedImages.size === 0) return;
             
             const imageIds = Array.from(selectedImages);
+            const button = document.getElementById('markForTaggingBtn');
+            const originalText = button.innerHTML;
+            
+            // Показываем индикатор загрузки
+            button.innerHTML = '⏳ Обработка...';
+            button.disabled = true;
             
             try {
                 const response = await fetch('/api/mark-for-tagging', {
@@ -500,15 +508,19 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert(`✅ ${result.message}`);
+                    showNotification(`✅ ${result.message}`, 'success');
                     clearSelection();
                     // Перезагружаем страницу, чтобы обновить список
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert(`❌ ${result.message}`);
+                    showNotification(`❌ ${result.message}`, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
                 }
             } catch (error) {
-                alert(`❌ Ошибка: ${error.message}`);
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
             }
         }
         
@@ -516,6 +528,12 @@
             if (selectedImages.size === 0) return;
             
             const imageIds = Array.from(selectedImages);
+            const button = document.getElementById('unmarkBtn');
+            const originalText = button.innerHTML;
+            
+            // Показываем индикатор загрузки
+            button.innerHTML = '⏳ Обработка...';
+            button.disabled = true;
             
             try {
                 const response = await fetch('/api/unmark-for-tagging', {
@@ -529,16 +547,74 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert(`✅ ${result.message}`);
+                    showNotification(`✅ ${result.message}`, 'success');
                     clearSelection();
                     // Перезагружаем страницу, чтобы обновить список
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert(`❌ ${result.message}`);
+                    showNotification(`❌ ${result.message}`, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
                 }
             } catch (error) {
-                alert(`❌ Ошибка: ${error.message}`);
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
             }
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Создаем элемент уведомления
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            // Добавляем стили
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Цвета в зависимости от типа
+            if (type === 'success') {
+                notification.style.background = '#28a745';
+            } else if (type === 'error') {
+                notification.style.background = '#dc3545';
+            } else {
+                notification.style.background = '#17a2b8';
+            }
+            
+            // Добавляем анимацию
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Добавляем в DOM
+            document.body.appendChild(notification);
+            
+            // Удаляем через 3 секунды
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
         }
     </script>
 </body>
