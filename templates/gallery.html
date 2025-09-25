@@ -521,6 +521,10 @@
                         Отметить для теггирования
                         <span class="selected-count" id="selectedCount">0</span>
                     </button>
+                    <button class="btn btn-secondary" id="hideImagesBtn" disabled>
+                        👁️ Скрыть
+                        <span class="selected-count" id="selectedCount">0</span>
+                    </button>
                 {% elif current_page == 'gallery_to_tag' %}
                     <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
                     <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
@@ -691,12 +695,14 @@
             const selectAllBtn = document.getElementById('selectAllBtn');
             const clearSelectionBtn = document.getElementById('clearSelectionBtn');
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
+            const hideImagesBtn = document.getElementById('hideImagesBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
             const tagImagesBtn = document.getElementById('tagImagesBtn');
             
             if (selectAllBtn) selectAllBtn.addEventListener('click', selectAll);
             if (clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
             if (markForTaggingBtn) markForTaggingBtn.addEventListener('click', markForTagging);
+            if (hideImagesBtn) hideImagesBtn.addEventListener('click', hideImages);
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
             if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
             
@@ -776,10 +782,12 @@
             });
             
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
+            const hideImagesBtn = document.getElementById('hideImagesBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
             const tagImagesBtn = document.getElementById('tagImagesBtn');
             
             if (markForTaggingBtn) markForTaggingBtn.disabled = count === 0;
+            if (hideImagesBtn) hideImagesBtn.disabled = count === 0;
             if (unmarkBtn) unmarkBtn.disabled = count === 0;
             if (tagImagesBtn) tagImagesBtn.disabled = count === 0;
         }
@@ -831,6 +839,51 @@
             
             try {
                 const response = await fetch('/api/mark-for-tagging', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_ids: imageIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ ${result.message}`, 'success');
+                    clearSelection();
+                    // Перезагружаем страницу, чтобы обновить список
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        async function hideImages() {
+            if (selectedImages.size === 0) return;
+            
+            const imageIds = Array.from(selectedImages);
+            const button = document.getElementById('hideImagesBtn');
+            
+            if (!button) {
+                console.error('Кнопка hideImagesBtn не найдена');
+                return;
+            }
+            
+            const originalText = button.innerHTML;
+            
+            // Показываем индикатор загрузки
+            button.innerHTML = '⏳ Скрытие...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/hide-images', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

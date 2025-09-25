@@ -144,11 +144,12 @@ def gallery():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения из базы данных (только не выбранные для теггирования и без тегов Ximilar)
+        # Получаем изображения из базы данных (только не выбранные для теггирования, не скрытые и без тегов Ximilar)
         images = list(parser.collection.find(
             {
                 "local_filename": {"$exists": True}, 
                 "selected_for_tagging": {"$ne": True},
+                "hidden": {"$ne": True},
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -175,11 +176,12 @@ def gallery_to_tag():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения, выбранные для теггирования (только без тегов Ximilar)
+        # Получаем изображения, выбранные для теггирования (только не скрытые и без тегов Ximilar)
         images = list(parser.collection.find(
             {
                 "local_filename": {"$exists": True}, 
-                "selected_for_tagging": True, 
+                "selected_for_tagging": True,
+                "hidden": {"$ne": True},
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -206,10 +208,11 @@ def gallery_tagged():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения с тегами Ximilar (приоритет объектно-ориентированной структуре)
+        # Получаем изображения с тегами Ximilar (только не скрытые, приоритет объектно-ориентированной структуре)
         images = list(parser.collection.find(
             {
-                "local_filename": {"$exists": True}, 
+                "local_filename": {"$exists": True},
+                "hidden": {"$ne": True},
                 "$or": [
                     {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
@@ -527,6 +530,61 @@ def api_unmark_for_tagging():
             'success': True,
             'message': f'Снята отметка с {result.modified_count} изображений',
             'unmarked_count': result.modified_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/hide-images', methods=['POST'])
+def api_hide_images():
+    """API для скрытия изображений"""
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        if not image_ids:
+            return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
+        
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Обновляем статус изображений
+        from bson import ObjectId
+        from datetime import datetime
+        
+        # Преобразуем строковые ID в ObjectId
+        object_ids = []
+        for img_id in image_ids:
+            try:
+                object_ids.append(ObjectId(img_id))
+            except Exception as e:
+                print(f"❌ Ошибка преобразования ID {img_id}: {e}")
+                continue
+        
+        if not object_ids:
+            return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
+        
+        # Обновляем документы в MongoDB - помечаем как скрытые
+        result = web_parser.parser.collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {
+                "$set": {
+                    "hidden": True,
+                    "hidden_at": datetime.now().isoformat()
+                }
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Скрыто {result.modified_count} изображений',
+            'hidden_count': result.modified_count
         })
         
     except Exception as e:
