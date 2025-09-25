@@ -457,14 +457,18 @@
                                     
                                     {% if obj.properties %}
                                         {% if obj.properties.color_attributes %}
-                                            {% for attr_name, attr_value in obj.properties.color_attributes.items() %}
-                                                {% set color = attr_value %}
+                                            {% for attr_name, attr_list in obj.properties.color_attributes.items() %}
+                                                {% if attr_list and attr_list|length > 0 %}
+                                                    {% set color = attr_list[0].name %}
+                                                {% endif %}
                                             {% endfor %}
                                         {% endif %}
                                         
                                         {% if obj.properties.material_attributes %}
-                                            {% for attr_name, attr_value in obj.properties.material_attributes.items() %}
-                                                {% set material = attr_value %}
+                                            {% for attr_name, attr_list in obj.properties.material_attributes.items() %}
+                                                {% if attr_list and attr_list|length > 0 %}
+                                                    {% set material = attr_list[0].name %}
+                                                {% endif %}
                                             {% endfor %}
                                         {% endif %}
                                         
