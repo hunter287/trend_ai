@@ -454,6 +454,7 @@
                                     {% set obj_info = '' %}
                                     {% set color = '' %}
                                     {% set material = '' %}
+                                    {% set style = '' %}
                                     
                                     {% if obj.properties %}
                                         {# Получаем конкретное название объекта из Subcategory #}
@@ -493,8 +494,20 @@
                                             {% endif %}
                                         {% endif %}
                                         
-                                        {% if color or material %}
-                                            {% set obj_info = obj_info + ' (' + (color or '') + (', ' if color and material else '') + (material or '') + ')' %}
+                                        {# Получаем стиль из style_attributes.Style #}
+                                        {% if obj.properties.style_attributes and obj.properties.style_attributes.Style %}
+                                            {% set style_list = obj.properties.style_attributes.Style %}
+                                            {% if style_list and style_list|length > 0 %}
+                                                {% set style = style_list[0].name %}
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% if color or material or style %}
+                                            {% set properties = [] %}
+                                            {% if color %}{% set _ = properties.append(color) %}{% endif %}
+                                            {% if material %}{% set _ = properties.append(material) %}{% endif %}
+                                            {% if style %}{% set _ = properties.append(style) %}{% endif %}
+                                            {% set obj_info = obj_info + ' (' + properties|join(', ') + ')' %}
                                         {% endif %}
                                     {% endif %}
                                     
