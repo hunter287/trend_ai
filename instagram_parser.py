@@ -178,6 +178,12 @@ class InstagramParser:
                 post_id = img_data["post_id"]
                 img_type = img_data["image_type"]
                 
+                # Проверяем, есть ли уже изображения с этим post_id в БД
+                if self.is_image_exists(url, post_id):
+                    print(f"⏭️ [{i+1}/{total_to_download}] Пропуск дубликата по post_id: {post_id}")
+                    skipped_count += 1
+                    continue
+                
                 # Проверяем, нужно ли скачивать изображение (только по локальному файлу)
                 filename = f"{post_id}_{img_type}_{i+1:04d}.jpg"
                 filepath = images_dir / filename
