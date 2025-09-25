@@ -632,6 +632,7 @@ def api_filter_options():
                 image_materials = set()
                 image_styles = set()
                 
+                # Собираем все уникальные теги из всех объектов этого изображения
                 for obj in image['ximilar_objects_structured']:
                     # Категории
                     if obj.get('top_category'):
@@ -662,6 +663,9 @@ def api_filter_options():
                         for style in obj['properties']['style_attributes']['Style']:
                             image_styles.add(style['name'])
                 
+                # Считаем только уникальные теги этого изображения
+                # (уже собраны в sets выше)
+                
                 # Добавляем уникальные теги этого изображения к общему счетчику
                 for cat in image_categories:
                     categories[cat] = categories.get(cat, 0) + 1
@@ -677,6 +681,14 @@ def api_filter_options():
                 
                 for style in image_styles:
                     styles[style] = styles.get(style, 0) + 1
+        
+        # Отладочная информация
+        print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами")
+        print(f"📊 Категории: {len(categories)} уникальных")
+        print(f"📊 Объекты: {len(objects)} уникальных")
+        print(f"📊 Цвета: {len(colors)} уникальных")
+        print(f"📊 Материалы: {len(materials)} уникальных")
+        print(f"📊 Стили: {len(styles)} уникальных")
         
         return jsonify({
             'success': True,
