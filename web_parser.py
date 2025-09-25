@@ -532,6 +532,84 @@ def api_unmark_for_tagging():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/filter-options', methods=['GET'])
+def api_filter_options():
+    """API для получения доступных опций фильтрации"""
+    try:
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Получаем все изображения с тегами Ximilar
+        images = list(web_parser.parser.collection.find(
+            {
+                "local_filename": {"$exists": True}, 
+                "$or": [
+                    {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
+                    {"ximilar_tags": {"$exists": True, "$ne": []}}
+                ]
+            },
+            {"ximilar_objects_structured": 1}
+        ))
+        
+        # Собираем уникальные значения для фильтров
+        categories = set()
+        objects = set()
+        colors = set()
+        materials = set()
+        styles = set()
+        
+        for image in images:
+            if image.get('ximilar_objects_structured'):
+                for obj in image['ximilar_objects_structured']:
+                    # Категории
+                    if obj.get('top_category'):
+                        categories.add(obj['top_category'])
+                    
+                    # Объекты (из Subcategory или Category)
+                    if obj.get('properties'):
+                        if obj['properties'].get('other_attributes'):
+                            if obj['properties']['other_attributes'].get('Subcategory'):
+                                for sub in obj['properties']['other_attributes']['Subcategory']:
+                                    objects.add(sub['name'])
+                            elif obj['properties']['other_attributes'].get('Category'):
+                                for cat in obj['properties']['other_attributes']['Category']:
+                                    objects.add(cat['name'])
+                    
+                    # Цвета
+                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                        for color in obj['properties']['visual_attributes']['Color']:
+                            colors.add(color['name'])
+                    
+                    # Материалы
+                    if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
+                        for material in obj['properties']['material_attributes']['Material']:
+                            materials.add(material['name'])
+                    
+                    # Стили
+                    if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
+                        for style in obj['properties']['style_attributes']['Style']:
+                            styles.add(style['name'])
+        
+        return jsonify({
+            'success': True,
+            'filter_options': {
+                'categories': sorted(list(categories)),
+                'objects': sorted(list(objects)),
+                'colors': sorted(list(colors)),
+                'materials': sorted(list(materials)),
+                'styles': sorted(list(styles))
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/tag-images', methods=['POST'])
 def api_tag_images():
     """API для теггирования изображений через Ximilar"""

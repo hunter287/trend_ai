@@ -210,6 +210,60 @@
             font-weight: 500;
         }
         
+        .advanced-filters {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        
+        .filter-section h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .filter-option {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .filter-option:hover {
+            background: #e9ecef;
+        }
+        
+        .filter-option.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        
         .category-group {
             margin: 2px 0;
             padding: 3px 6px;
@@ -419,7 +473,44 @@
                 <button class="filter-btn active" data-filter="all">Все</button>
                 <button class="filter-btn" data-filter="selected">Выбранные</button>
                 <button class="filter-btn" data-filter="unselected">Не выбранные</button>
+                {% if current_page == 'gallery_tagged' %}
+                <button class="filter-btn" id="toggleAdvancedFilters">🔍 Расширенные фильтры</button>
+                {% endif %}
             </div>
+            
+            {% if current_page == 'gallery_tagged' %}
+            <div class="advanced-filters" id="advancedFilters" style="display: none;">
+                <div class="filter-section">
+                    <h4>Категории</h4>
+                    <div class="filter-options" id="categoryFilters"></div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Объекты</h4>
+                    <div class="filter-options" id="objectFilters"></div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Цвета</h4>
+                    <div class="filter-options" id="colorFilters"></div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Материалы</h4>
+                    <div class="filter-options" id="materialFilters"></div>
+                </div>
+                
+                <div class="filter-section">
+                    <h4>Стили</h4>
+                    <div class="filter-options" id="styleFilters"></div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button class="btn btn-primary" id="applyFiltersBtn">Применить фильтры</button>
+                    <button class="btn btn-secondary" id="clearFiltersBtn">Сбросить</button>
+                </div>
+            </div>
+            {% endif %}
             
             <div class="action-buttons">
                 {% if current_page == 'gallery' %}
@@ -450,7 +541,17 @@
         <div class="gallery" id="gallery">
             {% if images %}
                 {% for image in images %}
-                <div class="image-card" data-image-id="{{ image._id }}" data-username="{{ image.username }}" data-caption="{{ image.caption or '' }}">
+                <div class="image-card" 
+                     data-image-id="{{ image._id }}" 
+                     data-username="{{ image.username }}" 
+                     data-caption="{{ image.caption or '' }}"
+                     {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
+                     data-categories="{% for obj in image.ximilar_objects_structured %}{{ obj.top_category or '' }}{% if not loop.last %},{% endif %}{% endfor %}"
+                     data-objects="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.other_attributes.Subcategory %}{{ obj.properties.other_attributes.Subcategory[0].name }}{% elif obj.properties.other_attributes.Category %}{{ obj.properties.other_attributes.Category[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
+                     data-colors="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.visual_attributes.Color %}{{ obj.properties.visual_attributes.Color[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
+                     data-materials="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.material_attributes.Material %}{{ obj.properties.material_attributes.Material[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
+                     data-styles="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.style_attributes.Style %}{{ obj.properties.style_attributes.Style[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
+                     {% endif %}>
                     <div class="image-container">
                         <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">
                         <div class="checkbox" onclick="toggleSelection('{{ image._id }}')"></div>
@@ -597,6 +698,35 @@
             if (markForTaggingBtn) markForTaggingBtn.addEventListener('click', markForTagging);
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
             if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
+            
+            // Расширенные фильтры для страницы оттегированных
+            if ('{{ current_page }}' === 'gallery_tagged') {
+                const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
+                const advancedFilters = document.getElementById('advancedFilters');
+                const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+                const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+                
+                if (toggleAdvancedFiltersBtn && advancedFilters) {
+                    toggleAdvancedFiltersBtn.addEventListener('click', () => {
+                        if (advancedFilters.style.display === 'none') {
+                            advancedFilters.style.display = 'block';
+                            toggleAdvancedFiltersBtn.textContent = '🔍 Скрыть фильтры';
+                            loadFilterOptions();
+                        } else {
+                            advancedFilters.style.display = 'none';
+                            toggleAdvancedFiltersBtn.textContent = '🔍 Расширенные фильтры';
+                        }
+                    });
+                }
+                
+                if (applyFiltersBtn) {
+                    applyFiltersBtn.addEventListener('click', applyAdvancedFilters);
+                }
+                
+                if (clearFiltersBtn) {
+                    clearFiltersBtn.addEventListener('click', clearAdvancedFilters);
+                }
+            }
         }
         
         function toggleSelection(imageId) {
@@ -814,6 +944,181 @@
                 button.innerHTML = originalText;
                 button.disabled = false;
             }
+        }
+        
+        // Глобальные переменные для фильтров
+        let filterOptions = {};
+        let selectedFilters = {
+            categories: [],
+            objects: [],
+            colors: [],
+            materials: [],
+            styles: []
+        };
+        
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch('/api/filter-options');
+                const result = await response.json();
+                
+                if (result.success) {
+                    filterOptions = result.filter_options;
+                    renderFilterOptions();
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка загрузки фильтров: ${error.message}`, 'error');
+            }
+        }
+        
+        function renderFilterOptions() {
+            // Категории
+            renderFilterSection('categoryFilters', filterOptions.categories, 'categories');
+            
+            // Объекты
+            renderFilterSection('objectFilters', filterOptions.objects, 'objects');
+            
+            // Цвета
+            renderFilterSection('colorFilters', filterOptions.colors, 'colors');
+            
+            // Материалы
+            renderFilterSection('materialFilters', filterOptions.materials, 'materials');
+            
+            // Стили
+            renderFilterSection('styleFilters', filterOptions.styles, 'styles');
+        }
+        
+        function renderFilterSection(containerId, options, filterType) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            options.forEach(option => {
+                const filterOption = document.createElement('div');
+                filterOption.className = 'filter-option';
+                filterOption.textContent = option;
+                filterOption.dataset.filterType = filterType;
+                filterOption.dataset.value = option;
+                
+                filterOption.addEventListener('click', () => {
+                    filterOption.classList.toggle('selected');
+                    
+                    if (filterOption.classList.contains('selected')) {
+                        if (!selectedFilters[filterType].includes(option)) {
+                            selectedFilters[filterType].push(option);
+                        }
+                    } else {
+                        selectedFilters[filterType] = selectedFilters[filterType].filter(item => item !== option);
+                    }
+                });
+                
+                container.appendChild(filterOption);
+            });
+        }
+        
+        function applyAdvancedFilters() {
+            // Фильтруем изображения на основе выбранных критериев
+            const cards = document.querySelectorAll('.image-card');
+            
+            cards.forEach(card => {
+                let showCard = true;
+                
+                // Проверяем соответствие фильтрам
+                if (hasActiveFilters()) {
+                    showCard = checkImageMatchesFilters(card);
+                }
+                
+                card.style.display = showCard ? 'block' : 'none';
+            });
+            
+            // Обновляем счетчик
+            const visibleCards = document.querySelectorAll('.image-card[style*="block"], .image-card:not([style*="none"])');
+            showNotification(`✅ Показано ${visibleCards.length} изображений`, 'success');
+        }
+        
+        function checkImageMatchesFilters(card) {
+            // Здесь нужно проверить, соответствует ли изображение выбранным фильтрам
+            // Для этого нужно добавить data-атрибуты к карточкам с информацией о тегах
+            const cardCategories = card.dataset.categories ? card.dataset.categories.split(',') : [];
+            const cardObjects = card.dataset.objects ? card.dataset.objects.split(',') : [];
+            const cardColors = card.dataset.colors ? card.dataset.colors.split(',') : [];
+            const cardMaterials = card.dataset.materials ? card.dataset.materials.split(',') : [];
+            const cardStyles = card.dataset.styles ? card.dataset.styles.split(',') : [];
+            
+            // Проверяем соответствие категориям
+            if (selectedFilters.categories.length > 0) {
+                const hasMatchingCategory = selectedFilters.categories.some(cat => 
+                    cardCategories.includes(cat)
+                );
+                if (!hasMatchingCategory) return false;
+            }
+            
+            // Проверяем соответствие объектам
+            if (selectedFilters.objects.length > 0) {
+                const hasMatchingObject = selectedFilters.objects.some(obj => 
+                    cardObjects.includes(obj)
+                );
+                if (!hasMatchingObject) return false;
+            }
+            
+            // Проверяем соответствие цветам
+            if (selectedFilters.colors.length > 0) {
+                const hasMatchingColor = selectedFilters.colors.some(color => 
+                    cardColors.includes(color)
+                );
+                if (!hasMatchingColor) return false;
+            }
+            
+            // Проверяем соответствие материалам
+            if (selectedFilters.materials.length > 0) {
+                const hasMatchingMaterial = selectedFilters.materials.some(material => 
+                    cardMaterials.includes(material)
+                );
+                if (!hasMatchingMaterial) return false;
+            }
+            
+            // Проверяем соответствие стилям
+            if (selectedFilters.styles.length > 0) {
+                const hasMatchingStyle = selectedFilters.styles.some(style => 
+                    cardStyles.includes(style)
+                );
+                if (!hasMatchingStyle) return false;
+            }
+            
+            return true;
+        }
+        
+        function hasActiveFilters() {
+            return selectedFilters.categories.length > 0 || 
+                   selectedFilters.objects.length > 0 || 
+                   selectedFilters.colors.length > 0 || 
+                   selectedFilters.materials.length > 0 || 
+                   selectedFilters.styles.length > 0;
+        }
+        
+        function clearAdvancedFilters() {
+            // Сбрасываем выбранные фильтры
+            selectedFilters = {
+                categories: [],
+                objects: [],
+                colors: [],
+                materials: [],
+                styles: []
+            };
+            
+            // Убираем выделение с кнопок
+            document.querySelectorAll('.filter-option.selected').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Показываем все изображения
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.style.display = 'block';
+            });
+            
+            showNotification('✅ Фильтры сброшены', 'success');
         }
         
         function showNotification(message, type = 'info') {
