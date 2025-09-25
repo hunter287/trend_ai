@@ -616,7 +616,7 @@ def api_filter_options():
             {"ximilar_objects_structured": 1}
         ))
         
-        # Собираем уникальные значения для фильтров с подсчетом
+        # Собираем уникальные значения для фильтров с подсчетом (по одному разу на изображение)
         categories = {}
         objects = {}
         colors = {}
@@ -625,41 +625,58 @@ def api_filter_options():
         
         for image in images:
             if image.get('ximilar_objects_structured'):
+                # Собираем уникальные теги для этого изображения
+                image_categories = set()
+                image_objects = set()
+                image_colors = set()
+                image_materials = set()
+                image_styles = set()
+                
                 for obj in image['ximilar_objects_structured']:
                     # Категории
                     if obj.get('top_category'):
-                        cat = obj['top_category']
-                        categories[cat] = categories.get(cat, 0) + 1
+                        image_categories.add(obj['top_category'])
                     
                     # Объекты (из Subcategory или Category)
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
                                 for sub in obj['properties']['other_attributes']['Subcategory']:
-                                    obj_name = sub['name']
-                                    objects[obj_name] = objects.get(obj_name, 0) + 1
+                                    image_objects.add(sub['name'])
                             elif obj['properties']['other_attributes'].get('Category'):
                                 for cat in obj['properties']['other_attributes']['Category']:
-                                    obj_name = cat['name']
-                                    objects[obj_name] = objects.get(obj_name, 0) + 1
+                                    image_objects.add(cat['name'])
                     
                     # Цвета
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
                         for color in obj['properties']['visual_attributes']['Color']:
-                            color_name = color['name']
-                            colors[color_name] = colors.get(color_name, 0) + 1
+                            image_colors.add(color['name'])
                     
                     # Материалы
                     if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
                         for material in obj['properties']['material_attributes']['Material']:
-                            material_name = material['name']
-                            materials[material_name] = materials.get(material_name, 0) + 1
+                            image_materials.add(material['name'])
                     
                     # Стили
                     if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
                         for style in obj['properties']['style_attributes']['Style']:
-                            style_name = style['name']
-                            styles[style_name] = styles.get(style_name, 0) + 1
+                            image_styles.add(style['name'])
+                
+                # Добавляем уникальные теги этого изображения к общему счетчику
+                for cat in image_categories:
+                    categories[cat] = categories.get(cat, 0) + 1
+                
+                for obj in image_objects:
+                    objects[obj] = objects.get(obj, 0) + 1
+                
+                for color in image_colors:
+                    colors[color] = colors.get(color, 0) + 1
+                
+                for material in image_materials:
+                    materials[material] = materials.get(material, 0) + 1
+                
+                for style in image_styles:
+                    styles[style] = styles.get(style, 0) + 1
         
         return jsonify({
             'success': True,
