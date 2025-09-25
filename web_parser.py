@@ -195,7 +195,7 @@ def api_mark_for_tagging():
             return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
         
         # Обновляем статус изображений
-        from pymongo import ObjectId
+        from bson import ObjectId
         from datetime import datetime
         
         # Преобразуем строковые ID в ObjectId
