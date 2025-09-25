@@ -134,12 +134,18 @@ def serve_gallery(username):
 def gallery():
     """Галерея изображений из базы данных"""
     try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
         # Подключаемся к MongoDB
-        if not web_parser.parser.connect_mongodb():
+        if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
         # Получаем изображения из базы данных
-        images = list(web_parser.parser.collection.find(
+        images = list(parser.collection.find(
             {"local_filename": {"$exists": True}},
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
         ).sort("parsed_at", -1).limit(100))
