@@ -144,13 +144,37 @@ def gallery():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения из базы данных
+        # Получаем изображения из базы данных (только не выбранные для теггирования)
         images = list(parser.collection.find(
-            {"local_filename": {"$exists": True}},
+            {"local_filename": {"$exists": True}, "selected_for_tagging": {"$ne": True}},
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
         ).sort("parsed_at", -1).limit(100))
         
-        return render_template('gallery.html', images=images)
+        return render_template('gallery.html', images=images, current_page='gallery')
+    except Exception as e:
+        return f"Ошибка: {e}", 500
+
+@app.route('/gallery_to_tag')
+def gallery_to_tag():
+    """Галерея изображений, выбранных для теггирования"""
+    try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return "Ошибка подключения к базе данных", 500
+        
+        # Получаем изображения, выбранные для теггирования
+        images = list(parser.collection.find(
+            {"local_filename": {"$exists": True}, "selected_for_tagging": True},
+            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
+        ).sort("selected_at", -1).limit(100))
+        
+        return render_template('gallery.html', images=images, current_page='gallery_to_tag')
     except Exception as e:
         return f"Ошибка: {e}", 500
 
@@ -405,6 +429,60 @@ def handle_join_session(data):
     if session_id:
         join_room(session_id)
         print(f'Клиент присоединился к сессии: {session_id}')
+
+@app.route('/api/unmark-for-tagging', methods=['POST'])
+def api_unmark_for_tagging():
+    """API для снятия отметки с изображений для теггирования"""
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        if not image_ids:
+            return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
+        
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Обновляем статус изображений
+        from bson import ObjectId
+        
+        # Преобразуем строковые ID в ObjectId
+        object_ids = []
+        for img_id in image_ids:
+            try:
+                object_ids.append(ObjectId(img_id))
+            except Exception as e:
+                print(f"❌ Ошибка преобразования ID {img_id}: {e}")
+                continue
+        
+        if not object_ids:
+            return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
+        
+        # Обновляем статус изображений
+        result = web_parser.parser.collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {
+                "$set": {
+                    "selected_for_tagging": False,
+                    "selected_at": None
+                }
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Снята отметка с {result.modified_count} изображений',
+            'unmarked_count': result.modified_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
 if __name__ == '__main__':
     print("🌐 ЗАПУСК ВЕБ-ИНТЕРФЕЙСА ДЛЯ ПАРСИНГА INSTAGRAM")
