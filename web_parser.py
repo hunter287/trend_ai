@@ -632,8 +632,30 @@ def api_filter_options():
                 image_materials = set()
                 image_styles = set()
                 
-                # Собираем все уникальные теги из всех объектов этого изображения
+                # Сначала дедуплицируем объекты по их основному названию
+                # Это поможет избежать подсчета одинаковых объектов с разными атрибутами
+                unique_objects_by_name = {}
+                
                 for obj in image['ximilar_objects_structured']:
+                    # Получаем основное название объекта
+                    obj_name = None
+                    if obj.get('properties'):
+                        if obj['properties'].get('other_attributes'):
+                            if obj['properties']['other_attributes'].get('Subcategory'):
+                                obj_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                            elif obj['properties']['other_attributes'].get('Category'):
+                                obj_name = obj['properties']['other_attributes']['Category'][0]['name']
+                    
+                    # Если объект с таким названием уже есть, пропускаем
+                    if obj_name and obj_name in unique_objects_by_name:
+                        continue
+                    
+                    # Сохраняем первый объект с этим названием
+                    if obj_name:
+                        unique_objects_by_name[obj_name] = obj
+                
+                # Теперь собираем теги только из уникальных объектов
+                for obj in unique_objects_by_name.values():
                     # Категории
                     if obj.get('top_category'):
                         image_categories.add(obj['top_category'])
