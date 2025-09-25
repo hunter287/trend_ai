@@ -448,7 +448,11 @@
         
         function updateSelectedCount() {
             const count = selectedImages.size;
-            document.getElementById('selectedCount').textContent = count;
+            const selectedCountElement = document.getElementById('selectedCount');
+            
+            if (selectedCountElement) {
+                selectedCountElement.textContent = count;
+            }
             
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
@@ -490,6 +494,12 @@
             
             const imageIds = Array.from(selectedImages);
             const button = document.getElementById('markForTaggingBtn');
+            
+            if (!button) {
+                console.error('Кнопка markForTaggingBtn не найдена');
+                return;
+            }
+            
             const originalText = button.innerHTML;
             
             // Показываем индикатор загрузки
@@ -529,6 +539,12 @@
             
             const imageIds = Array.from(selectedImages);
             const button = document.getElementById('unmarkBtn');
+            
+            if (!button) {
+                console.error('Кнопка unmarkBtn не найдена');
+                return;
+            }
+            
             const originalText = button.innerHTML;
             
             // Показываем индикатор загрузки
