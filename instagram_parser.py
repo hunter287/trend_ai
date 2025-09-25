@@ -100,16 +100,21 @@ class InstagramParser:
     def extract_image_urls(self, posts: List[Dict]) -> List[Dict]:
         """Извлечение URL изображений с удалением дубликатов"""
         print("🖼️ Извлечение URL изображений...")
+        print(f"📊 Всего постов для обработки: {len(posts)}")
         
         image_data = []
         seen_urls = set()
         
-        for post in posts:
+        for i, post in enumerate(posts):
             if not isinstance(post, dict):
+                print(f"⚠️ Пост {i+1}: не является словарем")
                 continue
                 
+            post_id = post.get("shortCode", "N/A")
+            print(f"📝 Пост {i+1}: {post_id}")
+                
             post_info = {
-                "post_id": post.get("shortCode", "N/A"),
+                "post_id": post_id,
                 "username": post.get("ownerUsername", "N/A"),
                 "timestamp": post.get("timestamp", "N/A"),
                 "likes_count": post.get("likesCount", 0),
@@ -122,22 +127,29 @@ class InstagramParser:
                 url = post["displayUrl"]
                 if url not in seen_urls:
                     seen_urls.add(url)
+                    print(f"  🖼️ Основное изображение: {url[:50]}...")
                     image_data.append({
                         **post_info,
                         "image_url": url,
                         "image_type": "main"
                     })
+                else:
+                    print(f"  ⏭️ Дубликат основного изображения: {url[:50]}...")
             
             # Дополнительные изображения
             if post.get("images"):
-                for img_url in post["images"]:
+                print(f"  📸 Дополнительных изображений: {len(post['images'])}")
+                for j, img_url in enumerate(post["images"]):
                     if isinstance(img_url, str) and img_url not in seen_urls:
                         seen_urls.add(img_url)
+                        print(f"    🖼️ Галерея {j+1}: {img_url[:50]}...")
                         image_data.append({
                             **post_info,
                             "image_url": img_url,
                             "image_type": "gallery"
                         })
+                    else:
+                        print(f"    ⏭️ Дубликат галереи {j+1}: {img_url[:50]}...")
             
             # Child posts (карусели)
             if post.get("childPosts"):
