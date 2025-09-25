@@ -472,11 +472,12 @@
                                         <span class="object-name">{{ obj.name }} ({{ "%.1f"|format(obj.probability * 100) }}%)</span>
                                         {% if obj.properties %}
                                             <div class="object-properties">
-                                                {% for prop_name, prop_value in obj.properties.items()[:3] %}
+                                                {% set props_list = obj.properties.items()|list %}
+                                                {% for prop_name, prop_value in props_list[:3] %}
                                                     <span class="property">{{ prop_name }}: {{ prop_value }}</span>
                                                 {% endfor %}
-                                                {% if obj.properties|length > 3 %}
-                                                    <span class="property-more">+{{ obj.properties|length - 3 }} свойств</span>
+                                                {% if props_list|length > 3 %}
+                                                    <span class="property-more">+{{ props_list|length - 3 }} свойств</span>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
