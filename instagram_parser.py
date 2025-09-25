@@ -178,20 +178,23 @@ class InstagramParser:
                 post_id = img_data["post_id"]
                 img_type = img_data["image_type"]
                 
-                # Проверяем, нужно ли скачивать изображение
-                if self.is_image_exists(url, post_id):
-                    print(f"⏭️ [{i+1}/{total_to_download}] Пропуск дубликата: {post_id}_{img_type}")
-                    skipped_count += 1
-                    continue
-                
-                # Проверяем, существует ли файл локально
+                # Проверяем, нужно ли скачивать изображение (только по локальному файлу)
                 filename = f"{post_id}_{img_type}_{i+1:04d}.jpg"
                 filepath = images_dir / filename
                 
                 if filepath.exists():
                     print(f"⏭️ [{i+1}/{total_to_download}] Файл уже существует: {filename}")
+                    # Добавляем информацию о существующем файле
+                    downloaded_data.append({
+                        **img_data,
+                        "local_filename": filename,
+                        "local_path": str(filepath),
+                        "file_size": filepath.stat().st_size,
+                        "downloaded_at": datetime.now().isoformat()
+                    })
                     skipped_count += 1
                     continue
+                
                 
                 print(f"📥 [{i+1}/{total_to_download}] Скачивание: {filename}")
                 
