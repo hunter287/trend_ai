@@ -623,8 +623,10 @@ def api_filter_options():
         materials = {}
         styles = {}
         
+        processed_images = 0
         for image in images:
             if image.get('ximilar_objects_structured'):
+                processed_images += 1
                 # Собираем уникальные теги для этого изображения
                 image_categories = set()
                 image_objects = set()
@@ -706,11 +708,23 @@ def api_filter_options():
         
         # Отладочная информация
         print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами")
+        print(f"🔍 DEBUG: Обработано {processed_images} изображений с ximilar_objects_structured")
         print(f"📊 Категории: {len(categories)} уникальных")
         print(f"📊 Объекты: {len(objects)} уникальных")
         print(f"📊 Цвета: {len(colors)} уникальных")
         print(f"📊 Материалы: {len(materials)} уникальных")
         print(f"📊 Стили: {len(styles)} уникальных")
+        
+        # Детальная отладка для объектов
+        print("\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ОБЪЕКТОВ:")
+        for obj_name, count in sorted(objects.items(), key=lambda x: x[1], reverse=True)[:10]:
+            print(f"  {obj_name}: {count} изображений")
+        
+        # Проверим конкретный случай с Footwear/Ballerinas
+        if "Footwear/Ballerinas" in objects:
+            print(f"\n🎯 Footwear/Ballerinas: {objects['Footwear/Ballerinas']} изображений")
+            print(f"📊 Всего изображений: {len(images)}")
+            print(f"📊 Соотношение: {objects['Footwear/Ballerinas']}/{len(images)} = {objects['Footwear/Ballerinas']/len(images)*100:.1f}%")
         
         return jsonify({
             'success': True,
