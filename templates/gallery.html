@@ -451,24 +451,20 @@
                                         {% set _ = categories.update({category: []}) %}
                                     {% endif %}
                                     
-                                    {% set obj_info = obj.name %}
+                                    {% set obj_info = obj.properties.basic_info.name if obj.properties and obj.properties.basic_info and obj.properties.basic_info.name else obj.name %}
                                     {% set color = '' %}
                                     {% set material = '' %}
                                     
                                     {% if obj.properties %}
-                                        {% if obj.properties.visual_attributes %}
-                                            {% for attr_name, attr_value in obj.properties.visual_attributes.items() %}
-                                                {% if 'color' in attr_name.lower() %}
-                                                    {% set color = attr_value %}
-                                                {% endif %}
+                                        {% if obj.properties.color_attributes %}
+                                            {% for attr_name, attr_value in obj.properties.color_attributes.items() %}
+                                                {% set color = attr_value %}
                                             {% endfor %}
                                         {% endif %}
                                         
                                         {% if obj.properties.material_attributes %}
                                             {% for attr_name, attr_value in obj.properties.material_attributes.items() %}
-                                                {% if 'material' in attr_name.lower() or 'fabric' in attr_name.lower() %}
-                                                    {% set material = attr_value %}
-                                                {% endif %}
+                                                {% set material = attr_value %}
                                             {% endfor %}
                                         {% endif %}
                                         
