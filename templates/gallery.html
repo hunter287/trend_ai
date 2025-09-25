@@ -1054,17 +1054,20 @@
                 filterOption.className = 'filter-option';
                 filterOption.textContent = option;
                 filterOption.dataset.filterType = filterType;
-                filterOption.dataset.value = option;
+                
+                // Извлекаем название тега без счетчика для фильтрации
+                const tagName = option.replace(/\s*\(\d+\)$/, ''); // Убираем " (число)" в конце
+                filterOption.dataset.value = tagName;
                 
                 filterOption.addEventListener('click', () => {
                     filterOption.classList.toggle('selected');
                     
                     if (filterOption.classList.contains('selected')) {
-                        if (!selectedFilters[filterType].includes(option)) {
-                            selectedFilters[filterType].push(option);
+                        if (!selectedFilters[filterType].includes(tagName)) {
+                            selectedFilters[filterType].push(tagName);
                         }
                     } else {
-                        selectedFilters[filterType] = selectedFilters[filterType].filter(item => item !== option);
+                        selectedFilters[filterType] = selectedFilters[filterType].filter(item => item !== tagName);
                     }
                 });
                 

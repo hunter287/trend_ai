@@ -603,10 +603,11 @@ def api_filter_options():
         if not web_parser.parser.connect_mongodb():
             return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
         
-        # Получаем все изображения с тегами Ximilar
+        # Получаем все изображения с тегами Ximilar (исключаем скрытые)
         images = list(web_parser.parser.collection.find(
             {
-                "local_filename": {"$exists": True}, 
+                "local_filename": {"$exists": True},
+                "hidden": {"$ne": True},
                 "$or": [
                     {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
@@ -615,53 +616,59 @@ def api_filter_options():
             {"ximilar_objects_structured": 1}
         ))
         
-        # Собираем уникальные значения для фильтров
-        categories = set()
-        objects = set()
-        colors = set()
-        materials = set()
-        styles = set()
+        # Собираем уникальные значения для фильтров с подсчетом
+        categories = {}
+        objects = {}
+        colors = {}
+        materials = {}
+        styles = {}
         
         for image in images:
             if image.get('ximilar_objects_structured'):
                 for obj in image['ximilar_objects_structured']:
                     # Категории
                     if obj.get('top_category'):
-                        categories.add(obj['top_category'])
+                        cat = obj['top_category']
+                        categories[cat] = categories.get(cat, 0) + 1
                     
                     # Объекты (из Subcategory или Category)
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
                                 for sub in obj['properties']['other_attributes']['Subcategory']:
-                                    objects.add(sub['name'])
+                                    obj_name = sub['name']
+                                    objects[obj_name] = objects.get(obj_name, 0) + 1
                             elif obj['properties']['other_attributes'].get('Category'):
                                 for cat in obj['properties']['other_attributes']['Category']:
-                                    objects.add(cat['name'])
+                                    obj_name = cat['name']
+                                    objects[obj_name] = objects.get(obj_name, 0) + 1
                     
                     # Цвета
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
                         for color in obj['properties']['visual_attributes']['Color']:
-                            colors.add(color['name'])
+                            color_name = color['name']
+                            colors[color_name] = colors.get(color_name, 0) + 1
                     
                     # Материалы
                     if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
                         for material in obj['properties']['material_attributes']['Material']:
-                            materials.add(material['name'])
+                            material_name = material['name']
+                            materials[material_name] = materials.get(material_name, 0) + 1
                     
                     # Стили
                     if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
                         for style in obj['properties']['style_attributes']['Style']:
-                            styles.add(style['name'])
+                            style_name = style['name']
+                            styles[style_name] = styles.get(style_name, 0) + 1
         
         return jsonify({
             'success': True,
             'filter_options': {
-                'categories': sorted(list(categories)),
-                'objects': sorted(list(objects)),
-                'colors': sorted(list(colors)),
-                'materials': sorted(list(materials)),
-                'styles': sorted(list(styles))
+                'categories': sorted([f"{cat} ({count})" for cat, count in categories.items()]),
+                'objects': sorted([f"{obj} ({count})" for obj, count in objects.items()]),
+                'colors': sorted([f"{color} ({count})" for color, count in colors.items()]),
+                'materials': sorted([f"{material} ({count})" for material, count in materials.items()]),
+                'styles': sorted([f"{style} ({count})" for style, count in styles.items()])
             }
         })
         
