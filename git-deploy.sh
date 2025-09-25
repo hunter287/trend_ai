@@ -6,15 +6,23 @@
 set -e
 
 # Параметры
-SERVER_IP=${1:-"89.169.176.64"}
-SSH_KEY=${2:-"~/.ssh/ssh-key-1756891497220"}
+SERVER_IP=${1:-""}
+SSH_KEY=${2:-"~/.ssh/id_rsa"}
 GIT_REPO=${3:-""}
-USER="styleboxlive"
-APP_NAME="linda-sza-gallery"
+USER=${4:-"ubuntu"}
+APP_NAME="trend_ai"
 APP_DIR="/home/$USER/$APP_NAME"
 
-echo "🚀 РАЗВЕРТЫВАНИЕ ЧЕРЕЗ GIT НА ЯНДЕКС ОБЛАКО"
-echo "=========================================="
+# Проверяем обязательные параметры
+if [ -z "$SERVER_IP" ]; then
+    echo "❌ ОШИБКА: Не указан IP адрес сервера"
+    echo "Использование: ./git-deploy.sh [server_ip] [ssh_key_path] [git_repo_url] [username]"
+    echo "Пример: ./git-deploy.sh 192.168.1.100 ~/.ssh/id_rsa https://github.com/user/trend_ai.git ubuntu"
+    exit 1
+fi
+
+echo "🚀 РАЗВЕРТЫВАНИЕ TREND_AI ЧЕРЕЗ GIT"
+echo "=================================="
 echo "📡 Сервер: $SERVER_IP"
 echo "🔑 SSH ключ: $SSH_KEY"
 echo "📦 Git репозиторий: $GIT_REPO"

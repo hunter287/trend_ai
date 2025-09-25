@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Галерея изображений</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .gallery {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .image-card.selected {
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+        }
+        
+        .image-container {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .image-card:hover .image-container img {
+            transform: scale(1.05);
+        }
+        
+        .checkbox {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 25px;
+            height: 25px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .checkbox.checked {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        
+        .image-info {
+            padding: 20px;
+        }
+        
+        .username {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .caption {
+            font-size: 0.9em;
+            color: #495057;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .selected-count {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .no-images {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 768px) {
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Галерея изображений</h1>
+            <p>Выберите изображения для теггирования</p>
+        </div>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по подписи или имени пользователя...">
+            </div>
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="selected">Выбранные</button>
+                <button class="filter-btn" data-filter="unselected">Не выбранные</button>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
+                <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
+                <button class="btn btn-primary" id="markForTaggingBtn" disabled>
+                    Отметить для теггирования
+                    <span class="selected-count" id="selectedCount">0</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="gallery" id="gallery">
+            {% if images %}
+                {% for image in images %}
+                <div class="image-card" data-image-id="{{ image._id }}" data-username="{{ image.username }}" data-caption="{{ image.caption or '' }}">
+                    <div class="image-container">
+                        <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">
+                        <div class="checkbox" onclick="toggleSelection('{{ image._id }}')"></div>
+                    </div>
+                    <div class="image-info">
+                        <div class="username">@{{ image.username }}</div>
+                        <div class="stats">
+                            <span>❤️ {{ image.likes_count or 0 }}</span>
+                            <span>💬 {{ image.comments_count or 0 }}</span>
+                        </div>
+                        <div class="caption">{{ image.caption or 'Без описания' }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-images">
+                    <h3>📷 Изображения не найдены</h3>
+                    <p>Сначала выполните парсинг аккаунтов Instagram</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        let selectedImages = new Set();
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSelectedCount();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // Поиск
+            document.getElementById('searchInput').addEventListener('input', filterImages);
+            
+            // Фильтры
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterImages();
+                });
+            });
+            
+            // Кнопки действий
+            document.getElementById('selectAllBtn').addEventListener('click', selectAll);
+            document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);
+            document.getElementById('markForTaggingBtn').addEventListener('click', markForTagging);
+        }
+        
+        function toggleSelection(imageId) {
+            const card = document.querySelector(`[data-image-id="${imageId}"]`);
+            const checkbox = card.querySelector('.checkbox');
+            
+            if (selectedImages.has(imageId)) {
+                selectedImages.delete(imageId);
+                card.classList.remove('selected');
+                checkbox.classList.remove('checked');
+            } else {
+                selectedImages.add(imageId);
+                card.classList.add('selected');
+                checkbox.classList.add('checked');
+            }
+            
+            updateSelectedCount();
+        }
+        
+        function selectAll() {
+            const visibleCards = getVisibleCards();
+            visibleCards.forEach(card => {
+                const imageId = card.dataset.imageId;
+                selectedImages.add(imageId);
+                card.classList.add('selected');
+                card.querySelector('.checkbox').classList.add('checked');
+            });
+            updateSelectedCount();
+        }
+        
+        function clearSelection() {
+            selectedImages.clear();
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.classList.remove('selected');
+                card.querySelector('.checkbox').classList.remove('checked');
+            });
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const count = selectedImages.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('markForTaggingBtn').disabled = count === 0;
+        }
+        
+        function filterImages() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            
+            document.querySelectorAll('.image-card').forEach(card => {
+                const username = card.dataset.username.toLowerCase();
+                const caption = card.dataset.caption.toLowerCase();
+                const isSelected = selectedImages.has(card.dataset.imageId);
+                
+                let matchesSearch = username.includes(searchTerm) || caption.includes(searchTerm);
+                let matchesFilter = true;
+                
+                if (activeFilter === 'selected') {
+                    matchesFilter = isSelected;
+                } else if (activeFilter === 'unselected') {
+                    matchesFilter = !isSelected;
+                }
+                
+                card.style.display = (matchesSearch && matchesFilter) ? 'block' : 'none';
+            });
+        }
+        
+        function getVisibleCards() {
+            return Array.from(document.querySelectorAll('.image-card')).filter(card => 
+                card.style.display !== 'none'
+            );
+        }
+        
+        async function markForTagging() {
+            if (selectedImages.size === 0) return;
+            
+            const imageIds = Array.from(selectedImages);
+            
+            try {
+                const response = await fetch('/api/mark-for-tagging', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_ids: imageIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    clearSelection();
+                } else {
+                    alert(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                alert(`❌ Ошибка: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
