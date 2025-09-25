@@ -210,6 +210,48 @@
             font-weight: 500;
         }
         
+        .object-item {
+            margin: 4px 0;
+            padding: 4px;
+            background: #ffffff;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .object-name {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+        
+        .object-properties {
+            margin-left: 8px;
+        }
+        
+        .property {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            margin: 1px 2px 1px 0;
+            font-weight: 400;
+        }
+        
+        .property-more {
+            display: inline-block;
+            background: #bbdefb;
+            color: #1565c0;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            margin: 1px 2px 1px 0;
+            font-weight: 500;
+        }
+        
         .gallery {
             padding: 30px;
             display: grid;
@@ -422,9 +464,31 @@
                             <span>💬 {{ image.comments_count or 0 }}</span>
                         </div>
                         <div class="caption">{{ image.caption or 'Без описания' }}</div>
-                        {% if current_page == 'gallery_tagged' and image.ximilar_tags %}
+                        {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                             <div class="ximilar-tags">
-                                <strong>🏷️ Теги:</strong>
+                                <strong>🏷️ Объекты:</strong>
+                                {% for obj in image.ximilar_objects_structured[:3] %}
+                                    <div class="object-item">
+                                        <span class="object-name">{{ obj.name }} ({{ "%.1f"|format(obj.probability * 100) }}%)</span>
+                                        {% if obj.properties %}
+                                            <div class="object-properties">
+                                                {% for prop_name, prop_value in obj.properties.items()[:3] %}
+                                                    <span class="property">{{ prop_name }}: {{ prop_value }}</span>
+                                                {% endfor %}
+                                                {% if obj.properties|length > 3 %}
+                                                    <span class="property-more">+{{ obj.properties|length - 3 }} свойств</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% if image.ximilar_objects_structured|length > 3 %}
+                                    <span class="tag-more">+{{ image.ximilar_objects_structured|length - 3 }} объектов</span>
+                                {% endif %}
+                            </div>
+                        {% elif current_page == 'gallery_tagged' and image.ximilar_tags %}
+                            <div class="ximilar-tags">
+                                <strong>🏷️ Теги (старый формат):</strong>
                                 {% for tag in image.ximilar_tags[:5] %}
                                     <span class="tag">{{ tag.name }} ({{ "%.1f"|format(tag.confidence * 100) }}%)</span>
                                 {% endfor %}

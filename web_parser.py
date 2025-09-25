@@ -149,7 +149,10 @@ def gallery():
             {
                 "local_filename": {"$exists": True}, 
                 "selected_for_tagging": {"$ne": True},
-                "ximilar_tags": {"$exists": False}
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
         ).sort("parsed_at", -1).limit(100))
@@ -174,7 +177,14 @@ def gallery_to_tag():
         
         # Получаем изображения, выбранные для теггирования (только без тегов Ximilar)
         images = list(parser.collection.find(
-            {"local_filename": {"$exists": True}, "selected_for_tagging": True, "ximilar_tags": {"$exists": False}},
+            {
+                "local_filename": {"$exists": True}, 
+                "selected_for_tagging": True, 
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
+            },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
         ).sort("selected_at", -1).limit(100))
         
@@ -196,11 +206,21 @@ def gallery_tagged():
         if not parser.connect_mongodb():
             return "Ошибка подключения к базе данных", 500
         
-        # Получаем изображения с тегами Ximilar
+        # Получаем изображения с тегами Ximilar (приоритет объектно-ориентированной структуре)
         images = list(parser.collection.find(
-            {"local_filename": {"$exists": True}, "ximilar_tags": {"$exists": True}},
-            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "ximilar_tags": 1, "tagged_at": 1}
-        ).sort("tagged_at", -1).limit(100))
+            {
+                "local_filename": {"$exists": True}, 
+                "$or": [
+                    {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
+                    {"ximilar_tags": {"$exists": True, "$ne": []}}
+                ]
+            },
+            {
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, 
+                "comments_count": 1, "caption": 1, "ximilar_tags": 1, 
+                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
+            }
+        ).sort("ximilar_tagged_at", -1).limit(100))
         
         return render_template('gallery.html', images=images, current_page='gallery_tagged')
     except Exception as e:
@@ -577,17 +597,27 @@ def api_tag_images():
                 # Используем существующую функциональность теггирования
                 tags_result = tagger.tag_image_with_ximilar(image_url)
                 
-                if tags_result and 'tags' in tags_result:
-                    # Обновляем документ в базе данных
+                if tags_result and 'success' in tags_result and tags_result['success']:
+                    # Обновляем документ в базе данных с объектно-ориентированной структурой
+                    update_data = {
+                        "ximilar_objects_structured": tags_result.get("objects", []),
+                        "ximilar_properties_summary": tags_result.get("properties_summary", {}),
+                        "ximilar_tags": tags_result.get("tags", []),
+                        "ximilar_objects": tags_result.get("objects", []),
+                        "ximilar_total_tags": tags_result.get("total_tags", 0),
+                        "ximilar_total_objects": tags_result.get("total_objects", 0),
+                        "ximilar_tagged_at": datetime.now().isoformat(),
+                        "ximilar_success": tags_result.get("success", False),
+                        "tagged_at": datetime.now().isoformat(),
+                        "selected_for_tagging": False  # Убираем из списка для теггирования
+                    }
+                    
+                    if not tags_result.get("success"):
+                        update_data["ximilar_error"] = tags_result.get("error", "Unknown error")
+                    
                     web_parser.parser.collection.update_one(
                         {"_id": image['_id']},
-                        {
-                            "$set": {
-                                "ximilar_tags": tags_result['tags'],
-                                "tagged_at": datetime.now().isoformat(),
-                                "selected_for_tagging": False  # Убираем из списка для теггирования
-                            }
-                        }
+                        {"$set": update_data}
                     )
                     tagged_count += 1
                     print(f"✅ Изображение {image['local_filename']} оттегировано")
