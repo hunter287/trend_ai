@@ -617,6 +617,7 @@ def api_filter_options():
         ))
         
         # Собираем уникальные значения для фильтров с подсчетом (по одному разу на изображение)
+        # Используем ту же логику дедупликации, что и в шаблоне
         categories = {}
         objects = {}
         colors = {}
@@ -727,6 +728,42 @@ def api_filter_options():
             print(f"\n🎯 Footwear/Ballerinas: {objects['Footwear/Ballerinas']} изображений")
             print(f"📊 Всего изображений: {len(images)}")
             print(f"📊 Соотношение: {objects['Footwear/Ballerinas']}/{len(images)} = {objects['Footwear/Ballerinas']/len(images)*100:.1f}%")
+            
+            # Дополнительная отладка: найдем изображения с этим тегом
+            ballerinas_images = []
+            for image in images:
+                if image.get('ximilar_objects_structured'):
+                    # Применяем ту же логику дедупликации
+                    unique_objects_by_name = {}
+                    for obj in image['ximilar_objects_structured']:
+                        obj_name = None
+                        if obj.get('properties'):
+                            if obj['properties'].get('other_attributes'):
+                                if obj['properties']['other_attributes'].get('Subcategory'):
+                                    obj_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                                elif obj['properties']['other_attributes'].get('Category'):
+                                    obj_name = obj['properties']['other_attributes']['Category'][0]['name']
+                        
+                        if obj_name and obj_name not in unique_objects_by_name:
+                            unique_objects_by_name[obj_name] = obj
+                    
+                    # Проверяем, есть ли Footwear/Ballerinas среди уникальных объектов
+                    for obj in unique_objects_by_name.values():
+                        if obj.get('properties'):
+                            if obj['properties'].get('other_attributes'):
+                                if obj['properties']['other_attributes'].get('Subcategory'):
+                                    sub_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                                    if sub_name == "Footwear/Ballerinas":
+                                        ballerinas_images.append(image['_id'])
+                                        break
+                                elif obj['properties']['other_attributes'].get('Category'):
+                                    cat_name = obj['properties']['other_attributes']['Category'][0]['name']
+                                    if cat_name == "Footwear/Ballerinas":
+                                        ballerinas_images.append(image['_id'])
+                                        break
+            
+            print(f"🔍 DEBUG: Найдено {len(ballerinas_images)} изображений с Footwear/Ballerinas после дедупликации")
+            print(f"🔍 DEBUG: ID изображений: {ballerinas_images[:5]}...")  # Показываем первые 5 ID
         
         return jsonify({
             'success': True,
