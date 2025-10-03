@@ -551,11 +551,86 @@
                      data-username="{{ image.username }}" 
                      data-caption="{{ image.caption or '' }}"
                      {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
-                     data-categories="{% for obj in image.ximilar_objects_structured %}{{ obj.top_category or '' }}{% if not loop.last %},{% endif %}{% endfor %}"
-                     data-objects="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.other_attributes.Subcategory %}{{ obj.properties.other_attributes.Subcategory[0].name }}{% elif obj.properties.other_attributes.Category %}{{ obj.properties.other_attributes.Category[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
-                     data-colors="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.visual_attributes.Color %}{{ obj.properties.visual_attributes.Color[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
-                     data-materials="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.material_attributes.Material %}{{ obj.properties.material_attributes.Material[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
-                     data-styles="{% for obj in image.ximilar_objects_structured %}{% if obj.properties.style_attributes.Style %}{{ obj.properties.style_attributes.Style[0].name }}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}"
+                     {# Дедупликация объектов по названию (как в API) #}
+                     {% set unique_categories = [] %}
+                     {% set unique_objects = [] %}
+                     {% set unique_colors = [] %}
+                     {% set unique_materials = [] %}
+                     {% set unique_styles = [] %}
+                     {% set unique_objects_by_name = {} %}
+                     
+                     {# Сначала дедуплицируем объекты по их основному названию #}
+                     {% for obj in image.ximilar_objects_structured %}
+                         {% set obj_name = '' %}
+                         {% if obj.properties and obj.properties.other_attributes %}
+                             {% if obj.properties.other_attributes.Subcategory %}
+                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
+                             {% elif obj.properties.other_attributes.Category %}
+                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
+                             {% endif %}
+                         {% endif %}
+                         
+                         {# Если объект с таким названием еще не добавлен, добавляем его #}
+                         {% if obj_name and obj_name not in unique_objects_by_name %}
+                             {% set _ = unique_objects_by_name.update({obj_name: obj}) %}
+                         {% endif %}
+                     {% endfor %}
+                     
+                     {# Теперь собираем уникальные теги только из дедуплицированных объектов #}
+                     {% for obj in unique_objects_by_name.values() %}
+                         {# Категории #}
+                         {% if obj.top_category and obj.top_category not in unique_categories %}
+                             {% set _ = unique_categories.append(obj.top_category) %}
+                         {% endif %}
+                         
+                         {# Объекты #}
+                         {% if obj.properties and obj.properties.other_attributes %}
+                             {% if obj.properties.other_attributes.Subcategory %}
+                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
+                                 {% if obj_name not in unique_objects %}
+                                     {% set _ = unique_objects.append(obj_name) %}
+                                 {% endif %}
+                             {% elif obj.properties.other_attributes.Category %}
+                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
+                                 {% if obj_name not in unique_objects %}
+                                     {% set _ = unique_objects.append(obj_name) %}
+                                 {% endif %}
+                             {% endif %}
+                         {% endif %}
+                         
+                         {# Цвета #}
+                         {% if obj.properties and obj.properties.visual_attributes and obj.properties.visual_attributes.Color %}
+                             {% for color in obj.properties.visual_attributes.Color %}
+                                 {% if color.name not in unique_colors %}
+                                     {% set _ = unique_colors.append(color.name) %}
+                                 {% endif %}
+                             {% endfor %}
+                         {% endif %}
+                         
+                         {# Материалы #}
+                         {% if obj.properties and obj.properties.material_attributes and obj.properties.material_attributes.Material %}
+                             {% for material in obj.properties.material_attributes.Material %}
+                                 {% if material.name not in unique_materials %}
+                                     {% set _ = unique_materials.append(material.name) %}
+                                 {% endif %}
+                             {% endfor %}
+                         {% endif %}
+                         
+                         {# Стили #}
+                         {% if obj.properties and obj.properties.style_attributes and obj.properties.style_attributes.Style %}
+                             {% for style in obj.properties.style_attributes.Style %}
+                                 {% if style.name not in unique_styles %}
+                                     {% set _ = unique_styles.append(style.name) %}
+                                 {% endif %}
+                             {% endfor %}
+                         {% endif %}
+                     {% endfor %}
+                     
+                     data-categories="{{ unique_categories|join(',') }}"
+                     data-objects="{{ unique_objects|join(',') }}"
+                     data-colors="{{ unique_colors|join(',') }}"
+                     data-materials="{{ unique_materials|join(',') }}"
+                     data-styles="{{ unique_styles|join(',') }}"
                      {% endif %}>
                     <div class="image-container">
                         <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">

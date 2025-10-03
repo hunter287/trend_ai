@@ -662,15 +662,17 @@ def api_filter_options():
                     if obj.get('top_category'):
                         image_categories.add(obj['top_category'])
                     
-                    # Объекты (из Subcategory или Category)
+                    # Объекты (из Subcategory или Category) - берем только первый элемент, так как объекты уже дедуплицированы
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
-                                for sub in obj['properties']['other_attributes']['Subcategory']:
-                                    image_objects.add(sub['name'])
+                                # Берем только первый элемент, так как объекты уже дедуплицированы по названию
+                                sub_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                                image_objects.add(sub_name)
                             elif obj['properties']['other_attributes'].get('Category'):
-                                for cat in obj['properties']['other_attributes']['Category']:
-                                    image_objects.add(cat['name'])
+                                # Берем только первый элемент, так как объекты уже дедуплицированы по названию
+                                cat_name = obj['properties']['other_attributes']['Category'][0]['name']
+                                image_objects.add(cat_name)
                     
                     # Цвета
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
