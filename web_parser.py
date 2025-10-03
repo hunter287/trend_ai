@@ -640,8 +640,8 @@ def api_filter_options():
                 unique_objects_by_name = {}
                 
                 for obj in image['ximilar_objects_structured']:
-                    # Получаем основное название объекта
-                    obj_name = None
+                    # Получаем основное название объекта (точно как в шаблоне)
+                    obj_name = ''
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
@@ -718,6 +718,11 @@ def api_filter_options():
         print(f"📊 Материалы: {len(materials)} уникальных")
         print(f"📊 Стили: {len(styles)} уникальных")
         
+        # Детальная отладка для понимания расхождений
+        print(f"\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ПОДСЧЕТА:")
+        for obj_name, count in sorted(objects.items(), key=lambda x: x[1], reverse=True)[:5]:
+            print(f"  {obj_name}: {count} изображений")
+        
         # Детальная отладка для объектов
         print("\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ОБЪЕКТОВ:")
         for obj_name, count in sorted(objects.items(), key=lambda x: x[1], reverse=True)[:10]:
@@ -736,7 +741,7 @@ def api_filter_options():
                     # Применяем ту же логику дедупликации
                     unique_objects_by_name = {}
                     for obj in image['ximilar_objects_structured']:
-                        obj_name = None
+                        obj_name = ''
                         if obj.get('properties'):
                             if obj['properties'].get('other_attributes'):
                                 if obj['properties']['other_attributes'].get('Subcategory'):
@@ -774,6 +779,82 @@ def api_filter_options():
                 'materials': sorted([f"{material} ({count})" for material, count in materials.items()]),
                 'styles': sorted([f"{style} ({count})" for style, count in styles.items()])
             }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/debug-filter/<tag_name>')
+def api_debug_filter(tag_name):
+    """API для отладки конкретного тега"""
+    try:
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Получаем все изображения с тегами Ximilar (исключаем скрытые)
+        images = list(web_parser.parser.collection.find(
+            {
+                "local_filename": {"$exists": True},
+                "hidden": {"$ne": True},
+                "$or": [
+                    {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
+                    {"ximilar_tags": {"$exists": True, "$ne": []}}
+                ]
+            },
+            {"_id": 1, "local_filename": 1, "ximilar_objects_structured": 1}
+        ))
+        
+        # Применяем ту же логику дедупликации, что и в API
+        matching_images = []
+        for image in images:
+            if image.get('ximilar_objects_structured'):
+                # Дедуплицируем объекты по их основному названию
+                unique_objects_by_name = {}
+                for obj in image['ximilar_objects_structured']:
+                    obj_name = ''
+                    if obj.get('properties'):
+                        if obj['properties'].get('other_attributes'):
+                            if obj['properties']['other_attributes'].get('Subcategory'):
+                                obj_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                            elif obj['properties']['other_attributes'].get('Category'):
+                                obj_name = obj['properties']['other_attributes']['Category'][0]['name']
+                    
+                    if obj_name and obj_name not in unique_objects_by_name:
+                        unique_objects_by_name[obj_name] = obj
+                
+                # Проверяем, есть ли искомый тег среди уникальных объектов
+                for obj in unique_objects_by_name.values():
+                    if obj.get('properties'):
+                        if obj['properties'].get('other_attributes'):
+                            if obj['properties']['other_attributes'].get('Subcategory'):
+                                sub_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                                if sub_name == tag_name:
+                                    matching_images.append({
+                                        'id': str(image['_id']),
+                                        'filename': image['local_filename']
+                                    })
+                                    break
+                            elif obj['properties']['other_attributes'].get('Category'):
+                                cat_name = obj['properties']['other_attributes']['Category'][0]['name']
+                                if cat_name == tag_name:
+                                    matching_images.append({
+                                        'id': str(image['_id']),
+                                        'filename': image['local_filename']
+                                    })
+                                    break
+        
+        return jsonify({
+            'success': True,
+            'tag_name': tag_name,
+            'total_images': len(images),
+            'matching_images_count': len(matching_images),
+            'matching_images': matching_images[:10]  # Показываем первые 10
         })
         
     except Exception as e:
