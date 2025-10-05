@@ -218,6 +218,127 @@
             border: 1px solid #dee2e6;
         }
         
+        .hierarchical-filters {
+            min-height: 300px;
+        }
+        
+        .filter-categories, .filter-subcategories, .filter-details {
+            transition: all 0.3s ease;
+        }
+        
+        .category-option, .subcategory-option {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-option:hover, .subcategory-option:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .category-info, .subcategory-info {
+            flex: 1;
+        }
+        
+        .category-info h4 {
+            margin: 0 0 5px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .subcategory-info h5 {
+            margin: 0 0 5px 0;
+            color: #495057;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .category-count, .subcategory-count {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .category-arrow, .subcategory-arrow {
+            font-size: 18px;
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .subcategory-header, .filter-details-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-back:hover {
+            background: #5a6268;
+        }
+        
+        .filter-details-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .filter-section h5 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            margin-bottom: 5px;
+        }
+        
+        .filter-name {
+            flex: 1;
+        }
+        
+        .filter-count {
+            color: #6c757d;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
         .filter-section {
             margin-bottom: 20px;
         }
@@ -231,19 +352,8 @@
         
         .filter-options {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .filter-option {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
+            flex-direction: column;
+            gap: 5px;
         }
         
         .filter-option:hover {
@@ -481,29 +591,44 @@
             
             {% if current_page == 'gallery_tagged' %}
             <div class="advanced-filters" id="advancedFilters" style="display: none;">
-                <div class="filter-section">
-                    <h4>Категории</h4>
-                    <div class="filter-options" id="categoryFilters"></div>
-                </div>
-                
-                <div class="filter-section">
-                    <h4>Объекты</h4>
-                    <div class="filter-options" id="objectFilters"></div>
-                </div>
-                
-                <div class="filter-section">
-                    <h4>Цвета</h4>
-                    <div class="filter-options" id="colorFilters"></div>
-                </div>
-                
-                <div class="filter-section">
-                    <h4>Материалы</h4>
-                    <div class="filter-options" id="materialFilters"></div>
-                </div>
-                
-                <div class="filter-section">
-                    <h4>Стили</h4>
-                    <div class="filter-options" id="styleFilters"></div>
+                <div class="hierarchical-filters">
+                    <div class="filter-categories" id="filterCategories">
+                        <!-- Категории будут загружены динамически -->
+                    </div>
+                    
+                    <div class="filter-subcategories" id="filterSubcategories" style="display: none;">
+                        <div class="subcategory-header">
+                            <button class="btn btn-back" id="backToCategories">← Назад к категориям</button>
+                            <h4 id="selectedCategoryTitle">Выберите подкатегорию</h4>
+                        </div>
+                        <div class="subcategory-list" id="subcategoryList">
+                            <!-- Подкатегории будут загружены динамически -->
+                        </div>
+                    </div>
+                    
+                    <div class="filter-details" id="filterDetails" style="display: none;">
+                        <div class="filter-details-header">
+                            <button class="btn btn-back" id="backToSubcategories">← Назад к подкатегориям</button>
+                            <h4 id="selectedSubcategoryTitle">Фильтры</h4>
+                        </div>
+                        
+                        <div class="filter-details-content">
+                            <div class="filter-section">
+                                <h5>Цвета</h5>
+                                <div class="filter-options" id="colorFilters"></div>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <h5>Материалы</h5>
+                                <div class="filter-options" id="materialFilters"></div>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <h5>Стили</h5>
+                                <div class="filter-options" id="styleFilters"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="filter-actions">
@@ -808,6 +933,18 @@
                 if (clearFiltersBtn) {
                     clearFiltersBtn.addEventListener('click', clearAdvancedFilters);
                 }
+                
+                // Кнопки навигации для иерархических фильтров
+                const backToCategoriesBtn = document.getElementById('backToCategories');
+                const backToSubcategoriesBtn = document.getElementById('backToSubcategories');
+                
+                if (backToCategoriesBtn) {
+                    backToCategoriesBtn.addEventListener('click', backToCategories);
+                }
+                
+                if (backToSubcategoriesBtn) {
+                    backToSubcategoriesBtn.addEventListener('click', backToSubcategories);
+                }
             }
         }
         
@@ -1075,11 +1212,13 @@
             }
         }
         
-        // Глобальные переменные для фильтров
-        let filterOptions = {};
+        // Глобальные переменные для иерархических фильтров
+        let hierarchicalFilters = {};
+        let currentCategory = null;
+        let currentSubcategory = null;
         let selectedFilters = {
-            categories: [],
-            objects: [],
+            category: null,
+            subcategory: null,
             colors: [],
             materials: [],
             styles: []
@@ -1091,8 +1230,8 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    filterOptions = result.filter_options;
-                    renderFilterOptions();
+                    hierarchicalFilters = result.hierarchical_filters;
+                    renderCategories();
                 } else {
                     showNotification(`❌ ${result.message}`, 'error');
                 }
@@ -1101,21 +1240,115 @@
             }
         }
         
-        function renderFilterOptions() {
-            // Категории
-            renderFilterSection('categoryFilters', filterOptions.categories, 'categories');
+        function renderCategories() {
+            const container = document.getElementById('filterCategories');
+            if (!container) return;
             
-            // Объекты
-            renderFilterSection('objectFilters', filterOptions.objects, 'objects');
+            container.innerHTML = '';
             
-            // Цвета
-            renderFilterSection('colorFilters', filterOptions.colors, 'colors');
+            const categories = Object.keys(hierarchicalFilters).sort();
             
-            // Материалы
-            renderFilterSection('materialFilters', filterOptions.materials, 'materials');
+            categories.forEach(category => {
+                const subcategories = Object.keys(hierarchicalFilters[category]);
+                const totalItems = subcategories.reduce((sum, sub) => {
+                    const filters = hierarchicalFilters[category][sub];
+                    return sum + Object.keys(filters.colors).length + 
+                           Object.keys(filters.materials).length + 
+                           Object.keys(filters.styles).length;
+                }, 0);
+                
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'category-option';
+                categoryElement.innerHTML = `
+                    <div class="category-info">
+                        <h4>${category}</h4>
+                        <span class="category-count">${subcategories.length} подкатегорий, ${totalItems} фильтров</span>
+                    </div>
+                    <div class="category-arrow">→</div>
+                `;
+                
+                categoryElement.addEventListener('click', () => {
+                    selectCategory(category);
+                });
+                
+                container.appendChild(categoryElement);
+            });
+        }
+        
+        function selectCategory(category) {
+            currentCategory = category;
+            selectedFilters.category = category;
             
-            // Стили
-            renderFilterSection('styleFilters', filterOptions.styles, 'styles');
+            // Показываем подкатегории
+            document.getElementById('filterCategories').style.display = 'none';
+            document.getElementById('filterSubcategories').style.display = 'block';
+            document.getElementById('filterDetails').style.display = 'none';
+            
+            // Обновляем заголовок
+            document.getElementById('selectedCategoryTitle').textContent = `Категория: ${category}`;
+            
+            // Рендерим подкатегории
+            renderSubcategories(category);
+        }
+        
+        function renderSubcategories(category) {
+            const container = document.getElementById('subcategoryList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            const subcategories = Object.keys(hierarchicalFilters[category]).sort();
+            
+            subcategories.forEach(subcategory => {
+                const filters = hierarchicalFilters[category][subcategory];
+                const totalItems = Object.keys(filters.colors).length + 
+                                 Object.keys(filters.materials).length + 
+                                 Object.keys(filters.styles).length;
+                
+                const subcategoryElement = document.createElement('div');
+                subcategoryElement.className = 'subcategory-option';
+                subcategoryElement.innerHTML = `
+                    <div class="subcategory-info">
+                        <h5>${subcategory}</h5>
+                        <span class="subcategory-count">${totalItems} фильтров</span>
+                    </div>
+                    <div class="subcategory-arrow">→</div>
+                `;
+                
+                subcategoryElement.addEventListener('click', () => {
+                    selectSubcategory(category, subcategory);
+                });
+                
+                container.appendChild(subcategoryElement);
+            });
+        }
+        
+        function selectSubcategory(category, subcategory) {
+            currentSubcategory = subcategory;
+            selectedFilters.subcategory = subcategory;
+            
+            // Показываем детали фильтров
+            document.getElementById('filterSubcategories').style.display = 'none';
+            document.getElementById('filterDetails').style.display = 'block';
+            
+            // Обновляем заголовок
+            document.getElementById('selectedSubcategoryTitle').textContent = `${subcategory} - Фильтры`;
+            
+            // Рендерим фильтры для этой подкатегории
+            renderFilterDetails(category, subcategory);
+        }
+        
+        function renderFilterDetails(category, subcategory) {
+            const filters = hierarchicalFilters[category][subcategory];
+            
+            // Рендерим цвета
+            renderFilterSection('colorFilters', filters.colors, 'colors');
+            
+            // Рендерим материалы
+            renderFilterSection('materialFilters', filters.materials, 'materials');
+            
+            // Рендерим стили
+            renderFilterSection('styleFilters', filters.styles, 'styles');
         }
         
         function renderFilterSection(containerId, options, filterType) {
@@ -1124,25 +1357,26 @@
             
             container.innerHTML = '';
             
-            options.forEach(option => {
+            // options теперь это объект {name: count}
+            Object.entries(options).forEach(([name, count]) => {
                 const filterOption = document.createElement('div');
                 filterOption.className = 'filter-option';
-                filterOption.textContent = option;
+                filterOption.innerHTML = `
+                    <span class="filter-name">${name}</span>
+                    <span class="filter-count">(${count})</span>
+                `;
                 filterOption.dataset.filterType = filterType;
-                
-                // Извлекаем название тега без счетчика для фильтрации
-                const tagName = option.replace(/\s*\(\d+\)$/, ''); // Убираем " (число)" в конце
-                filterOption.dataset.value = tagName;
+                filterOption.dataset.value = name;
                 
                 filterOption.addEventListener('click', () => {
                     filterOption.classList.toggle('selected');
                     
                     if (filterOption.classList.contains('selected')) {
-                        if (!selectedFilters[filterType].includes(tagName)) {
-                            selectedFilters[filterType].push(tagName);
+                        if (!selectedFilters[filterType].includes(name)) {
+                            selectedFilters[filterType].push(name);
                         }
                     } else {
-                        selectedFilters[filterType] = selectedFilters[filterType].filter(item => item !== tagName);
+                        selectedFilters[filterType] = selectedFilters[filterType].filter(item => item !== name);
                     }
                 });
                 
@@ -1170,6 +1404,30 @@
             showNotification(`✅ Показано ${visibleCards.length} изображений`, 'success');
         }
         
+        function backToCategories() {
+            // Сбрасываем выбранную категорию и подкатегорию
+            currentCategory = null;
+            currentSubcategory = null;
+            selectedFilters.category = null;
+            selectedFilters.subcategory = null;
+            
+            // Показываем категории
+            document.getElementById('filterCategories').style.display = 'block';
+            document.getElementById('filterSubcategories').style.display = 'none';
+            document.getElementById('filterDetails').style.display = 'none';
+        }
+        
+        function backToSubcategories() {
+            // Сбрасываем выбранную подкатегорию
+            currentSubcategory = null;
+            selectedFilters.subcategory = null;
+            
+            // Показываем подкатегории
+            document.getElementById('filterCategories').style.display = 'none';
+            document.getElementById('filterSubcategories').style.display = 'block';
+            document.getElementById('filterDetails').style.display = 'none';
+        }
+        
         function checkImageMatchesFilters(card) {
             // Здесь нужно проверить, соответствует ли изображение выбранным фильтрам
             // Для этого нужно добавить data-атрибуты к карточкам с информацией о тегах
@@ -1179,20 +1437,14 @@
             const cardMaterials = card.dataset.materials ? card.dataset.materials.split(',') : [];
             const cardStyles = card.dataset.styles ? card.dataset.styles.split(',') : [];
             
-            // Проверяем соответствие категориям
-            if (selectedFilters.categories.length > 0) {
-                const hasMatchingCategory = selectedFilters.categories.some(cat => 
-                    cardCategories.includes(cat)
-                );
-                if (!hasMatchingCategory) return false;
+            // Проверяем соответствие выбранной категории
+            if (selectedFilters.category) {
+                if (!cardCategories.includes(selectedFilters.category)) return false;
             }
             
-            // Проверяем соответствие объектам
-            if (selectedFilters.objects.length > 0) {
-                const hasMatchingObject = selectedFilters.objects.some(obj => 
-                    cardObjects.includes(obj)
-                );
-                if (!hasMatchingObject) return false;
+            // Проверяем соответствие выбранной подкатегории
+            if (selectedFilters.subcategory) {
+                if (!cardObjects.includes(selectedFilters.subcategory)) return false;
             }
             
             // Проверяем соответствие цветам
@@ -1223,8 +1475,8 @@
         }
         
         function hasActiveFilters() {
-            return selectedFilters.categories.length > 0 || 
-                   selectedFilters.objects.length > 0 || 
+            return selectedFilters.category || 
+                   selectedFilters.subcategory || 
                    selectedFilters.colors.length > 0 || 
                    selectedFilters.materials.length > 0 || 
                    selectedFilters.styles.length > 0;
@@ -1233,17 +1485,23 @@
         function clearAdvancedFilters() {
             // Сбрасываем выбранные фильтры
             selectedFilters = {
-                categories: [],
-                objects: [],
+                category: null,
+                subcategory: null,
                 colors: [],
                 materials: [],
                 styles: []
             };
             
+            currentCategory = null;
+            currentSubcategory = null;
+            
             // Убираем выделение с кнопок
             document.querySelectorAll('.filter-option.selected').forEach(option => {
                 option.classList.remove('selected');
             });
+            
+            // Возвращаемся к категориям
+            backToCategories();
             
             // Показываем все изображения
             document.querySelectorAll('.image-card').forEach(card => {

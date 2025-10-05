@@ -618,13 +618,11 @@ def api_filter_options():
             {"ximilar_objects_structured": 1}
         ))
         
-        # Собираем уникальные значения для фильтров с подсчетом (по одному разу на изображение)
+        # Собираем уникальные значения для иерархических фильтров с подсчетом (по одному разу на изображение)
         # Используем ту же логику дедупликации, что и в шаблоне
-        categories = {}
-        objects = {}
-        colors = {}
-        materials = {}
-        styles = {}
+        hierarchical_filters = {}
+        
+        # Структура: {category: {subcategory: {colors: {}, materials: {}, styles: {}}}}
         
         processed_images = 0
         for image in images:
@@ -659,129 +657,88 @@ def api_filter_options():
                     if obj_name:
                         unique_objects_by_name[obj_name] = obj
                 
-                # Теперь собираем теги только из уникальных объектов
+                # Теперь собираем теги только из уникальных объектов для иерархической структуры
                 for obj in unique_objects_by_name.values():
-                    # Категории
-                    if obj.get('top_category'):
-                        image_categories.add(obj['top_category'])
+                    # Получаем категорию
+                    category = obj.get('top_category', 'Other')
                     
-                    # Объекты (из Subcategory или Category) - берем только первый элемент, так как объекты уже дедуплицированы
+                    # Получаем подкатегорию (объект)
+                    subcategory = ''
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
-                                # Берем только первый элемент, так как объекты уже дедуплицированы по названию
-                                sub_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                                image_objects.add(sub_name)
+                                subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
                             elif obj['properties']['other_attributes'].get('Category'):
-                                # Берем только первый элемент, так как объекты уже дедуплицированы по названию
-                                cat_name = obj['properties']['other_attributes']['Category'][0]['name']
-                                image_objects.add(cat_name)
+                                subcategory = obj['properties']['other_attributes']['Category'][0]['name']
                     
-                    # Цвета
+                    if not subcategory:
+                        continue
+                    
+                    # Инициализируем структуру для категории, если её нет
+                    if category not in hierarchical_filters:
+                        hierarchical_filters[category] = {}
+                    
+                    # Инициализируем структуру для подкатегории, если её нет
+                    if subcategory not in hierarchical_filters[category]:
+                        hierarchical_filters[category][subcategory] = {
+                            'colors': {},
+                            'materials': {},
+                            'styles': {}
+                        }
+                    
+                    # Собираем цвета для этой подкатегории
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
                         for color in obj['properties']['visual_attributes']['Color']:
-                            image_colors.add(color['name'])
+                            color_name = color['name']
+                            if color_name not in hierarchical_filters[category][subcategory]['colors']:
+                                hierarchical_filters[category][subcategory]['colors'][color_name] = set()
+                            hierarchical_filters[category][subcategory]['colors'][color_name].add(image['_id'])
                     
-                    # Материалы
+                    # Собираем материалы для этой подкатегории
                     if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
                         for material in obj['properties']['material_attributes']['Material']:
-                            image_materials.add(material['name'])
+                            material_name = material['name']
+                            if material_name not in hierarchical_filters[category][subcategory]['materials']:
+                                hierarchical_filters[category][subcategory]['materials'][material_name] = set()
+                            hierarchical_filters[category][subcategory]['materials'][material_name].add(image['_id'])
                     
-                    # Стили
+                    # Собираем стили для этой подкатегории
                     if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
                         for style in obj['properties']['style_attributes']['Style']:
-                            image_styles.add(style['name'])
+                            style_name = style['name']
+                            if style_name not in hierarchical_filters[category][subcategory]['styles']:
+                                hierarchical_filters[category][subcategory]['styles'][style_name] = set()
+                            hierarchical_filters[category][subcategory]['styles'][style_name].add(image['_id'])
                 
-                # Считаем только уникальные теги этого изображения
-                # (уже собраны в sets выше)
-                
-                # Добавляем уникальные теги этого изображения к общему счетчику
-                for cat in image_categories:
-                    categories[cat] = categories.get(cat, 0) + 1
-                
-                for obj in image_objects:
-                    objects[obj] = objects.get(obj, 0) + 1
-                
-                for color in image_colors:
-                    colors[color] = colors.get(color, 0) + 1
-                
-                for material in image_materials:
-                    materials[material] = materials.get(material, 0) + 1
-                
-                for style in image_styles:
-                    styles[style] = styles.get(style, 0) + 1
+                # Подсчет уже происходит в иерархической структуре выше
+        
+        # Конвертируем sets в counts для каждой категории фильтра
+        hierarchical_filters_with_counts = {}
+        for category, subcategories in hierarchical_filters.items():
+            hierarchical_filters_with_counts[category] = {}
+            for subcategory, filters in subcategories.items():
+                hierarchical_filters_with_counts[category][subcategory] = {
+                    'colors': {color: len(image_ids) for color, image_ids in filters['colors'].items()},
+                    'materials': {material: len(image_ids) for material, image_ids in filters['materials'].items()},
+                    'styles': {style: len(image_ids) for style, image_ids in filters['styles'].items()}
+                }
         
         # Отладочная информация
         print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами (ВСЕ в базе)")
         print(f"🔍 DEBUG: Обработано {processed_images} изображений с ximilar_objects_structured")
-        print(f"📊 Категории: {len(categories)} уникальных")
-        print(f"📊 Объекты: {len(objects)} уникальных")
-        print(f"📊 Цвета: {len(colors)} уникальных")
-        print(f"📊 Материалы: {len(materials)} уникальных")
-        print(f"📊 Стили: {len(styles)} уникальных")
-        print(f"⚠️  ВНИМАНИЕ: В галерее показывается только 100 изображений (limit), а API считает ВСЕ!")
+        print(f"📊 Иерархические фильтры: {len(hierarchical_filters)} категорий")
         
-        # Детальная отладка для понимания расхождений
-        print(f"\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ПОДСЧЕТА:")
-        for obj_name, count in sorted(objects.items(), key=lambda x: x[1], reverse=True)[:5]:
-            print(f"  {obj_name}: {count} изображений")
-        
-        # Детальная отладка для объектов
-        print("\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ОБЪЕКТОВ:")
-        for obj_name, count in sorted(objects.items(), key=lambda x: x[1], reverse=True)[:10]:
-            print(f"  {obj_name}: {count} изображений")
-        
-        # Проверим конкретный случай с Footwear/Ballerinas
-        if "Footwear/Ballerinas" in objects:
-            print(f"\n🎯 Footwear/Ballerinas: {objects['Footwear/Ballerinas']} изображений")
-            print(f"📊 Всего изображений: {len(images)}")
-            print(f"📊 Соотношение: {objects['Footwear/Ballerinas']}/{len(images)} = {objects['Footwear/Ballerinas']/len(images)*100:.1f}%")
-            
-            # Дополнительная отладка: найдем изображения с этим тегом
-            ballerinas_images = []
-            for image in images:
-                if image.get('ximilar_objects_structured'):
-                    # Применяем ту же логику дедупликации
-                    unique_objects_by_name = {}
-                    for obj in image['ximilar_objects_structured']:
-                        obj_name = ''
-                        if obj.get('properties'):
-                            if obj['properties'].get('other_attributes'):
-                                if obj['properties']['other_attributes'].get('Subcategory'):
-                                    obj_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                                elif obj['properties']['other_attributes'].get('Category'):
-                                    obj_name = obj['properties']['other_attributes']['Category'][0]['name']
-                        
-                        if obj_name and obj_name not in unique_objects_by_name:
-                            unique_objects_by_name[obj_name] = obj
-                    
-                    # Проверяем, есть ли Footwear/Ballerinas среди уникальных объектов
-                    for obj in unique_objects_by_name.values():
-                        if obj.get('properties'):
-                            if obj['properties'].get('other_attributes'):
-                                if obj['properties']['other_attributes'].get('Subcategory'):
-                                    sub_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                                    if sub_name == "Footwear/Ballerinas":
-                                        ballerinas_images.append(image['_id'])
-                                        break
-                                elif obj['properties']['other_attributes'].get('Category'):
-                                    cat_name = obj['properties']['other_attributes']['Category'][0]['name']
-                                    if cat_name == "Footwear/Ballerinas":
-                                        ballerinas_images.append(image['_id'])
-                                        break
-            
-            print(f"🔍 DEBUG: Найдено {len(ballerinas_images)} изображений с Footwear/Ballerinas после дедупликации")
-            print(f"🔍 DEBUG: ID изображений: {ballerinas_images[:5]}...")  # Показываем первые 5 ID
+        # Показываем статистику по категориям
+        for category, subcategories in hierarchical_filters_with_counts.items():
+            total_subcategories = len(subcategories)
+            total_colors = sum(len(filters['colors']) for filters in subcategories.values())
+            total_materials = sum(len(filters['materials']) for filters in subcategories.values())
+            total_styles = sum(len(filters['styles']) for filters in subcategories.values())
+            print(f"  📂 {category}: {total_subcategories} подкатегорий, {total_colors} цветов, {total_materials} материалов, {total_styles} стилей")
         
         return jsonify({
             'success': True,
-            'filter_options': {
-                'categories': sorted([f"{cat} ({count})" for cat, count in categories.items()]),
-                'objects': sorted([f"{obj} ({count})" for obj, count in objects.items()]),
-                'colors': sorted([f"{color} ({count})" for color, count in colors.items()]),
-                'materials': sorted([f"{material} ({count})" for material, count in materials.items()]),
-                'styles': sorted([f"{style} ({count})" for style, count in styles.items()])
-            }
+            'hierarchical_filters': hierarchical_filters_with_counts
         })
         
     except Exception as e:
