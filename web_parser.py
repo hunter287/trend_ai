@@ -223,7 +223,9 @@ def gallery_tagged():
                 "comments_count": 1, "caption": 1, "ximilar_tags": 1, 
                 "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
             }
-        ).sort("ximilar_tagged_at", -1).limit(100))
+        ).sort("ximilar_tagged_at", -1))
+        
+        print(f"🖼️  Загружено {len(images)} изображений в галерею (все оттегированные)")
         
         return render_template('gallery.html', images=images, current_page='gallery_tagged')
     except Exception as e:
@@ -710,13 +712,14 @@ def api_filter_options():
                     styles[style] = styles.get(style, 0) + 1
         
         # Отладочная информация
-        print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами")
+        print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами (ВСЕ в базе)")
         print(f"🔍 DEBUG: Обработано {processed_images} изображений с ximilar_objects_structured")
         print(f"📊 Категории: {len(categories)} уникальных")
         print(f"📊 Объекты: {len(objects)} уникальных")
         print(f"📊 Цвета: {len(colors)} уникальных")
         print(f"📊 Материалы: {len(materials)} уникальных")
         print(f"📊 Стили: {len(styles)} уникальных")
+        print(f"⚠️  ВНИМАНИЕ: В галерее показывается только 100 изображений (limit), а API считает ВСЕ!")
         
         # Детальная отладка для понимания расхождений
         print(f"\n🔍 ДЕТАЛЬНАЯ ОТЛАДКА ПОДСЧЕТА:")
