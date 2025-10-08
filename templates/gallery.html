@@ -690,9 +690,9 @@
                         {% set obj_name = '' %}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
-                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name | normalize_subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
                             {% elif obj.properties.other_attributes.Category %}
-                                {% set obj_name = obj.properties.other_attributes.Category[0].name | normalize_subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Category[0].name %}
                             {% endif %}
                         {% endif %}
                         
@@ -712,12 +712,12 @@
                         {# Объекты #}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
-                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name | normalize_subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
                                 {% if obj_name not in unique_objects %}
                                     {% set _ = unique_objects.append(obj_name) %}
                                 {% endif %}
                             {% elif obj.properties.other_attributes.Category %}
-                                {% set obj_name = obj.properties.other_attributes.Category[0].name | normalize_subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Category[0].name %}
                                 {% if obj_name not in unique_objects %}
                                     {% set _ = unique_objects.append(obj_name) %}
                                 {% endif %}
