@@ -108,34 +108,31 @@ def api_parse():
         
         accounts = data.get('accounts', [])
         date_from = data.get('date_from')  # Дата начала (YYYY-MM-DD)
-        date_to = data.get('date_to')  # Дата окончания (YYYY-MM-DD)
         session_id = data.get('session_id', f"session_{int(time.time())}")
         
         log_print(f"📋 [API] Извлечённые параметры:")
         log_print(f"   accounts: {accounts}")
         log_print(f"   date_from: {date_from}")
-        log_print(f"   date_to: {date_to}")
         log_print(f"   session_id: {session_id}")
         
         if not accounts:
             return jsonify({'success': False, 'message': 'Список аккаунтов пуст'})
         
-        if not date_from or not date_to:
-            return jsonify({'success': False, 'message': 'Необходимо указать даты начала и окончания'})
+        if not date_from:
+            return jsonify({'success': False, 'message': 'Необходимо указать дату начала'})
         
-        # Вычисляем разумный лимит на основе периода
-        # Средний активный блогер: 2-5 постов в день
+        # Вычисляем разумный лимит на основе периода (от date_from до сегодня)
         try:
             from datetime import datetime as dt
             date_from_obj = dt.strptime(date_from, '%Y-%m-%d')
-            date_to_obj = dt.strptime(date_to, '%Y-%m-%d')
-            days_diff = (date_to_obj - date_from_obj).days + 1
-            # 10 постов в день + запас (чтобы точно получить все)
-            max_posts = min(1000, max(50, days_diff * 10))
-            log_print(f"📊 [API] Период: {days_diff} дней, установлен лимит: {max_posts} постов")
-        except:
+            today = dt.now()
+            days_diff = (today - date_from_obj).days + 1
+            # 10 постов в день (с запасом для активных блогеров)
+            max_posts = min(2000, max(50, days_diff * 10))
+            log_print(f"📊 [API] Период: {days_diff} дней (с {date_from} до сегодня), установлен лимит: {max_posts} постов")
+        except Exception as e:
             max_posts = 200
-            log_print(f"📊 [API] Ошибка расчёта периода, установлен лимит: {max_posts} постов")
+            log_print(f"📊 [API] Ошибка расчёта периода ({e}), установлен лимит: {max_posts} постов")
         
         # Проверяем инициализацию парсера
         log_print(f"🔍 [API] Проверка инициализации парсера...")
@@ -152,7 +149,6 @@ def api_parse():
             'accounts': accounts,
             'max_posts': max_posts,
             'date_from': date_from,
-            'date_to': date_to,
             'started_at': datetime.now().isoformat(),
             'progress': 0,
             'current_account': None,
@@ -162,11 +158,11 @@ def api_parse():
         
         # Затем запускаем парсинг в отдельном потоке
         log_print(f"🧵 [API] Создание потока для парсинга...")
-        log_print(f"   Аргументы: session_id={session_id}, accounts={accounts}, max_posts={max_posts}, date_from={date_from}, date_to={date_to}")
+        log_print(f"   Аргументы: session_id={session_id}, accounts={accounts}, max_posts={max_posts}, date_from={date_from}")
         
         thread = threading.Thread(
             target=run_parsing_session,
-            args=(session_id, accounts, max_posts, date_from, date_to),
+            args=(session_id, accounts, max_posts, date_from),
             name=f"parsing_thread_{session_id}"
         )
         thread.daemon = True
@@ -389,7 +385,7 @@ def api_mark_for_tagging():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
-def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to=None):
+def run_parsing_session(session_id, accounts, max_posts, date_from=None):
     """Запуск парсинга в отдельном потоке"""
     import sys
     import traceback as tb
@@ -400,8 +396,7 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
     log_print(f"   session_id: {session_id}")
     log_print(f"   accounts: {accounts}")
     log_print(f"   max_posts: {max_posts}")
-    log_print(f"   date_from: {date_from}")
-    log_print(f"   date_to: {date_to}")
+    log_print(f"   date_from: {date_from} (до сегодня)")
     log_print(f"   thread_name: {threading.current_thread().name}")
     log_print(f"{'='*70}\n")
     
@@ -409,7 +404,7 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
     try:
         log_print(f"🚀 [THREAD] Запуск парсинга в потоке для session_id={session_id}")
         log_print(f"📋 [THREAD] Аккаунты: {accounts}")
-        log_print(f"📅 [THREAD] Даты: {date_from} - {date_to}")
+        log_print(f"📅 [THREAD] Дата: с {date_from} до сегодня")
         log_print(f"📊 [THREAD] max_posts: {max_posts}")
         
         # Небольшая задержка для гарантии регистрации сессии
@@ -448,8 +443,8 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
                 
                 # Парсим аккаунт
                 date_info = ""
-                if date_from or date_to:
-                    date_info = f" (с {date_from or '...'} по {date_to or '...'})"
+                if date_from:
+                    date_info = f" (с {date_from} до сегодня)"
                 
                 log_print(f"📨 [THREAD] Отправка WebSocket сообщения о начале парсинга @{account}")
                 socketio.emit('parsing_log', {
@@ -458,7 +453,7 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
                 }, room=session_id)
                 
                 log_print(f"🚀 [THREAD] Запуск parse_instagram_account для @{account}")
-                parsed_data = web_parser.parser.parse_instagram_account(account, max_posts, date_from, date_to)
+                parsed_data = web_parser.parser.parse_instagram_account(account, max_posts, date_from)
                 log_print(f"✅ [THREAD] parse_instagram_account завершён для @{account}: {parsed_data is not None}")
                 if not parsed_data:
                     socketio.emit('parsing_log', {

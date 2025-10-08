@@ -299,15 +299,9 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="date_from">📅 Дата начала (обязательно):</label>
-                    <input type="date" id="date_from" placeholder="Выберите дату начала" required>
-                    <small style="color: #6c757d; display: block; margin-top: 5px;">Парсить посты начиная с этой даты</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="date_to">📅 Дата окончания (обязательно):</label>
-                    <input type="date" id="date_to" placeholder="Выберите дату окончания" required>
-                    <small style="color: #6c757d; display: block; margin-top: 5px;">Парсить посты до этой даты</small>
+                    <label for="date_from">📅 Парсить посты начиная с даты (обязательно):</label>
+                    <input type="date" id="date_from" placeholder="Выберите дату" required>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Будут получены все посты с этой даты до сегодня</small>
                 </div>
                 
                 <button class="btn" id="startBtn" onclick="startParsing()">
@@ -377,7 +371,6 @@
         function startParsing() {
             const accounts = document.getElementById('accounts').value.trim();
             const dateFrom = document.getElementById('date_from').value;
-            const dateTo = document.getElementById('date_to').value;
             
             if (!accounts) {
                 alert('Введите список аккаунтов');
@@ -390,48 +383,45 @@
                 return;
             }
             
-            // Проверка обязательных дат
+            // Проверка обязательной даты
             if (!dateFrom) {
-                alert('Укажите дату начала');
-                return;
-            }
-            if (!dateTo) {
-                alert('Укажите дату окончания');
+                alert('Укажите дату начала парсинга');
                 return;
             }
             
-            // Валидация дат
+            // Вычисляем количество дней от указанной даты до сегодня
             const from = new Date(dateFrom);
-            const to = new Date(dateTo);
-            if (from > to) {
-                alert('Дата начала не может быть позже даты окончания');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            from.setHours(0, 0, 0, 0);
+            
+            if (from > today) {
+                alert('Дата начала не может быть в будущем');
                 return;
             }
             
-            // Вычисляем количество дней
-            const daysDiff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            const daysDiff = Math.ceil((today - from) / (1000 * 60 * 60 * 24)) + 1;
             
-            // Примерная оценка постов (3-5 постов в день для активного блогера)
+            // Примерная оценка постов (4 поста в день для активного блогера)
             const estimatedPostsPerAccount = Math.ceil(daysDiff * 4);
             const totalEstimatedPosts = estimatedPostsPerAccount * accountList.length;
             
             // Показываем подтверждение
             const confirmMessage = `📊 Параметры парсинга:\n\n` +
                 `• Аккаунтов: ${accountList.length}\n` +
-                `• Период: ${daysDiff} ${daysDiff === 1 ? 'день' : daysDiff < 5 ? 'дня' : 'дней'}\n` +
+                `• Период: с ${dateFrom} до сегодня (${daysDiff} ${daysDiff === 1 ? 'день' : daysDiff < 5 ? 'дня' : 'дней'})\n` +
                 `• Примерное количество постов: ~${totalEstimatedPosts}\n\n` +
-                `⚠️ Парсинг может занять ${Math.ceil(totalEstimatedPosts / 20)} минут.\n\n` +
+                `⚠️ Парсинг может занять ${Math.ceil(totalEstimatedPosts / 20)} ${Math.ceil(totalEstimatedPosts / 20) === 1 ? 'минуту' : 'минут'}.\n\n` +
                 `Продолжить?`;
             
             if (!confirm(confirmMessage)) {
                 return;
             }
             
-            // Формируем объект с данными (без max_posts)
+            // Формируем объект с данными
             const requestData = {
                 accounts: accountList,
                 date_from: dateFrom,
-                date_to: dateTo,
                 session_id: 'session_' + Date.now()
             };
             

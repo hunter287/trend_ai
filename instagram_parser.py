@@ -37,19 +37,19 @@ class InstagramParser:
             print(f"❌ Ошибка подключения к MongoDB: {e}")
             return False
     
-    def parse_instagram_account(self, username: str, posts_limit: int = 100, date_from: str = None, date_to: str = None) -> Optional[Dict]:
+    def parse_instagram_account(self, username: str, posts_limit: int = 100, date_from: str = None) -> Optional[Dict]:
         """Парсинг Instagram аккаунта через Apify
         
         Args:
             username: имя аккаунта Instagram
             posts_limit: максимальное количество постов
             date_from: дата начала в формате YYYY-MM-DD (опционально)
-            date_to: дата окончания в формате YYYY-MM-DD (опционально)
+                      Парсит все посты с этой даты до сегодня
         """
         print(f"\n{'='*60}")
         print(f"🔍 [PARSER] Парсинг аккаунта: @{username}")
         print(f"📊 [PARSER] Лимит постов: {posts_limit}")
-        print(f"📅 [PARSER] Период: {date_from} → {date_to}")
+        print(f"📅 [PARSER] С даты: {date_from} до сегодня")
         print(f"{'='*60}")
         
         try:
@@ -68,21 +68,18 @@ class InstagramParser:
                 "addParentData": False
             }
             
-            # Добавляем фильтрацию по датам, если указаны
+            # Используем onlyPostsNewerThan для ограничения по дате
+            # Этот параметр останавливает парсинг когда достигается указанная дата
             if date_from:
-                run_input["since"] = date_from
-                print(f"   • [PARSER] Дата начала: {date_from}")
-            if date_to:
-                run_input["until"] = date_to
-                print(f"   • [PARSER] Дата окончания: {date_to}")
+                run_input["onlyPostsNewerThan"] = date_from
+                print(f"   • [PARSER] Парсить посты новее чем: {date_from}")
             
             print("📋 [PARSER] Параметры запуска Apify:")
             print(f"   • URL: {run_input['directUrls'][0]}")
             print(f"   • Тип данных: {run_input['resultsType']}")
             print(f"   • Лимит: {run_input['resultsLimit']}")
-            if date_from or date_to:
-                print(f"   • since: {run_input.get('since', 'не указано')}")
-                print(f"   • until: {run_input.get('until', 'не указано')}")
+            if date_from:
+                print(f"   • onlyPostsNewerThan: {run_input['onlyPostsNewerThan']}")
             
             print("🚀 [PARSER] Запуск Apify актора...")
             print(f"⚠️ [PARSER] Внимание: с фильтром по датам это может занять 2-5 минут...")
