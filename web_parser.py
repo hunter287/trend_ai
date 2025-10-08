@@ -21,6 +21,59 @@ app = Flask(__name__, static_folder='images', static_url_path='/images')
 app.config['SECRET_KEY'] = os.urandom(24)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+def normalize_subcategory_name(subcategory, category):
+    """
+    Нормализует название подкатегории для группировки В КОНТЕКСТЕ категории.
+    Например: 
+    - Accessories + "Handbags" -> "Bags"
+    - Clothing + "Tops" -> "Tops"  
+    - Accessories + "Tops" -> "Tops" (но в другой категории!)
+    """
+    subcategory_lower = subcategory.lower()
+    
+    # Определяем базовые подкатегории для каждой основной категории
+    normalization_rules = {
+        'Accessories': {
+            'Bags': ['bag', 'handbag', 'tote', 'clutch', 'crossbody', 'purse', 'wallet'],
+            'Hats': ['hat', 'cap', 'beanie', 'fedora'],
+            'Sunglasses': ['sunglass', 'eyewear'],
+            'Belts': ['belt'],
+            'Jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'ring', 'earring'],
+            'Watches': ['watch'],
+            'Scarves': ['scarf', 'scarves'],
+            'Gloves': ['glove', 'mitten'],
+        },
+        'Clothing': {
+            'Dresses': ['dress'],
+            'Pants': ['pant', 'trouser', 'jean'],
+            'Skirts': ['skirt'],
+            'Tops': ['top', 'blouse', 'shirt', 't-shirt', 'tank'],
+            'Jackets': ['jacket', 'coat', 'blazer', 'cardigan'],
+            'Shorts': ['short'],
+        },
+        'Footwear': {
+            'Shoes': ['shoe'],
+            'Sneakers': ['sneaker', 'trainer'],
+            'Boots': ['boot'],
+            'Heels': ['heel', 'stiletto', 'pump'],
+            'Sandals': ['sandal', 'flip-flop'],
+            'Flats': ['flat', 'loafer', 'ballet'],
+        }
+    }
+    
+    # Ищем соответствие в контексте категории
+    if category in normalization_rules:
+        for base_name, keywords in normalization_rules[category].items():
+            for keyword in keywords:
+                if keyword in subcategory_lower:
+                    return base_name
+    
+    # Если не нашли соответствия, возвращаем оригинальное название
+    return subcategory
+
+# Добавляем глобальную функцию для Jinja2
+app.jinja_env.globals['normalize_subcategory'] = normalize_subcategory_name
+
 # Глобальные переменные для отслеживания процессов
 active_parsing_sessions = {}
 
@@ -763,11 +816,13 @@ def api_filter_options():
                                 subcategory = obj['properties']['other_attributes']['Category'][0]['name']
                     
                     if subcategory:
-                        # Используем оригинальное название без нормализации
-                        # чтобы избежать объединения разных объектов из разных категорий
+                        # Нормализуем название в контексте категории
+                        # Например: Accessories+Handbags -> Bags, но Clothing+Tops остаётся Tops
+                        normalized_subcategory = normalize_subcategory_name(subcategory, category)
+                        
                         if category not in image_subcategories:
                             image_subcategories[category] = set()
-                        image_subcategories[category].add(subcategory)
+                        image_subcategories[category].add(normalized_subcategory)
                 
                 # Теперь собираем ВСЕ атрибуты изображения (со всех объектов)
                 all_colors = set()

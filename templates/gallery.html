@@ -685,9 +685,10 @@
                      {% set unique_styles = [] %}
                      {% set unique_objects_by_name = {} %}
                      
-                    {# Сначала дедуплицируем объекты по их основному названию #}
+                    {# Сначала дедуплицируем объекты по их основному названию с учётом категории #}
                     {% for obj in image.ximilar_objects_structured %}
                         {% set obj_name = '' %}
+                        {% set obj_category = obj.top_category or 'Other' %}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
@@ -696,9 +697,13 @@
                             {% endif %}
                         {% endif %}
                         
-                        {# Если объект с таким названием еще не добавлен, добавляем его #}
-                        {% if obj_name and obj_name not in unique_objects_by_name %}
-                            {% set _ = unique_objects_by_name.update({obj_name: obj}) %}
+                        {# Нормализуем название в контексте категории #}
+                        {% if obj_name %}
+                            {% set normalized_name = normalize_subcategory(obj_name, obj_category) %}
+                            {# Если объект с таким нормализованным названием еще не добавлен, добавляем его #}
+                            {% if normalized_name not in unique_objects_by_name %}
+                                {% set _ = unique_objects_by_name.update({normalized_name: obj}) %}
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
                      
@@ -709,17 +714,20 @@
                              {% set _ = unique_categories.append(obj.top_category) %}
                          {% endif %}
                          
-                        {# Объекты #}
+                        {# Объекты - нормализуем в контексте категории #}
+                        {% set obj_category = obj.top_category or 'Other' %}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
-                                {% if obj_name not in unique_objects %}
-                                    {% set _ = unique_objects.append(obj_name) %}
+                                {% set normalized_obj = normalize_subcategory(obj_name, obj_category) %}
+                                {% if normalized_obj not in unique_objects %}
+                                    {% set _ = unique_objects.append(normalized_obj) %}
                                 {% endif %}
                             {% elif obj.properties.other_attributes.Category %}
                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
-                                {% if obj_name not in unique_objects %}
-                                    {% set _ = unique_objects.append(obj_name) %}
+                                {% set normalized_obj = normalize_subcategory(obj_name, obj_category) %}
+                                {% if normalized_obj not in unique_objects %}
+                                    {% set _ = unique_objects.append(normalized_obj) %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}
