@@ -303,6 +303,18 @@
                     <input type="number" id="max_posts" value="20" min="1" max="100">
                 </div>
                 
+                <div class="form-group">
+                    <label for="date_from">📅 Дата начала (опционально):</label>
+                    <input type="date" id="date_from" placeholder="Выберите дату начала">
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Парсить посты начиная с этой даты</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_to">📅 Дата окончания (опционально):</label>
+                    <input type="date" id="date_to" placeholder="Выберите дату окончания">
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Парсить посты до этой даты</small>
+                </div>
+                
                 <button class="btn" id="startBtn" onclick="startParsing()">
                     🚀 Запустить парсинг
                 </button>
@@ -370,6 +382,8 @@
         function startParsing() {
             const accounts = document.getElementById('accounts').value.trim();
             const maxPosts = parseInt(document.getElementById('max_posts').value);
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
             
             if (!accounts) {
                 alert('Введите список аккаунтов');
@@ -382,17 +396,38 @@
                 return;
             }
             
+            // Валидация дат
+            if (dateFrom && dateTo) {
+                const from = new Date(dateFrom);
+                const to = new Date(dateTo);
+                if (from > to) {
+                    alert('Дата начала не может быть позже даты окончания');
+                    return;
+                }
+            }
+            
+            // Формируем объект с данными
+            const requestData = {
+                accounts: accountList,
+                max_posts: maxPosts,
+                session_id: 'session_' + Date.now()
+            };
+            
+            // Добавляем даты, если указаны
+            if (dateFrom) {
+                requestData.date_from = dateFrom;
+            }
+            if (dateTo) {
+                requestData.date_to = dateTo;
+            }
+            
             // Отправляем запрос на парсинг
             fetch('/api/parse', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    accounts: accountList,
-                    max_posts: maxPosts,
-                    session_id: 'session_' + Date.now()
-                })
+                body: JSON.stringify(requestData)
             })
             .then(response => response.json())
             .then(data => {

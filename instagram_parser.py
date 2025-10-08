@@ -37,8 +37,15 @@ class InstagramParser:
             print(f"❌ Ошибка подключения к MongoDB: {e}")
             return False
     
-    def parse_instagram_account(self, username: str, posts_limit: int = 100) -> Optional[Dict]:
-        """Парсинг Instagram аккаунта через Apify"""
+    def parse_instagram_account(self, username: str, posts_limit: int = 100, date_from: str = None, date_to: str = None) -> Optional[Dict]:
+        """Парсинг Instagram аккаунта через Apify
+        
+        Args:
+            username: имя аккаунта Instagram
+            posts_limit: максимальное количество постов
+            date_from: дата начала в формате YYYY-MM-DD (опционально)
+            date_to: дата окончания в формате YYYY-MM-DD (опционально)
+        """
         print(f"🔍 Парсинг аккаунта: @{username}")
         
         try:
@@ -56,6 +63,14 @@ class InstagramParser:
                 "resultsLimit": posts_limit,  # Используем переданный лимит
                 "addParentData": False
             }
+            
+            # Добавляем фильтрацию по датам, если указаны
+            if date_from:
+                run_input["since"] = date_from
+                print(f"   • Дата начала: {date_from}")
+            if date_to:
+                run_input["until"] = date_to
+                print(f"   • Дата окончания: {date_to}")
             
             print("📋 Параметры запуска:")
             print(f"   • URL: {run_input['directUrls'][0]}")

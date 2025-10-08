@@ -96,6 +96,8 @@ def api_parse():
         data = request.get_json()
         accounts = data.get('accounts', [])
         max_posts = data.get('max_posts', 20)
+        date_from = data.get('date_from')  # Дата начала (YYYY-MM-DD)
+        date_to = data.get('date_to')  # Дата окончания (YYYY-MM-DD)
         session_id = data.get('session_id', f"session_{int(time.time())}")
         
         if not accounts:
@@ -111,6 +113,8 @@ def api_parse():
             'status': 'starting',
             'accounts': accounts,
             'max_posts': max_posts,
+            'date_from': date_from,
+            'date_to': date_to,
             'started_at': datetime.now().isoformat(),
             'progress': 0,
             'current_account': None,
@@ -120,7 +124,7 @@ def api_parse():
         # Затем запускаем парсинг в отдельном потоке
         thread = threading.Thread(
             target=run_parsing_session,
-            args=(session_id, accounts, max_posts)
+            args=(session_id, accounts, max_posts, date_from, date_to)
         )
         thread.daemon = True
         thread.start()
@@ -338,7 +342,7 @@ def api_mark_for_tagging():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
-def run_parsing_session(session_id, accounts, max_posts):
+def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to=None):
     """Запуск парсинга в отдельном потоке"""
     session_data = None
     try:
@@ -372,12 +376,15 @@ def run_parsing_session(session_id, accounts, max_posts):
                 socketio.emit('parsing_update', session_data, room=session_id)
                 
                 # Парсим аккаунт
+                date_info = ""
+                if date_from or date_to:
+                    date_info = f" (с {date_from or '...'} по {date_to or '...'})"
                 socketio.emit('parsing_log', {
-                    'message': f'🔍 Парсинг аккаунта: @{account}',
+                    'message': f'🔍 Парсинг аккаунта: @{account}{date_info}',
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
-                parsed_data = web_parser.parser.parse_instagram_account(account, max_posts)
+                parsed_data = web_parser.parser.parse_instagram_account(account, max_posts, date_from, date_to)
                 if not parsed_data:
                     socketio.emit('parsing_log', {
                         'message': f'❌ Ошибка парсинга @{account}',
