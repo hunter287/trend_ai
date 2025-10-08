@@ -408,6 +408,25 @@
                 return;
             }
             
+            // Вычисляем количество дней
+            const daysDiff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Примерная оценка постов (3-5 постов в день для активного блогера)
+            const estimatedPostsPerAccount = Math.ceil(daysDiff * 4);
+            const totalEstimatedPosts = estimatedPostsPerAccount * accountList.length;
+            
+            // Показываем подтверждение
+            const confirmMessage = `📊 Параметры парсинга:\n\n` +
+                `• Аккаунтов: ${accountList.length}\n` +
+                `• Период: ${daysDiff} ${daysDiff === 1 ? 'день' : daysDiff < 5 ? 'дня' : 'дней'}\n` +
+                `• Примерное количество постов: ~${totalEstimatedPosts}\n\n` +
+                `⚠️ Парсинг может занять ${Math.ceil(totalEstimatedPosts / 20)} минут.\n\n` +
+                `Продолжить?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
             // Формируем объект с данными (без max_posts)
             const requestData = {
                 accounts: accountList,
