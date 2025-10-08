@@ -657,12 +657,12 @@ def api_filter_options():
                     if obj_name:
                         unique_objects_by_name[obj_name] = obj
                 
-                # Теперь собираем теги только из уникальных объектов для иерархической структуры
+                # Сначала определяем, к каким категориям/подкатегориям относится это изображение
+                image_subcategories = {}  # {category: [subcategories]}
+                
                 for obj in unique_objects_by_name.values():
-                    # Получаем категорию
                     category = obj.get('top_category', 'Other')
                     
-                    # Получаем подкатегорию (объект)
                     subcategory = ''
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
@@ -671,41 +671,61 @@ def api_filter_options():
                             elif obj['properties']['other_attributes'].get('Category'):
                                 subcategory = obj['properties']['other_attributes']['Category'][0]['name']
                     
-                    if not subcategory:
-                        continue
+                    if subcategory:
+                        if category not in image_subcategories:
+                            image_subcategories[category] = set()
+                        image_subcategories[category].add(subcategory)
+                
+                # Теперь собираем ВСЕ атрибуты изображения (со всех объектов)
+                all_colors = set()
+                all_materials = set()
+                all_styles = set()
+                
+                for obj in unique_objects_by_name.values():
+                    # Собираем все цвета
+                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                        for color in obj['properties']['visual_attributes']['Color']:
+                            all_colors.add(color['name'])
                     
-                    # Инициализируем структуру для категории, если её нет
+                    # Собираем все материалы
+                    if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
+                        for material in obj['properties']['material_attributes']['Material']:
+                            all_materials.add(material['name'])
+                    
+                    # Собираем все стили
+                    if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
+                        for style in obj['properties']['style_attributes']['Style']:
+                            all_styles.add(style['name'])
+                
+                # Добавляем атрибуты ко ВСЕМ подкатегориям на этом изображении
+                for category, subcategories in image_subcategories.items():
+                    # Инициализируем структуру для категории
                     if category not in hierarchical_filters:
                         hierarchical_filters[category] = {}
                     
-                    # Инициализируем структуру для подкатегории, если её нет
-                    if subcategory not in hierarchical_filters[category]:
-                        hierarchical_filters[category][subcategory] = {
-                            'colors': {},
-                            'materials': {},
-                            'styles': {}
-                        }
-                    
-                    # Собираем цвета для этой подкатегории
-                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                        for color in obj['properties']['visual_attributes']['Color']:
-                            color_name = color['name']
+                    for subcategory in subcategories:
+                        # Инициализируем структуру для подкатегории
+                        if subcategory not in hierarchical_filters[category]:
+                            hierarchical_filters[category][subcategory] = {
+                                'colors': {},
+                                'materials': {},
+                                'styles': {}
+                            }
+                        
+                        # Добавляем ВСЕ цвета изображения к этой подкатегории
+                        for color_name in all_colors:
                             if color_name not in hierarchical_filters[category][subcategory]['colors']:
                                 hierarchical_filters[category][subcategory]['colors'][color_name] = set()
                             hierarchical_filters[category][subcategory]['colors'][color_name].add(image['_id'])
-                    
-                    # Собираем материалы для этой подкатегории
-                    if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
-                        for material in obj['properties']['material_attributes']['Material']:
-                            material_name = material['name']
+                        
+                        # Добавляем ВСЕ материалы изображения к этой подкатегории
+                        for material_name in all_materials:
                             if material_name not in hierarchical_filters[category][subcategory]['materials']:
                                 hierarchical_filters[category][subcategory]['materials'][material_name] = set()
                             hierarchical_filters[category][subcategory]['materials'][material_name].add(image['_id'])
-                    
-                    # Собираем стили для этой подкатегории
-                    if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
-                        for style in obj['properties']['style_attributes']['Style']:
-                            style_name = style['name']
+                        
+                        # Добавляем ВСЕ стили изображения к этой подкатегории
+                        for style_name in all_styles:
                             if style_name not in hierarchical_filters[category][subcategory]['styles']:
                                 hierarchical_filters[category][subcategory]['styles'][style_name] = set()
                             hierarchical_filters[category][subcategory]['styles'][style_name].add(image['_id'])
