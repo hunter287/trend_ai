@@ -188,7 +188,9 @@ class InstagramParser:
         return image_data
     
     def download_images(self, image_data: List[Dict], max_images: int = 100) -> List[Dict]:
-        """Скачивание изображений с проверкой дубликатов"""
+        """Скачивание изображений с проверкой дубликатов и повторными попытками"""
+        import time
+        
         print(f"⬇️ Скачивание изображений (максимум {max_images})...")
         
         # Создаем папку для изображений
@@ -199,6 +201,7 @@ class InstagramParser:
         downloaded_data = []
         downloaded_count = 0
         skipped_count = 0
+        failed_count = 0
         total_to_download = min(max_images, len(image_data))
         
         print(f"📊 Всего к скачиванию: {total_to_download} изображений")
@@ -235,33 +238,63 @@ class InstagramParser:
                 
                 print(f"📥 [{i+1}/{total_to_download}] Скачивание: {filename}")
                 
-                # Скачиваем изображение
-                response = requests.get(url, timeout=30)
-                if response.status_code == 200:
-                    with open(filepath, 'wb') as f:
-                        f.write(response.content)
-                    
-                    file_size = filepath.stat().st_size
-                    print(f"✅ Скачано: {filename} ({file_size} байт)")
-                    
-                    # Добавляем информацию о скачанном файле
-                    downloaded_data.append({
-                        **img_data,
-                        "local_filename": filename,
-                        "local_path": str(filepath),
-                        "file_size": file_size,
-                        "downloaded_at": datetime.now().isoformat()
-                    })
-                    
-                    downloaded_count += 1
-                else:
-                    print(f"❌ Ошибка скачивания {filename}: HTTP {response.status_code}")
+                # Скачиваем изображение с повторными попытками
+                max_retries = 3
+                retry_delay = 2  # секунды
+                success = False
+                
+                for attempt in range(max_retries):
+                    try:
+                        if attempt > 0:
+                            print(f"   🔄 Попытка {attempt + 1}/{max_retries}...")
+                            time.sleep(retry_delay)
+                        
+                        response = requests.get(url, timeout=30)
+                        if response.status_code == 200:
+                            with open(filepath, 'wb') as f:
+                                f.write(response.content)
+                            
+                            file_size = filepath.stat().st_size
+                            print(f"✅ Скачано: {filename} ({file_size} байт)")
+                            
+                            # Добавляем информацию о скачанном файле
+                            downloaded_data.append({
+                                **img_data,
+                                "local_filename": filename,
+                                "local_path": str(filepath),
+                                "file_size": file_size,
+                                "downloaded_at": datetime.now().isoformat()
+                            })
+                            
+                            downloaded_count += 1
+                            success = True
+                            break
+                        else:
+                            print(f"❌ HTTP {response.status_code}, попытка {attempt + 1}/{max_retries}")
+                            if attempt < max_retries - 1:
+                                continue
+                    except Exception as e:
+                        print(f"❌ Ошибка при попытке {attempt + 1}/{max_retries}: {e}")
+                        if attempt < max_retries - 1:
+                            continue
+                        else:
+                            break
+                
+                if not success:
+                    print(f"❌❌❌ Не удалось скачать {filename} после {max_retries} попыток")
+                    failed_count += 1
                     
             except Exception as e:
-                print(f"❌ Ошибка скачивания изображения {i+1}: {e}")
+                print(f"❌ Критическая ошибка скачивания изображения {i+1}: {e}")
+                failed_count += 1
         
-        print(f"✅ Скачано {downloaded_count} изображений")
-        print(f"⏭️ Пропущено {skipped_count} дубликатов")
+        print(f"\n📊 Итоги скачивания:")
+        print(f"✅ Скачано: {downloaded_count} изображений")
+        print(f"⏭️ Пропущено дубликатов: {skipped_count}")
+        if failed_count > 0:
+            print(f"❌ Не удалось скачать: {failed_count} изображений")
+        print(f"📈 Всего обработано: {downloaded_count + skipped_count + failed_count}/{total_to_download}")
+        
         return downloaded_data
     
     def is_image_exists(self, image_url: str, post_id: str = None) -> bool:
