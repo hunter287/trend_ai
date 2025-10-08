@@ -95,13 +95,18 @@ def api_parse():
     try:
         data = request.get_json()
         accounts = data.get('accounts', [])
-        max_posts = data.get('max_posts', 20)
         date_from = data.get('date_from')  # Дата начала (YYYY-MM-DD)
         date_to = data.get('date_to')  # Дата окончания (YYYY-MM-DD)
         session_id = data.get('session_id', f"session_{int(time.time())}")
         
         if not accounts:
             return jsonify({'success': False, 'message': 'Список аккаунтов пуст'})
+        
+        if not date_from or not date_to:
+            return jsonify({'success': False, 'message': 'Необходимо указать даты начала и окончания'})
+        
+        # Используем большой лимит, т.к. фильтруем по датам
+        max_posts = 1000
         
         # Проверяем инициализацию парсера
         success, message = web_parser.init_parser()
