@@ -116,6 +116,7 @@ def api_parse():
             return jsonify({'success': False, 'message': message})
         
         # Сначала регистрируем сессию
+        print(f"🔧 [API] Регистрация сессии {session_id}")
         active_parsing_sessions[session_id] = {
             'status': 'starting',
             'accounts': accounts,
@@ -127,14 +128,22 @@ def api_parse():
             'current_account': None,
             'results': []
         }
+        print(f"✅ [API] Сессия зарегистрирована")
         
         # Затем запускаем парсинг в отдельном потоке
+        print(f"🧵 [API] Создание потока для парсинга...")
+        print(f"   Аргументы: session_id={session_id}, accounts={accounts}, max_posts={max_posts}, date_from={date_from}, date_to={date_to}")
+        
         thread = threading.Thread(
             target=run_parsing_session,
-            args=(session_id, accounts, max_posts, date_from, date_to)
+            args=(session_id, accounts, max_posts, date_from, date_to),
+            name=f"parsing_thread_{session_id}"
         )
         thread.daemon = True
+        
+        print(f"🚀 [API] Запуск потока...")
         thread.start()
+        print(f"✅ [API] Поток запущен, thread.is_alive() = {thread.is_alive()}")
         
         return jsonify({
             'success': True,
@@ -351,6 +360,20 @@ def api_mark_for_tagging():
 
 def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to=None):
     """Запуск парсинга в отдельном потоке"""
+    import sys
+    import traceback as tb
+    
+    print(f"\n{'='*70}")
+    print(f"🚀 [THREAD] НАЧАЛО ПОТОКА ПАРСИНГА")
+    print(f"{'='*70}")
+    print(f"   session_id: {session_id}")
+    print(f"   accounts: {accounts}")
+    print(f"   max_posts: {max_posts}")
+    print(f"   date_from: {date_from}")
+    print(f"   date_to: {date_to}")
+    print(f"   thread_name: {threading.current_thread().name}")
+    print(f"{'='*70}\n")
+    
     session_data = None
     try:
         print(f"🚀 [THREAD] Запуск парсинга в потоке для session_id={session_id}")
@@ -509,6 +532,19 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
         threading.Timer(300, lambda: active_parsing_sessions.pop(session_id, None)).start()
         
     except Exception as e:
+        print(f"\n{'='*70}")
+        print(f"❌ [THREAD] КРИТИЧЕСКАЯ ОШИБКА В ПОТОКЕ ПАРСИНГА")
+        print(f"{'='*70}")
+        print(f"   session_id: {session_id}")
+        print(f"   Ошибка: {e}")
+        print(f"   Тип ошибки: {type(e).__name__}")
+        print(f"{'='*70}")
+        
+        import traceback
+        print("📋 [THREAD] Полный traceback:")
+        traceback.print_exc()
+        print(f"{'='*70}\n")
+        
         if session_data is not None:
             session_data['status'] = 'error'
             session_data['error'] = str(e)
