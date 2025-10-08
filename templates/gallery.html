@@ -684,22 +684,22 @@
                      {% set unique_styles = [] %}
                      {% set unique_objects_by_name = {} %}
                      
-                     {# Сначала дедуплицируем объекты по их основному названию #}
-                     {% for obj in image.ximilar_objects_structured %}
-                         {% set obj_name = '' %}
-                         {% if obj.properties and obj.properties.other_attributes %}
-                             {% if obj.properties.other_attributes.Subcategory %}
-                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
-                             {% elif obj.properties.other_attributes.Category %}
-                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
-                             {% endif %}
-                         {% endif %}
-                         
-                         {# Если объект с таким названием еще не добавлен, добавляем его #}
-                         {% if obj_name and obj_name not in unique_objects_by_name %}
-                             {% set _ = unique_objects_by_name.update({obj_name: obj}) %}
-                         {% endif %}
-                     {% endfor %}
+                    {# Сначала дедуплицируем объекты по их основному названию #}
+                    {% for obj in image.ximilar_objects_structured %}
+                        {% set obj_name = '' %}
+                        {% if obj.properties and obj.properties.other_attributes %}
+                            {% if obj.properties.other_attributes.Subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name | normalize_subcategory %}
+                            {% elif obj.properties.other_attributes.Category %}
+                                {% set obj_name = obj.properties.other_attributes.Category[0].name | normalize_subcategory %}
+                            {% endif %}
+                        {% endif %}
+                        
+                        {# Если объект с таким названием еще не добавлен, добавляем его #}
+                        {% if obj_name and obj_name not in unique_objects_by_name %}
+                            {% set _ = unique_objects_by_name.update({obj_name: obj}) %}
+                        {% endif %}
+                    {% endfor %}
                      
                      {# Теперь собираем уникальные теги только из дедуплицированных объектов #}
                      {% for obj in unique_objects_by_name.values() %}
@@ -708,20 +708,20 @@
                              {% set _ = unique_categories.append(obj.top_category) %}
                          {% endif %}
                          
-                         {# Объекты #}
-                         {% if obj.properties and obj.properties.other_attributes %}
-                             {% if obj.properties.other_attributes.Subcategory %}
-                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
-                                 {% if obj_name not in unique_objects %}
-                                     {% set _ = unique_objects.append(obj_name) %}
-                                 {% endif %}
-                             {% elif obj.properties.other_attributes.Category %}
-                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
-                                 {% if obj_name not in unique_objects %}
-                                     {% set _ = unique_objects.append(obj_name) %}
-                                 {% endif %}
-                             {% endif %}
-                         {% endif %}
+                        {# Объекты #}
+                        {% if obj.properties and obj.properties.other_attributes %}
+                            {% if obj.properties.other_attributes.Subcategory %}
+                                {% set obj_name = obj.properties.other_attributes.Subcategory[0].name | normalize_subcategory %}
+                                {% if obj_name not in unique_objects %}
+                                    {% set _ = unique_objects.append(obj_name) %}
+                                {% endif %}
+                            {% elif obj.properties.other_attributes.Category %}
+                                {% set obj_name = obj.properties.other_attributes.Category[0].name | normalize_subcategory %}
+                                {% if obj_name not in unique_objects %}
+                                    {% set _ = unique_objects.append(obj_name) %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
                          
                          {# Цвета #}
                          {% if obj.properties and obj.properties.visual_attributes and obj.properties.visual_attributes.Color %}

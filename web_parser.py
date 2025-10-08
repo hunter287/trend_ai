@@ -21,6 +21,37 @@ app = Flask(__name__, static_folder='images', static_url_path='/images')
 app.config['SECRET_KEY'] = os.urandom(24)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# Jinja2 фильтр для нормализации названий подкатегорий
+@app.template_filter('normalize_subcategory')
+def normalize_subcategory_filter(subcategory):
+    """Jinja2 фильтр для нормализации названий подкатегорий"""
+    subcategory_lower = subcategory.lower()
+    
+    category_keywords = {
+        'Dresses': ['dress'],
+        'Pants': ['pant', 'trouser', 'jean'],
+        'Skirts': ['skirt'],
+        'Tops': ['top', 'blouse', 'shirt', 't-shirt', 'tank top'],
+        'Jackets': ['jacket', 'coat', 'blazer', 'cardigan'],
+        'Shorts': ['short'],
+        'Bags': ['bag', 'handbag', 'tote', 'clutch', 'crossbody'],
+        'Shoes': ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'flat', 'pump'],
+        'Hats': ['hat', 'cap', 'beanie', 'fedora'],
+        'Sunglasses': ['sunglass', 'eyewear'],
+        'Belts': ['belt'],
+        'Jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'ring', 'earring'],
+        'Watches': ['watch'],
+        'Scarves': ['scarf', 'scarves'],
+        'Gloves': ['glove', 'mitten'],
+    }
+    
+    for base_category, keywords in category_keywords.items():
+        for keyword in keywords:
+            if keyword in subcategory_lower:
+                return base_category
+    
+    return subcategory.title()
+
 # Глобальные переменные для отслеживания процессов
 active_parsing_sessions = {}
 
@@ -592,6 +623,41 @@ def api_hide_images():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+def normalize_subcategory_name(subcategory):
+    """
+    Нормализует название подкатегории для группировки.
+    Например: "blouse dresses" -> "Dresses", "cargo pants" -> "Pants"
+    """
+    subcategory_lower = subcategory.lower()
+    
+    # Определяем базовые категории и их варианты
+    category_keywords = {
+        'Dresses': ['dress'],
+        'Pants': ['pant', 'trouser', 'jean'],
+        'Skirts': ['skirt'],
+        'Tops': ['top', 'blouse', 'shirt', 't-shirt', 'tank top'],
+        'Jackets': ['jacket', 'coat', 'blazer', 'cardigan'],
+        'Shorts': ['short'],
+        'Bags': ['bag', 'handbag', 'tote', 'clutch', 'crossbody'],
+        'Shoes': ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'flat', 'pump'],
+        'Hats': ['hat', 'cap', 'beanie', 'fedora'],
+        'Sunglasses': ['sunglass', 'eyewear'],
+        'Belts': ['belt'],
+        'Jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'ring', 'earring'],
+        'Watches': ['watch'],
+        'Scarves': ['scarf', 'scarves'],
+        'Gloves': ['glove', 'mitten'],
+    }
+    
+    # Ищем соответствие
+    for base_category, keywords in category_keywords.items():
+        for keyword in keywords:
+            if keyword in subcategory_lower:
+                return base_category
+    
+    # Если не нашли соответствия, возвращаем оригинальное название с заглавной буквы
+    return subcategory.title()
+
 @app.route('/api/filter-options', methods=['GET'])
 def api_filter_options():
     """API для получения доступных опций фильтрации"""
@@ -672,9 +738,12 @@ def api_filter_options():
                                 subcategory = obj['properties']['other_attributes']['Category'][0]['name']
                     
                     if subcategory:
+                        # Нормализуем название подкатегории для группировки
+                        normalized_subcategory = normalize_subcategory_name(subcategory)
+                        
                         if category not in image_subcategories:
                             image_subcategories[category] = set()
-                        image_subcategories[category].add(subcategory)
+                        image_subcategories[category].add(normalized_subcategory)
                 
                 # Теперь собираем ВСЕ атрибуты изображения (со всех объектов)
                 all_colors = set()
