@@ -105,8 +105,8 @@ def api_parse():
         if not date_from or not date_to:
             return jsonify({'success': False, 'message': 'Необходимо указать даты начала и окончания'})
         
-        # Используем большой лимит, т.к. фильтруем по датам
-        max_posts = 1000
+        # Используем разумный лимит для Apify, фильтрацию по датам делаем на нашей стороне
+        max_posts = 100
         
         # Проверяем инициализацию парсера
         success, message = web_parser.init_parser()
