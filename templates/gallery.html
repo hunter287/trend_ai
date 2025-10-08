@@ -675,6 +675,7 @@
                      data-image-id="{{ image._id }}" 
                      data-username="{{ image.username }}" 
                      data-caption="{{ image.caption or '' }}"
+                     onclick="toggleSelection('{{ image._id }}')"
                      {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                      {# Дедупликация объектов по названию (как в API) #}
                      {% set unique_categories = [] %}
@@ -759,7 +760,7 @@
                      {% endif %}>
                     <div class="image-container">
                         <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">
-                        <div class="checkbox" onclick="toggleSelection('{{ image._id }}')"></div>
+                        <div class="checkbox"></div>
                     </div>
                     <div class="image-info">
                         <div class="username">@{{ image.username }}</div>
