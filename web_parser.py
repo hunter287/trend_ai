@@ -753,11 +753,14 @@ def api_filter_options():
         
         # Показываем статистику по категориям
         for category, subcategories in hierarchical_filters_with_counts.items():
-            total_subcategories = len(subcategories)
-            total_colors = sum(len(filters['colors']) for filters in subcategories.values())
-            total_materials = sum(len(filters['materials']) for filters in subcategories.values())
-            total_styles = sum(len(filters['styles']) for filters in subcategories.values())
-            print(f"  📂 {category}: {total_subcategories} подкатегорий, {total_colors} цветов, {total_materials} материалов, {total_styles} стилей")
+            # Исключаем _meta из подсчёта
+            real_subcategories = {k: v for k, v in subcategories.items() if k != '_meta'}
+            total_subcategories = len(real_subcategories)
+            total_colors = sum(len(filters['colors']) for filters in real_subcategories.values())
+            total_materials = sum(len(filters['materials']) for filters in real_subcategories.values())
+            total_styles = sum(len(filters['styles']) for filters in real_subcategories.values())
+            image_count = subcategories.get('_meta', {}).get('image_count', 0)
+            print(f"  📂 {category}: {image_count} изображений, {total_subcategories} подкатегорий, {total_colors} цветов, {total_materials} материалов, {total_styles} стилей")
         
         return jsonify({
             'success': True,
