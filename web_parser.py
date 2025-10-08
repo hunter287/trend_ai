@@ -713,15 +713,38 @@ def api_filter_options():
                 # Подсчет уже происходит в иерархической структуре выше
         
         # Конвертируем sets в counts для каждой категории фильтра
+        # Также добавляем общие счётчики для категорий и подкатегорий
         hierarchical_filters_with_counts = {}
         for category, subcategories in hierarchical_filters.items():
-            hierarchical_filters_with_counts[category] = {}
+            hierarchical_filters_with_counts[category] = {
+                '_meta': {'image_count': 0, 'subcategories': {}}
+            }
+            
+            # Собираем уникальные image_ids для всей категории
+            category_image_ids = set()
+            
             for subcategory, filters in subcategories.items():
+                # Собираем уникальные image_ids для подкатегории
+                subcategory_image_ids = set()
+                for image_ids_set in filters['colors'].values():
+                    subcategory_image_ids.update(image_ids_set)
+                for image_ids_set in filters['materials'].values():
+                    subcategory_image_ids.update(image_ids_set)
+                for image_ids_set in filters['styles'].values():
+                    subcategory_image_ids.update(image_ids_set)
+                
+                category_image_ids.update(subcategory_image_ids)
+                
                 hierarchical_filters_with_counts[category][subcategory] = {
                     'colors': {color: len(image_ids) for color, image_ids in filters['colors'].items()},
                     'materials': {material: len(image_ids) for material, image_ids in filters['materials'].items()},
-                    'styles': {style: len(image_ids) for style, image_ids in filters['styles'].items()}
+                    'styles': {style: len(image_ids) for style, image_ids in filters['styles'].items()},
+                    '_image_count': len(subcategory_image_ids)
                 }
+                
+                hierarchical_filters_with_counts[category]['_meta']['subcategories'][subcategory] = len(subcategory_image_ids)
+            
+            hierarchical_filters_with_counts[category]['_meta']['image_count'] = len(category_image_ids)
         
         # Отладочная информация
         print(f"🔍 DEBUG: Найдено {len(images)} изображений с тегами (ВСЕ в базе)")

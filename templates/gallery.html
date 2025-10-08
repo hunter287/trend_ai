@@ -1246,23 +1246,19 @@
             
             container.innerHTML = '';
             
-            const categories = Object.keys(hierarchicalFilters).sort();
+            const categories = Object.keys(hierarchicalFilters).filter(k => k !== '_meta').sort();
             
             categories.forEach(category => {
-                const subcategories = Object.keys(hierarchicalFilters[category]);
-                const totalItems = subcategories.reduce((sum, sub) => {
-                    const filters = hierarchicalFilters[category][sub];
-                    return sum + Object.keys(filters.colors).length + 
-                           Object.keys(filters.materials).length + 
-                           Object.keys(filters.styles).length;
-                }, 0);
+                const categoryData = hierarchicalFilters[category];
+                const imageCount = categoryData._meta?.image_count || 0;
+                const subcategoryCount = Object.keys(categoryData).filter(k => k !== '_meta').length;
                 
                 const categoryElement = document.createElement('div');
                 categoryElement.className = 'category-option';
                 categoryElement.innerHTML = `
                     <div class="category-info">
                         <h4>${category}</h4>
-                        <span class="category-count">${subcategories.length} подкатегорий, ${totalItems} фильтров</span>
+                        <span class="category-count">(${imageCount} ${imageCount === 1 ? 'изображение' : 'изображений'})</span>
                     </div>
                     <div class="category-arrow">→</div>
                 `;
@@ -1297,20 +1293,18 @@
             
             container.innerHTML = '';
             
-            const subcategories = Object.keys(hierarchicalFilters[category]).sort();
+            const subcategories = Object.keys(hierarchicalFilters[category]).filter(k => k !== '_meta').sort();
             
             subcategories.forEach(subcategory => {
                 const filters = hierarchicalFilters[category][subcategory];
-                const totalItems = Object.keys(filters.colors).length + 
-                                 Object.keys(filters.materials).length + 
-                                 Object.keys(filters.styles).length;
+                const imageCount = filters._image_count || 0;
                 
                 const subcategoryElement = document.createElement('div');
                 subcategoryElement.className = 'subcategory-option';
                 subcategoryElement.innerHTML = `
                     <div class="subcategory-info">
                         <h5>${subcategory}</h5>
-                        <span class="subcategory-count">${totalItems} фильтров</span>
+                        <span class="subcategory-count">(${imageCount} ${imageCount === 1 ? 'изображение' : 'изображений'})</span>
                     </div>
                     <div class="subcategory-arrow">→</div>
                 `;
