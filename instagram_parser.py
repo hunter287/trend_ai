@@ -46,15 +46,19 @@ class InstagramParser:
             date_from: дата начала в формате YYYY-MM-DD (опционально)
             date_to: дата окончания в формате YYYY-MM-DD (опционально)
         """
-        print(f"🔍 Парсинг аккаунта: @{username}")
+        print(f"\n{'='*60}")
+        print(f"🔍 [PARSER] Парсинг аккаунта: @{username}")
+        print(f"📊 [PARSER] Лимит постов: {posts_limit}")
+        print(f"📅 [PARSER] Период: {date_from} → {date_to}")
+        print(f"{'='*60}")
         
         try:
             from apify_client import ApifyClient
             import time
             
-            print("🔗 Подключение к Apify...")
+            print("🔗 [PARSER] Подключение к Apify...")
             client = ApifyClient(self.apify_token)
-            print("✅ Подключение установлено")
+            print("✅ [PARSER] Подключение к Apify установлено")
             
             # Запуск Instagram scraper
             run_input = {
@@ -67,33 +71,41 @@ class InstagramParser:
             # Добавляем фильтрацию по датам, если указаны
             if date_from:
                 run_input["since"] = date_from
-                print(f"   • Дата начала: {date_from}")
+                print(f"   • [PARSER] Дата начала: {date_from}")
             if date_to:
                 run_input["until"] = date_to
-                print(f"   • Дата окончания: {date_to}")
+                print(f"   • [PARSER] Дата окончания: {date_to}")
             
-            print("📋 Параметры запуска:")
+            print("📋 [PARSER] Параметры запуска Apify:")
             print(f"   • URL: {run_input['directUrls'][0]}")
             print(f"   • Тип данных: {run_input['resultsType']}")
             print(f"   • Лимит: {run_input['resultsLimit']}")
+            if date_from or date_to:
+                print(f"   • since: {run_input.get('since', 'не указано')}")
+                print(f"   • until: {run_input.get('until', 'не указано')}")
             
-            print("🚀 Запуск Apify актора...")
-            print("⏳ Это может занять 30-60 секунд...")
+            print("🚀 [PARSER] Запуск Apify актора...")
+            print("⏳ [PARSER] Это может занять 30-60 секунд...")
+            print(f"🔑 [PARSER] Используется токен: {self.apify_token[:10]}...{self.apify_token[-4:]}")
             
             start_time = time.time()
-            run = client.actor("apify/instagram-scraper").call(run_input=run_input)
-            elapsed_time = time.time() - start_time
+            print(f"⏰ [PARSER] Время начала: {datetime.now().strftime('%H:%M:%S')}")
             
-            print(f"⏱️ Актор выполнен за {elapsed_time:.1f} секунд")
+            run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+            
+            elapsed_time = time.time() - start_time
+            print(f"⏱️ [PARSER] Актор выполнен за {elapsed_time:.1f} секунд")
+            print(f"📦 [PARSER] Результат run: {run}")
             
             if run and run.get("defaultDatasetId"):
-                print("📥 Получение данных из датасета...")
+                print("📥 [PARSER] Получение данных из датасета...")
                 dataset_id = run["defaultDatasetId"]
-                print(f"   • ID датасета: {dataset_id}")
+                print(f"   • [PARSER] ID датасета: {dataset_id}")
                 
                 dataset_items = client.dataset(dataset_id).list_items().items
                 
-                print(f"✅ Получено {len(dataset_items)} постов")
+                print(f"✅ [PARSER] Получено {len(dataset_items)} постов")
+                print(f"{'='*60}\n")
                 return {
                     "username": username,
                     "posts": dataset_items,
@@ -101,15 +113,17 @@ class InstagramParser:
                     "total_posts": len(dataset_items)
                 }
             else:
-                print("❌ Не удалось получить данные")
-                print(f"   • Результат run: {run}")
+                print("❌ [PARSER] Не удалось получить данные")
+                print(f"   • [PARSER] Результат run: {run}")
+                print(f"{'='*60}\n")
                 return None
                 
         except Exception as e:
-            print(f"❌ Ошибка парсинга: {e}")
+            print(f"❌ [PARSER] Ошибка парсинга: {e}")
             import traceback
-            print("📋 Детали ошибки:")
+            print("📋 [PARSER] Детали ошибки:")
             traceback.print_exc()
+            print(f"{'='*60}\n")
             return None
     
     def extract_image_urls(self, posts: List[Dict]) -> List[Dict]:

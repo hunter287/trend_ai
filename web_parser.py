@@ -351,30 +351,40 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
     """Запуск парсинга в отдельном потоке"""
     session_data = None
     try:
+        print(f"🚀 [THREAD] Запуск парсинга в потоке для session_id={session_id}")
+        print(f"📋 [THREAD] Аккаунты: {accounts}")
+        print(f"📅 [THREAD] Даты: {date_from} - {date_to}")
+        print(f"📊 [THREAD] max_posts: {max_posts}")
+        
         # Небольшая задержка для гарантии регистрации сессии
         time.sleep(0.1)
         
         # Проверяем, что сессия существует
         if session_id not in active_parsing_sessions:
-            print(f"⚠️ Сессия {session_id} не найдена в активных сессиях")
+            print(f"⚠️ [THREAD] Сессия {session_id} не найдена в активных сессиях")
             print(f"Доступные сессии: {list(active_parsing_sessions.keys())}")
             return
         
+        print(f"✅ [THREAD] Сессия найдена")
         session_data = active_parsing_sessions[session_id]
         session_data['status'] = 'running'
         
+        print(f"🔗 [THREAD] Подключение к MongoDB...")
         # Подключаемся к MongoDB
         if not web_parser.parser.connect_mongodb():
+            print(f"❌ [THREAD] Ошибка подключения к MongoDB")
             session_data['status'] = 'error'
             session_data['error'] = 'Ошибка подключения к MongoDB'
             socketio.emit('parsing_update', session_data, room=session_id)
             return
         
+        print(f"✅ [THREAD] MongoDB подключена")
         total_accounts = len(accounts)
         results = []
         
         for i, account in enumerate(accounts):
             try:
+                print(f"🔍 [THREAD] Обработка аккаунта {i+1}/{total_accounts}: @{account}")
                 # Обновляем статус
                 session_data['current_account'] = account
                 session_data['progress'] = int((i / total_accounts) * 100)
@@ -384,12 +394,16 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
                 date_info = ""
                 if date_from or date_to:
                     date_info = f" (с {date_from or '...'} по {date_to or '...'})"
+                
+                print(f"📨 [THREAD] Отправка WebSocket сообщения о начале парсинга @{account}")
                 socketio.emit('parsing_log', {
                     'message': f'🔍 Парсинг аккаунта: @{account}{date_info}',
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
+                print(f"🚀 [THREAD] Запуск parse_instagram_account для @{account}")
                 parsed_data = web_parser.parser.parse_instagram_account(account, max_posts, date_from, date_to)
+                print(f"✅ [THREAD] parse_instagram_account завершён для @{account}: {parsed_data is not None}")
                 if not parsed_data:
                     socketio.emit('parsing_log', {
                         'message': f'❌ Ошибка парсинга @{account}',
