@@ -265,14 +265,14 @@ class InstagramParser:
         return downloaded_data
     
     def is_image_exists(self, image_url: str, post_id: str = None) -> bool:
-        """Проверка существования изображения в MongoDB"""
+        """Проверка существования изображения в MongoDB по URL
+        
+        ВАЖНО: Проверяем только по image_url, НЕ по post_id!
+        Один post (карусель) может содержать несколько разных изображений.
+        """
         try:
-            # Проверяем по URL изображения
+            # Проверяем только по URL изображения
             if self.collection.find_one({"image_url": image_url}):
-                return True
-            
-            # Дополнительная проверка по post_id, если указан
-            if post_id and self.collection.find_one({"post_id": post_id}):
                 return True
                 
             return False
