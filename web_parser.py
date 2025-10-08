@@ -89,15 +89,33 @@ def api_status():
         'active_sessions': len(active_parsing_sessions)
     })
 
+def log_print(message):
+    """Принудительный вывод в stderr с flush"""
+    import sys
+    print(message, file=sys.stderr, flush=True)
+    print(message, flush=True)
+
 @app.route('/api/parse', methods=['POST'])
 def api_parse():
     """API для запуска парсинга"""
     try:
+        log_print("\n" + "="*70)
+        log_print("🔥 [API] ПОЛУЧЕН POST ЗАПРОС НА /api/parse")
+        log_print("="*70)
+        
         data = request.get_json()
+        log_print(f"📦 [API] Данные запроса: {data}")
+        
         accounts = data.get('accounts', [])
         date_from = data.get('date_from')  # Дата начала (YYYY-MM-DD)
         date_to = data.get('date_to')  # Дата окончания (YYYY-MM-DD)
         session_id = data.get('session_id', f"session_{int(time.time())}")
+        
+        log_print(f"📋 [API] Извлечённые параметры:")
+        log_print(f"   accounts: {accounts}")
+        log_print(f"   date_from: {date_from}")
+        log_print(f"   date_to: {date_to}")
+        log_print(f"   session_id: {session_id}")
         
         if not accounts:
             return jsonify({'success': False, 'message': 'Список аккаунтов пуст'})
@@ -108,15 +126,18 @@ def api_parse():
         # Используем большой лимит для получения всех постов за период
         # Apify сам отфильтрует по датам
         max_posts = 5000  # Достаточно большой лимит
-        print(f"📊 Установлен лимит: {max_posts} постов для периода {date_from} - {date_to}")
+        log_print(f"📊 [API] Установлен лимит: {max_posts} постов для периода {date_from} - {date_to}")
         
         # Проверяем инициализацию парсера
+        log_print(f"🔍 [API] Проверка инициализации парсера...")
         success, message = web_parser.init_parser()
         if not success:
+            log_print(f"❌ [API] Ошибка инициализации: {message}")
             return jsonify({'success': False, 'message': message})
+        log_print(f"✅ [API] Парсер инициализирован")
         
         # Сначала регистрируем сессию
-        print(f"🔧 [API] Регистрация сессии {session_id}")
+        log_print(f"🔧 [API] Регистрация сессии {session_id}")
         active_parsing_sessions[session_id] = {
             'status': 'starting',
             'accounts': accounts,
@@ -128,11 +149,11 @@ def api_parse():
             'current_account': None,
             'results': []
         }
-        print(f"✅ [API] Сессия зарегистрирована")
+        log_print(f"✅ [API] Сессия зарегистрирована")
         
         # Затем запускаем парсинг в отдельном потоке
-        print(f"🧵 [API] Создание потока для парсинга...")
-        print(f"   Аргументы: session_id={session_id}, accounts={accounts}, max_posts={max_posts}, date_from={date_from}, date_to={date_to}")
+        log_print(f"🧵 [API] Создание потока для парсинга...")
+        log_print(f"   Аргументы: session_id={session_id}, accounts={accounts}, max_posts={max_posts}, date_from={date_from}, date_to={date_to}")
         
         thread = threading.Thread(
             target=run_parsing_session,
@@ -141,9 +162,10 @@ def api_parse():
         )
         thread.daemon = True
         
-        print(f"🚀 [API] Запуск потока...")
+        log_print(f"🚀 [API] Запуск потока...")
         thread.start()
-        print(f"✅ [API] Поток запущен, thread.is_alive() = {thread.is_alive()}")
+        log_print(f"✅ [API] Поток запущен, thread.is_alive() = {thread.is_alive()}")
+        log_print(f"{'='*70}\n")
         
         return jsonify({
             'success': True,
@@ -363,53 +385,53 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
     import sys
     import traceback as tb
     
-    print(f"\n{'='*70}")
-    print(f"🚀 [THREAD] НАЧАЛО ПОТОКА ПАРСИНГА")
-    print(f"{'='*70}")
-    print(f"   session_id: {session_id}")
-    print(f"   accounts: {accounts}")
-    print(f"   max_posts: {max_posts}")
-    print(f"   date_from: {date_from}")
-    print(f"   date_to: {date_to}")
-    print(f"   thread_name: {threading.current_thread().name}")
-    print(f"{'='*70}\n")
+    log_print(f"\n{'='*70}")
+    log_print(f"🚀 [THREAD] НАЧАЛО ПОТОКА ПАРСИНГА")
+    log_print(f"{'='*70}")
+    log_print(f"   session_id: {session_id}")
+    log_print(f"   accounts: {accounts}")
+    log_print(f"   max_posts: {max_posts}")
+    log_print(f"   date_from: {date_from}")
+    log_print(f"   date_to: {date_to}")
+    log_print(f"   thread_name: {threading.current_thread().name}")
+    log_print(f"{'='*70}\n")
     
     session_data = None
     try:
-        print(f"🚀 [THREAD] Запуск парсинга в потоке для session_id={session_id}")
-        print(f"📋 [THREAD] Аккаунты: {accounts}")
-        print(f"📅 [THREAD] Даты: {date_from} - {date_to}")
-        print(f"📊 [THREAD] max_posts: {max_posts}")
+        log_print(f"🚀 [THREAD] Запуск парсинга в потоке для session_id={session_id}")
+        log_print(f"📋 [THREAD] Аккаунты: {accounts}")
+        log_print(f"📅 [THREAD] Даты: {date_from} - {date_to}")
+        log_print(f"📊 [THREAD] max_posts: {max_posts}")
         
         # Небольшая задержка для гарантии регистрации сессии
         time.sleep(0.1)
         
         # Проверяем, что сессия существует
         if session_id not in active_parsing_sessions:
-            print(f"⚠️ [THREAD] Сессия {session_id} не найдена в активных сессиях")
-            print(f"Доступные сессии: {list(active_parsing_sessions.keys())}")
+            log_print(f"⚠️ [THREAD] Сессия {session_id} не найдена в активных сессиях")
+            log_print(f"Доступные сессии: {list(active_parsing_sessions.keys())}")
             return
         
-        print(f"✅ [THREAD] Сессия найдена")
+        log_print(f"✅ [THREAD] Сессия найдена")
         session_data = active_parsing_sessions[session_id]
         session_data['status'] = 'running'
         
-        print(f"🔗 [THREAD] Подключение к MongoDB...")
+        log_print(f"🔗 [THREAD] Подключение к MongoDB...")
         # Подключаемся к MongoDB
         if not web_parser.parser.connect_mongodb():
-            print(f"❌ [THREAD] Ошибка подключения к MongoDB")
+            log_print(f"❌ [THREAD] Ошибка подключения к MongoDB")
             session_data['status'] = 'error'
             session_data['error'] = 'Ошибка подключения к MongoDB'
             socketio.emit('parsing_update', session_data, room=session_id)
             return
         
-        print(f"✅ [THREAD] MongoDB подключена")
+        log_print(f"✅ [THREAD] MongoDB подключена")
         total_accounts = len(accounts)
         results = []
         
         for i, account in enumerate(accounts):
             try:
-                print(f"🔍 [THREAD] Обработка аккаунта {i+1}/{total_accounts}: @{account}")
+                log_print(f"🔍 [THREAD] Обработка аккаунта {i+1}/{total_accounts}: @{account}")
                 # Обновляем статус
                 session_data['current_account'] = account
                 session_data['progress'] = int((i / total_accounts) * 100)
@@ -420,15 +442,15 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
                 if date_from or date_to:
                     date_info = f" (с {date_from or '...'} по {date_to or '...'})"
                 
-                print(f"📨 [THREAD] Отправка WebSocket сообщения о начале парсинга @{account}")
+                log_print(f"📨 [THREAD] Отправка WebSocket сообщения о начале парсинга @{account}")
                 socketio.emit('parsing_log', {
                     'message': f'🔍 Парсинг аккаунта: @{account}{date_info}',
                     'timestamp': datetime.now().isoformat()
                 }, room=session_id)
                 
-                print(f"🚀 [THREAD] Запуск parse_instagram_account для @{account}")
+                log_print(f"🚀 [THREAD] Запуск parse_instagram_account для @{account}")
                 parsed_data = web_parser.parser.parse_instagram_account(account, max_posts, date_from, date_to)
-                print(f"✅ [THREAD] parse_instagram_account завершён для @{account}: {parsed_data is not None}")
+                log_print(f"✅ [THREAD] parse_instagram_account завершён для @{account}: {parsed_data is not None}")
                 if not parsed_data:
                     socketio.emit('parsing_log', {
                         'message': f'❌ Ошибка парсинга @{account}',
@@ -532,18 +554,19 @@ def run_parsing_session(session_id, accounts, max_posts, date_from=None, date_to
         threading.Timer(300, lambda: active_parsing_sessions.pop(session_id, None)).start()
         
     except Exception as e:
-        print(f"\n{'='*70}")
-        print(f"❌ [THREAD] КРИТИЧЕСКАЯ ОШИБКА В ПОТОКЕ ПАРСИНГА")
-        print(f"{'='*70}")
-        print(f"   session_id: {session_id}")
-        print(f"   Ошибка: {e}")
-        print(f"   Тип ошибки: {type(e).__name__}")
-        print(f"{'='*70}")
+        log_print(f"\n{'='*70}")
+        log_print(f"❌ [THREAD] КРИТИЧЕСКАЯ ОШИБКА В ПОТОКЕ ПАРСИНГА")
+        log_print(f"{'='*70}")
+        log_print(f"   session_id: {session_id}")
+        log_print(f"   Ошибка: {e}")
+        log_print(f"   Тип ошибки: {type(e).__name__}")
+        log_print(f"{'='*70}")
         
         import traceback
-        print("📋 [THREAD] Полный traceback:")
-        traceback.print_exc()
-        print(f"{'='*70}\n")
+        log_print("📋 [THREAD] Полный traceback:")
+        import sys
+        traceback.print_exc(file=sys.stderr)
+        log_print(f"{'='*70}\n")
         
         if session_data is not None:
             session_data['status'] = 'error'
