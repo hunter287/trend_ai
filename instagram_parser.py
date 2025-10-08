@@ -61,8 +61,6 @@ class InstagramParser:
             print("✅ [PARSER] Подключение к Apify установлено")
             
             # Запуск Instagram scraper
-            # НЕ используем параметры since/until, т.к. они замедляют работу актора
-            # Фильтрацию по датам делаем после получения данных
             run_input = {
                 "directUrls": [f"https://www.instagram.com/{username}/"],
                 "resultsType": "posts",
@@ -70,20 +68,35 @@ class InstagramParser:
                 "addParentData": False
             }
             
+            # Добавляем фильтрацию по датам, если указаны
+            if date_from:
+                run_input["since"] = date_from
+                print(f"   • [PARSER] Дата начала: {date_from}")
+            if date_to:
+                run_input["until"] = date_to
+                print(f"   • [PARSER] Дата окончания: {date_to}")
+            
             print("📋 [PARSER] Параметры запуска Apify:")
             print(f"   • URL: {run_input['directUrls'][0]}")
             print(f"   • Тип данных: {run_input['resultsType']}")
             print(f"   • Лимит: {run_input['resultsLimit']}")
-            print(f"   • Фильтрация по датам: {date_from} → {date_to} (после получения)")
+            if date_from or date_to:
+                print(f"   • since: {run_input.get('since', 'не указано')}")
+                print(f"   • until: {run_input.get('until', 'не указано')}")
             
             print("🚀 [PARSER] Запуск Apify актора...")
-            print("⏳ [PARSER] Это может занять 30-60 секунд...")
+            print(f"⚠️ [PARSER] Внимание: с фильтром по датам это может занять 2-5 минут...")
             print(f"🔑 [PARSER] Используется токен: {self.apify_token[:10]}...{self.apify_token[-4:]}")
             
             start_time = time.time()
             print(f"⏰ [PARSER] Время начала: {datetime.now().strftime('%H:%M:%S')}")
             
-            run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+            # ВАЖНО: Вызов актора может занять много времени с большим лимитом
+            print(f"⏳ [PARSER] Вызов актора с таймаутом 600 секунд (10 минут)...")
+            run = client.actor("apify/instagram-scraper").call(
+                run_input=run_input,
+                timeout_secs=600  # Таймаут 10 минут
+            )
             
             elapsed_time = time.time() - start_time
             print(f"⏱️ [PARSER] Актор выполнен за {elapsed_time:.1f} секунд")
@@ -95,42 +108,8 @@ class InstagramParser:
                 print(f"   • [PARSER] ID датасета: {dataset_id}")
                 
                 dataset_items = client.dataset(dataset_id).list_items().items
-                print(f"📊 [PARSER] Получено {len(dataset_items)} постов от Apify")
                 
-                # Фильтруем посты по датам, если указаны
-                if date_from or date_to:
-                    from dateutil import parser as date_parser
-                    filtered_posts = []
-                    
-                    date_from_dt = date_parser.parse(date_from) if date_from else None
-                    date_to_dt = date_parser.parse(date_to) if date_to else None
-                    # Добавляем 1 день к date_to, чтобы включить посты этого дня
-                    if date_to_dt:
-                        date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59)
-                    
-                    print(f"🔍 [PARSER] Фильтрация постов по датам...")
-                    for post in dataset_items:
-                        # Проверяем timestamp поста
-                        post_date = None
-                        if 'timestamp' in post:
-                            post_date = date_parser.parse(post['timestamp'])
-                        elif 'ownerUsername' in post:  # Старый формат
-                            continue
-                        
-                        if post_date:
-                            # Проверяем, входит ли пост в диапазон
-                            if date_from_dt and post_date < date_from_dt:
-                                continue
-                            if date_to_dt and post_date > date_to_dt:
-                                continue
-                            filtered_posts.append(post)
-                    
-                    print(f"✅ [PARSER] После фильтрации осталось {len(filtered_posts)} постов")
-                    dataset_items = filtered_posts
-                else:
-                    print(f"ℹ️ [PARSER] Фильтрация по датам не применяется")
-                
-                print(f"✅ [PARSER] Итого постов для сохранения: {len(dataset_items)}")
+                print(f"✅ [PARSER] Получено {len(dataset_items)} постов")
                 print(f"{'='*60}\n")
                 return {
                     "username": username,
