@@ -324,7 +324,8 @@ def gallery_tagged():
             {
                 "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
                 "comments_count": 1, "caption": 1, "ximilar_tags": 1,
-                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
+                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
+                "timestamp": 1
             }
         ).sort("ximilar_tagged_at", -1).limit(50))
 
@@ -1182,7 +1183,8 @@ def api_load_more_images():
             projection = {
                 "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
                 "comments_count": 1, "caption": 1, "ximilar_tags": 1,
-                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
+                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
+                "timestamp": 1
             }
             sort_field = "ximilar_tagged_at"
         else:

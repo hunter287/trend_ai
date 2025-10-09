@@ -755,7 +755,7 @@
                      data-image-id="{{ image._id }}"
                      data-username="{{ image.username }}"
                      data-caption="{{ image.caption or '' }}"
-                     data-tagged-at="{% if image.ximilar_tagged_at %}{{ image.ximilar_tagged_at.isoformat() if image.ximilar_tagged_at is not string else image.ximilar_tagged_at }}{% endif %}"
+                     data-tagged-at="{% if image.timestamp %}{{ image.timestamp if image.timestamp is string else image.timestamp.isoformat() }}{% endif %}"
                      onclick="toggleSelection('{{ image._id }}')"
                      {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                      {# Дедупликация объектов по названию (как в API) #}
@@ -1794,7 +1794,7 @@
             card.dataset.imageId = image._id;
             card.dataset.username = image.username;
             card.dataset.caption = image.caption || '';
-            card.dataset.taggedAt = image.ximilar_tagged_at || '';
+            card.dataset.taggedAt = image.timestamp || '';
             card.onclick = function() { toggleSelection(image._id); };
 
             // Если это галерея с тегами, обрабатываем объекты
