@@ -83,6 +83,11 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
+            transition: border-radius 0.3s ease;
+        }
+
+        .controls.filters-open {
+            border-bottom: none;
         }
         
         .search-box {
@@ -212,10 +217,23 @@
         
         .advanced-filters {
             background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
+            border-radius: 0 0 12px 12px;
+            padding: 0;
+            margin: 0 30px 20px 30px;
             border: 1px solid #dee2e6;
+            border-top: none;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0);
+            transition: max-height 0.4s ease-out, opacity 0.3s ease-out, padding 0.4s ease-out, box-shadow 0.3s ease-out;
+        }
+
+        .advanced-filters.open {
+            max-height: 1000px;
+            opacity: 1;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
         .hierarchical-filters {
@@ -589,55 +607,6 @@
                 {% endif %}
             </div>
             
-            {% if current_page == 'gallery_tagged' %}
-            <div class="advanced-filters" id="advancedFilters" style="display: none;">
-                <div class="hierarchical-filters">
-                    <div class="filter-categories" id="filterCategories">
-                        <!-- Категории будут загружены динамически -->
-                    </div>
-                    
-                    <div class="filter-subcategories" id="filterSubcategories" style="display: none;">
-                        <div class="subcategory-header">
-                            <button class="btn btn-back" id="backToCategories">← Назад к категориям</button>
-                            <h4 id="selectedCategoryTitle">Выберите подкатегорию</h4>
-                        </div>
-                        <div class="subcategory-list" id="subcategoryList">
-                            <!-- Подкатегории будут загружены динамически -->
-                        </div>
-                    </div>
-                    
-                    <div class="filter-details" id="filterDetails" style="display: none;">
-                        <div class="filter-details-header">
-                            <button class="btn btn-back" id="backToSubcategories">← Назад к подкатегориям</button>
-                            <h4 id="selectedSubcategoryTitle">Фильтры</h4>
-                        </div>
-                        
-                        <div class="filter-details-content">
-                            <div class="filter-section">
-                                <h5>Цвета</h5>
-                                <div class="filter-options" id="colorFilters"></div>
-                            </div>
-                            
-                            <div class="filter-section">
-                                <h5>Материалы</h5>
-                                <div class="filter-options" id="materialFilters"></div>
-                            </div>
-                            
-                            <div class="filter-section">
-                                <h5>Стили</h5>
-                                <div class="filter-options" id="styleFilters"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="filter-actions">
-                    <button class="btn btn-primary" id="applyFiltersBtn">Применить фильтры</button>
-                    <button class="btn btn-secondary" id="clearFiltersBtn">Сбросить</button>
-                </div>
-            </div>
-            {% endif %}
-            
             <div class="action-buttons">
                 {% if current_page == 'gallery' %}
                     <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
@@ -667,7 +636,56 @@
                 {% endif %}
             </div>
         </div>
-        
+
+        {% if current_page == 'gallery_tagged' %}
+        <div class="advanced-filters" id="advancedFilters">
+            <div class="hierarchical-filters">
+                <div class="filter-categories" id="filterCategories">
+                    <!-- Категории будут загружены динамически -->
+                </div>
+
+                <div class="filter-subcategories" id="filterSubcategories" style="display: none;">
+                    <div class="subcategory-header">
+                        <button class="btn btn-back" id="backToCategories">← Назад к категориям</button>
+                        <h4 id="selectedCategoryTitle">Выберите подкатегорию</h4>
+                    </div>
+                    <div class="subcategory-list" id="subcategoryList">
+                        <!-- Подкатегории будут загружены динамически -->
+                    </div>
+                </div>
+
+                <div class="filter-details" id="filterDetails" style="display: none;">
+                    <div class="filter-details-header">
+                        <button class="btn btn-back" id="backToSubcategories">← Назад к подкатегориям</button>
+                        <h4 id="selectedSubcategoryTitle">Фильтры</h4>
+                    </div>
+
+                    <div class="filter-details-content">
+                        <div class="filter-section">
+                            <h5>Цвета</h5>
+                            <div class="filter-options" id="colorFilters"></div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h5>Материалы</h5>
+                            <div class="filter-options" id="materialFilters"></div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h5>Стили</h5>
+                            <div class="filter-options" id="styleFilters"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button class="btn btn-primary" id="applyFiltersBtn">Применить фильтры</button>
+                <button class="btn btn-secondary" id="clearFiltersBtn">Сбросить</button>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="gallery" id="gallery">
             {% if images %}
                 {% for image in images %}
@@ -924,13 +942,16 @@
                 
                 if (toggleAdvancedFiltersBtn && advancedFilters) {
                     toggleAdvancedFiltersBtn.addEventListener('click', () => {
-                        if (advancedFilters.style.display === 'none') {
-                            advancedFilters.style.display = 'block';
+                        const controls = document.querySelector('.controls');
+                        if (advancedFilters.classList.contains('open')) {
+                            advancedFilters.classList.remove('open');
+                            controls.classList.remove('filters-open');
+                            toggleAdvancedFiltersBtn.textContent = '🔍 Расширенные фильтры';
+                        } else {
+                            advancedFilters.classList.add('open');
+                            controls.classList.add('filters-open');
                             toggleAdvancedFiltersBtn.textContent = '🔍 Скрыть фильтры';
                             loadFilterOptions();
-                        } else {
-                            advancedFilters.style.display = 'none';
-                            toggleAdvancedFiltersBtn.textContent = '🔍 Расширенные фильтры';
                         }
                     });
                 }
