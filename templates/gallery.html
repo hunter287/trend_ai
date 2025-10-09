@@ -813,15 +813,19 @@
                         {% endif %}
                     {% endfor %}
                      
+                     {# Собираем структуру: {объект: {colors: [], materials: [], styles: []}} #}
+                     {% set objects_attrs = {} %}
+
                      {# Теперь собираем уникальные теги только из дедуплицированных объектов #}
                      {% for obj in unique_objects_by_name.values() %}
                          {# Категории #}
                          {% if obj.top_category and obj.top_category not in unique_categories %}
                              {% set _ = unique_categories.append(obj.top_category) %}
                          {% endif %}
-                         
+
                         {# Объекты - нормализуем в контексте категории #}
                         {% set obj_category = obj.top_category or 'Other' %}
+                        {% set normalized_obj = '' %}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
@@ -837,40 +841,55 @@
                                 {% endif %}
                             {% endif %}
                         {% endif %}
-                         
-                         {# Цвета #}
-                         {% if obj.properties and obj.properties.visual_attributes and obj.properties.visual_attributes.Color %}
+
+                        {# Инициализируем структуру для этого объекта #}
+                        {% if normalized_obj and normalized_obj not in objects_attrs %}
+                            {% set _ = objects_attrs.update({normalized_obj: {'colors': [], 'materials': [], 'styles': []}}) %}
+                        {% endif %}
+
+                         {# Цвета этого конкретного объекта #}
+                         {% if normalized_obj and obj.properties and obj.properties.visual_attributes and obj.properties.visual_attributes.Color %}
                              {% for color in obj.properties.visual_attributes.Color %}
                                  {% if color.name not in unique_colors %}
                                      {% set _ = unique_colors.append(color.name) %}
                                  {% endif %}
+                                 {% if color.name not in objects_attrs[normalized_obj]['colors'] %}
+                                     {% set _ = objects_attrs[normalized_obj]['colors'].append(color.name) %}
+                                 {% endif %}
                              {% endfor %}
                          {% endif %}
-                         
-                         {# Материалы #}
-                         {% if obj.properties and obj.properties.material_attributes and obj.properties.material_attributes.Material %}
+
+                         {# Материалы этого конкретного объекта #}
+                         {% if normalized_obj and obj.properties and obj.properties.material_attributes and obj.properties.material_attributes.Material %}
                              {% for material in obj.properties.material_attributes.Material %}
                                  {% if material.name not in unique_materials %}
                                      {% set _ = unique_materials.append(material.name) %}
                                  {% endif %}
+                                 {% if material.name not in objects_attrs[normalized_obj]['materials'] %}
+                                     {% set _ = objects_attrs[normalized_obj]['materials'].append(material.name) %}
+                                 {% endif %}
                              {% endfor %}
                          {% endif %}
-                         
-                         {# Стили #}
-                         {% if obj.properties and obj.properties.style_attributes and obj.properties.style_attributes.Style %}
+
+                         {# Стили этого конкретного объекта #}
+                         {% if normalized_obj and obj.properties and obj.properties.style_attributes and obj.properties.style_attributes.Style %}
                              {% for style in obj.properties.style_attributes.Style %}
                                  {% if style.name not in unique_styles %}
                                      {% set _ = unique_styles.append(style.name) %}
                                  {% endif %}
+                                 {% if style.name not in objects_attrs[normalized_obj]['styles'] %}
+                                     {% set _ = objects_attrs[normalized_obj]['styles'].append(style.name) %}
+                                 {% endif %}
                              {% endfor %}
                          {% endif %}
                      {% endfor %}
-                     
+
                      data-categories="{{ unique_categories|join(',') }}"
                      data-objects="{{ unique_objects|join(',') }}"
                      data-colors="{{ unique_colors|join(',') }}"
                      data-materials="{{ unique_materials|join(',') }}"
                      data-styles="{{ unique_styles|join(',') }}"
+                     data-objects-attrs='{{ objects_attrs|tojson|safe }}'
                      {% endif %}>
                     <div class="image-container">
                         <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">
@@ -1616,13 +1635,17 @@
         }
         
         function checkImageMatchesFilters(card) {
-            // Здесь нужно проверить, соответствует ли изображение выбранным фильтрам
-            // Для этого нужно добавить data-атрибуты к карточкам с информацией о тегах
+            // Проверяем соответствие изображения выбранным фильтрам
             const cardCategories = card.dataset.categories ? card.dataset.categories.split(',') : [];
             const cardObjects = card.dataset.objects ? card.dataset.objects.split(',') : [];
-            const cardColors = card.dataset.colors ? card.dataset.colors.split(',') : [];
-            const cardMaterials = card.dataset.materials ? card.dataset.materials.split(',') : [];
-            const cardStyles = card.dataset.styles ? card.dataset.styles.split(',') : [];
+
+            // Парсим JSON структуру с привязкой атрибутов к объектам
+            let objectsAttrs = {};
+            try {
+                objectsAttrs = JSON.parse(card.dataset.objectsAttrs || '{}');
+            } catch (e) {
+                console.error('Ошибка парсинга objectsAttrs:', e);
+            }
 
             // Проверяем соответствие выбранной категории
             if (selectedFilters.category) {
@@ -1632,30 +1655,59 @@
             // Проверяем соответствие выбранной подкатегории
             if (selectedFilters.subcategory) {
                 if (!cardObjects.includes(selectedFilters.subcategory)) return false;
-            }
 
-            // Проверяем соответствие цветам
-            if (selectedFilters.colors.length > 0) {
-                const hasMatchingColor = selectedFilters.colors.some(color =>
-                    cardColors.includes(color)
-                );
-                if (!hasMatchingColor) return false;
-            }
+                // Если выбрана подкатегория, проверяем атрибуты ТОЛЬКО для этой подкатегории
+                const subcategoryAttrs = objectsAttrs[selectedFilters.subcategory] || {colors: [], materials: [], styles: []};
 
-            // Проверяем соответствие материалам
-            if (selectedFilters.materials.length > 0) {
-                const hasMatchingMaterial = selectedFilters.materials.some(material =>
-                    cardMaterials.includes(material)
-                );
-                if (!hasMatchingMaterial) return false;
-            }
+                // Проверяем соответствие цветам ТОЛЬКО для выбранной подкатегории
+                if (selectedFilters.colors.length > 0) {
+                    const hasMatchingColor = selectedFilters.colors.some(color =>
+                        subcategoryAttrs.colors.includes(color)
+                    );
+                    if (!hasMatchingColor) return false;
+                }
 
-            // Проверяем соответствие стилям
-            if (selectedFilters.styles.length > 0) {
-                const hasMatchingStyle = selectedFilters.styles.some(style =>
-                    cardStyles.includes(style)
-                );
-                if (!hasMatchingStyle) return false;
+                // Проверяем соответствие материалам ТОЛЬКО для выбранной подкатегории
+                if (selectedFilters.materials.length > 0) {
+                    const hasMatchingMaterial = selectedFilters.materials.some(material =>
+                        subcategoryAttrs.materials.includes(material)
+                    );
+                    if (!hasMatchingMaterial) return false;
+                }
+
+                // Проверяем соответствие стилям ТОЛЬКО для выбранной подкатегории
+                if (selectedFilters.styles.length > 0) {
+                    const hasMatchingStyle = selectedFilters.styles.some(style =>
+                        subcategoryAttrs.styles.includes(style)
+                    );
+                    if (!hasMatchingStyle) return false;
+                }
+            } else {
+                // Если подкатегория НЕ выбрана, проверяем атрибуты глобально (старая логика)
+                const cardColors = card.dataset.colors ? card.dataset.colors.split(',') : [];
+                const cardMaterials = card.dataset.materials ? card.dataset.materials.split(',') : [];
+                const cardStyles = card.dataset.styles ? card.dataset.styles.split(',') : [];
+
+                if (selectedFilters.colors.length > 0) {
+                    const hasMatchingColor = selectedFilters.colors.some(color =>
+                        cardColors.includes(color)
+                    );
+                    if (!hasMatchingColor) return false;
+                }
+
+                if (selectedFilters.materials.length > 0) {
+                    const hasMatchingMaterial = selectedFilters.materials.some(material =>
+                        cardMaterials.includes(material)
+                    );
+                    if (!hasMatchingMaterial) return false;
+                }
+
+                if (selectedFilters.styles.length > 0) {
+                    const hasMatchingStyle = selectedFilters.styles.some(style =>
+                        cardStyles.includes(style)
+                    );
+                    if (!hasMatchingStyle) return false;
+                }
             }
 
             // Проверяем соответствие датам
@@ -2016,59 +2068,81 @@
             const uniqueColors = [];
             const uniqueMaterials = [];
             const uniqueStyles = [];
+            const uniqueObjectsByName = {};
+            const objectsAttrs = {};
 
             if (!image.ximilar_objects_structured) return;
 
-            // Собираем уникальные теги
+            // Сначала дедуплицируем объекты по их основному названию с учётом категории
             image.ximilar_objects_structured.forEach(obj => {
-                // Категории
-                if (obj.top_category && !uniqueCategories.includes(obj.top_category)) {
-                    uniqueCategories.push(obj.top_category);
-                }
+                const objCategory = obj.top_category || 'Other';
+                let objName = '';
 
-                // Объекты (подкатегории) - НОРМАЛИЗУЕМ в контексте категории
                 if (obj.properties && obj.properties.other_attributes) {
-                    let objName = '';
-                    const objCategory = obj.top_category || 'Other';
-
                     if (obj.properties.other_attributes.Subcategory && obj.properties.other_attributes.Subcategory.length > 0) {
                         objName = obj.properties.other_attributes.Subcategory[0].name;
                     } else if (obj.properties.other_attributes.Category && obj.properties.other_attributes.Category.length > 0) {
                         objName = obj.properties.other_attributes.Category[0].name;
                     }
-
-                    if (objName) {
-                        // НОРМАЛИЗУЕМ название в контексте категории
-                        const normalizedObjName = normalizeSubcategoryName(objName, objCategory);
-                        if (!uniqueObjects.includes(normalizedObjName)) {
-                            uniqueObjects.push(normalizedObjName);
-                        }
-                    }
                 }
 
-                // Цвета
+                if (objName) {
+                    const normalizedName = normalizeSubcategoryName(objName, objCategory);
+                    if (!uniqueObjectsByName[normalizedName]) {
+                        uniqueObjectsByName[normalizedName] = obj;
+                    }
+                }
+            });
+
+            // Теперь собираем уникальные теги и создаём структуру objectsAttrs
+            Object.entries(uniqueObjectsByName).forEach(([normalizedName, obj]) => {
+                // Категории
+                if (obj.top_category && !uniqueCategories.includes(obj.top_category)) {
+                    uniqueCategories.push(obj.top_category);
+                }
+
+                // Объекты
+                if (!uniqueObjects.includes(normalizedName)) {
+                    uniqueObjects.push(normalizedName);
+                }
+
+                // Инициализируем структуру для этого объекта
+                if (!objectsAttrs[normalizedName]) {
+                    objectsAttrs[normalizedName] = {colors: [], materials: [], styles: []};
+                }
+
+                // Цвета этого конкретного объекта
                 if (obj.properties && obj.properties.visual_attributes && obj.properties.visual_attributes.Color) {
                     obj.properties.visual_attributes.Color.forEach(color => {
                         if (!uniqueColors.includes(color.name)) {
                             uniqueColors.push(color.name);
                         }
+                        if (!objectsAttrs[normalizedName].colors.includes(color.name)) {
+                            objectsAttrs[normalizedName].colors.push(color.name);
+                        }
                     });
                 }
 
-                // Материалы
+                // Материалы этого конкретного объекта
                 if (obj.properties && obj.properties.material_attributes && obj.properties.material_attributes.Material) {
                     obj.properties.material_attributes.Material.forEach(material => {
                         if (!uniqueMaterials.includes(material.name)) {
                             uniqueMaterials.push(material.name);
                         }
+                        if (!objectsAttrs[normalizedName].materials.includes(material.name)) {
+                            objectsAttrs[normalizedName].materials.push(material.name);
+                        }
                     });
                 }
 
-                // Стили
+                // Стили этого конкретного объекта
                 if (obj.properties && obj.properties.style_attributes && obj.properties.style_attributes.Style) {
                     obj.properties.style_attributes.Style.forEach(style => {
                         if (!uniqueStyles.includes(style.name)) {
                             uniqueStyles.push(style.name);
+                        }
+                        if (!objectsAttrs[normalizedName].styles.includes(style.name)) {
+                            objectsAttrs[normalizedName].styles.push(style.name);
                         }
                     });
                 }
@@ -2080,6 +2154,7 @@
             card.dataset.colors = uniqueColors.join(',');
             card.dataset.materials = uniqueMaterials.join(',');
             card.dataset.styles = uniqueStyles.join(',');
+            card.dataset.objectsAttrs = JSON.stringify(objectsAttrs);
         }
 
         function renderTags(image) {
