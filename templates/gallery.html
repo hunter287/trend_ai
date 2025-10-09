@@ -755,7 +755,7 @@
                      data-image-id="{{ image._id }}"
                      data-username="{{ image.username }}"
                      data-caption="{{ image.caption or '' }}"
-                     data-tagged-at="{{ image.ximilar_tagged_at|default('') }}"
+                     data-tagged-at="{% if image.ximilar_tagged_at %}{{ image.ximilar_tagged_at.isoformat() if image.ximilar_tagged_at is not string else image.ximilar_tagged_at }}{% endif %}"
                      onclick="toggleSelection('{{ image._id }}')"
                      {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                      {# Дедупликация объектов по названию (как в API) #}
@@ -1501,6 +1501,9 @@
             // Фильтруем изображения на основе выбранных критериев
             const cards = document.querySelectorAll('.image-card');
 
+            console.log('🔍 Применение фильтров:', selectedFilters);
+
+            let visibleCount = 0;
             cards.forEach(card => {
                 let showCard = true;
 
@@ -1510,7 +1513,10 @@
                 }
 
                 card.style.display = showCard ? 'block' : 'none';
+                if (showCard) visibleCount++;
             });
+
+            console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
         }
         
         function backToCategories() {
@@ -1583,10 +1589,23 @@
             // Проверяем соответствие датам
             if (selectedFilters.dateFrom || selectedFilters.dateTo) {
                 const cardDate = card.dataset.taggedAt;
-                if (!cardDate) return false;  // Если у изображения нет даты, не показываем его
+
+                if (!cardDate) {
+                    console.log('⚠️ Изображение без даты:', card.dataset.imageId);
+                    return false;  // Если у изображения нет даты, не показываем его
+                }
 
                 // Извлекаем только дату (YYYY-MM-DD) из ISO строки
                 const imageDate = cardDate.split('T')[0];
+
+                console.log('📅 Проверка даты:', {
+                    imageId: card.dataset.imageId,
+                    imageDate: imageDate,
+                    dateFrom: selectedFilters.dateFrom,
+                    dateTo: selectedFilters.dateTo,
+                    matchFrom: !selectedFilters.dateFrom || imageDate >= selectedFilters.dateFrom,
+                    matchTo: !selectedFilters.dateTo || imageDate <= selectedFilters.dateTo
+                });
 
                 if (selectedFilters.dateFrom && imageDate < selectedFilters.dateFrom) {
                     return false;
