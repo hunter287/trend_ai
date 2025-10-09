@@ -1466,21 +1466,17 @@
         function applyAdvancedFilters() {
             // Фильтруем изображения на основе выбранных критериев
             const cards = document.querySelectorAll('.image-card');
-            
+
             cards.forEach(card => {
                 let showCard = true;
-                
+
                 // Проверяем соответствие фильтрам
                 if (hasActiveFilters()) {
                     showCard = checkImageMatchesFilters(card);
                 }
-                
+
                 card.style.display = showCard ? 'block' : 'none';
             });
-            
-            // Обновляем счетчик
-            const visibleCards = document.querySelectorAll('.image-card[style*="block"], .image-card:not([style*="none"])');
-            showNotification(`✅ Показано ${visibleCards.length} изображений`, 'success');
         }
         
         function backToCategories() {
