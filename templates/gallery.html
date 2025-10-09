@@ -1829,6 +1829,54 @@
             return card;
         }
 
+        // Функция нормализации названий подкатегорий (аналог Python функции)
+        function normalizeSubcategoryName(subcategory, category) {
+            const subcategoryLower = subcategory.toLowerCase();
+
+            const normalizationRules = {
+                'Accessories': {
+                    'Bags': ['bag', 'handbag', 'tote', 'clutch', 'crossbody', 'purse', 'wallet'],
+                    'Hats': ['hat', 'cap', 'beanie', 'fedora'],
+                    'Sunglasses': ['sunglass', 'eyewear'],
+                    'Belts': ['belt'],
+                    'Jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'ring', 'earring'],
+                    'Watches': ['watch'],
+                    'Scarves': ['scarf', 'scarves'],
+                    'Gloves': ['glove', 'mitten'],
+                },
+                'Clothing': {
+                    'Dresses': ['dress'],
+                    'Pants': ['pant', 'trouser', 'jean'],
+                    'Skirts': ['skirt'],
+                    'Tops': ['top', 'blouse', 'shirt', 't-shirt', 'tank'],
+                    'Jackets': ['jacket', 'coat', 'blazer', 'cardigan'],
+                    'Shorts': ['short'],
+                },
+                'Footwear': {
+                    'Shoes': ['shoe'],
+                    'Sneakers': ['sneaker', 'trainer'],
+                    'Boots': ['boot'],
+                    'Heels': ['heel', 'stiletto', 'pump'],
+                    'Sandals': ['sandal', 'flip-flop'],
+                    'Flats': ['flat', 'loafer', 'ballet'],
+                }
+            };
+
+            // Ищем соответствие в контексте категории
+            if (normalizationRules[category]) {
+                for (const [baseName, keywords] of Object.entries(normalizationRules[category])) {
+                    for (const keyword of keywords) {
+                        if (subcategoryLower.includes(keyword)) {
+                            return baseName;
+                        }
+                    }
+                }
+            }
+
+            // Если не нашли соответствия, возвращаем оригинальное название
+            return subcategory;
+        }
+
         function processTaggedImageData(card, image) {
             // Дедупликация объектов по названию (аналогично серверной логике)
             const uniqueCategories = [];
@@ -1846,16 +1894,23 @@
                     uniqueCategories.push(obj.top_category);
                 }
 
-                // Объекты (подкатегории)
+                // Объекты (подкатегории) - НОРМАЛИЗУЕМ в контексте категории
                 if (obj.properties && obj.properties.other_attributes) {
                     let objName = '';
+                    const objCategory = obj.top_category || 'Other';
+
                     if (obj.properties.other_attributes.Subcategory && obj.properties.other_attributes.Subcategory.length > 0) {
                         objName = obj.properties.other_attributes.Subcategory[0].name;
                     } else if (obj.properties.other_attributes.Category && obj.properties.other_attributes.Category.length > 0) {
                         objName = obj.properties.other_attributes.Category[0].name;
                     }
-                    if (objName && !uniqueObjects.includes(objName)) {
-                        uniqueObjects.push(objName);
+
+                    if (objName) {
+                        // НОРМАЛИЗУЕМ название в контексте категории
+                        const normalizedObjName = normalizeSubcategoryName(objName, objCategory);
+                        if (!uniqueObjects.includes(normalizedObjName)) {
+                            uniqueObjects.push(normalizedObjName);
+                        }
                     }
                 }
 
