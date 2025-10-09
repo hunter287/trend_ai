@@ -686,6 +686,21 @@
 
         {% if current_page == 'gallery_tagged' %}
         <div class="advanced-filters" id="advancedFilters">
+            <!-- Фильтр по датам -->
+            <div class="date-filter-section" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #dee2e6;">
+                <h4 style="margin: 0 0 15px 0; color: #495057; font-size: 16px; font-weight: 600;">📅 Фильтр по датам</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label for="dateFrom" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">От:</label>
+                        <input type="date" id="dateFrom" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label for="dateTo" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">До:</label>
+                        <input type="date" id="dateTo" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
+                    </div>
+                </div>
+            </div>
+
             <div class="hierarchical-filters">
                 <div class="filter-categories" id="filterCategories">
                     <!-- Категории будут загружены динамически -->
@@ -736,10 +751,11 @@
         <div class="gallery" id="gallery">
             {% if images %}
                 {% for image in images %}
-                <div class="image-card" 
-                     data-image-id="{{ image._id }}" 
-                     data-username="{{ image.username }}" 
+                <div class="image-card"
+                     data-image-id="{{ image._id }}"
+                     data-username="{{ image.username }}"
                      data-caption="{{ image.caption or '' }}"
+                     data-tagged-at="{{ image.ximilar_tagged_at|default('') }}"
                      onclick="toggleSelection('{{ image._id }}')"
                      {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                      {# Дедупликация объектов по названию (как в API) #}
@@ -1018,7 +1034,23 @@
                 if (clearFiltersBtn) {
                     clearFiltersBtn.addEventListener('click', clearAdvancedFilters);
                 }
-                
+
+                // Поля даты
+                const dateFromInput = document.getElementById('dateFrom');
+                const dateToInput = document.getElementById('dateTo');
+
+                if (dateFromInput) {
+                    dateFromInput.addEventListener('change', (e) => {
+                        selectedFilters.dateFrom = e.target.value;
+                    });
+                }
+
+                if (dateToInput) {
+                    dateToInput.addEventListener('change', (e) => {
+                        selectedFilters.dateTo = e.target.value;
+                    });
+                }
+
                 // Кнопки навигации для иерархических фильтров
                 const backToCategoriesBtn = document.getElementById('backToCategories');
                 const backToSubcategoriesBtn = document.getElementById('backToSubcategories');
@@ -1306,7 +1338,9 @@
             subcategory: null,
             colors: [],
             materials: [],
-            styles: []
+            styles: [],
+            dateFrom: null,
+            dateTo: null
         };
         
         async function loadFilterOptions() {
@@ -1511,50 +1545,69 @@
             const cardColors = card.dataset.colors ? card.dataset.colors.split(',') : [];
             const cardMaterials = card.dataset.materials ? card.dataset.materials.split(',') : [];
             const cardStyles = card.dataset.styles ? card.dataset.styles.split(',') : [];
-            
+
             // Проверяем соответствие выбранной категории
             if (selectedFilters.category) {
                 if (!cardCategories.includes(selectedFilters.category)) return false;
             }
-            
+
             // Проверяем соответствие выбранной подкатегории
             if (selectedFilters.subcategory) {
                 if (!cardObjects.includes(selectedFilters.subcategory)) return false;
             }
-            
+
             // Проверяем соответствие цветам
             if (selectedFilters.colors.length > 0) {
-                const hasMatchingColor = selectedFilters.colors.some(color => 
+                const hasMatchingColor = selectedFilters.colors.some(color =>
                     cardColors.includes(color)
                 );
                 if (!hasMatchingColor) return false;
             }
-            
+
             // Проверяем соответствие материалам
             if (selectedFilters.materials.length > 0) {
-                const hasMatchingMaterial = selectedFilters.materials.some(material => 
+                const hasMatchingMaterial = selectedFilters.materials.some(material =>
                     cardMaterials.includes(material)
                 );
                 if (!hasMatchingMaterial) return false;
             }
-            
+
             // Проверяем соответствие стилям
             if (selectedFilters.styles.length > 0) {
-                const hasMatchingStyle = selectedFilters.styles.some(style => 
+                const hasMatchingStyle = selectedFilters.styles.some(style =>
                     cardStyles.includes(style)
                 );
                 if (!hasMatchingStyle) return false;
             }
-            
+
+            // Проверяем соответствие датам
+            if (selectedFilters.dateFrom || selectedFilters.dateTo) {
+                const cardDate = card.dataset.taggedAt;
+                if (!cardDate) return false;  // Если у изображения нет даты, не показываем его
+
+                // Извлекаем только дату (YYYY-MM-DD) из ISO строки
+                const imageDate = cardDate.split('T')[0];
+
+                if (selectedFilters.dateFrom && imageDate < selectedFilters.dateFrom) {
+                    return false;
+                }
+
+                if (selectedFilters.dateTo && imageDate > selectedFilters.dateTo) {
+                    return false;
+                }
+            }
+
             return true;
         }
         
         function hasActiveFilters() {
-            return selectedFilters.category || 
-                   selectedFilters.subcategory || 
-                   selectedFilters.colors.length > 0 || 
-                   selectedFilters.materials.length > 0 || 
-                   selectedFilters.styles.length > 0;
+            return selectedFilters.category ||
+                   selectedFilters.subcategory ||
+                   selectedFilters.colors.length > 0 ||
+                   selectedFilters.materials.length > 0 ||
+                   selectedFilters.styles.length > 0 ||
+                   selectedFilters.dateFrom ||
+                   selectedFilters.dateTo;
         }
         
         function clearAdvancedFilters() {
@@ -1564,25 +1617,33 @@
                 subcategory: null,
                 colors: [],
                 materials: [],
-                styles: []
+                styles: [],
+                dateFrom: null,
+                dateTo: null
             };
-            
+
             currentCategory = null;
             currentSubcategory = null;
-            
+
             // Убираем выделение с кнопок
             document.querySelectorAll('.filter-option.selected').forEach(option => {
                 option.classList.remove('selected');
             });
-            
+
+            // Очищаем поля даты
+            const dateFromInput = document.getElementById('dateFrom');
+            const dateToInput = document.getElementById('dateTo');
+            if (dateFromInput) dateFromInput.value = '';
+            if (dateToInput) dateToInput.value = '';
+
             // Возвращаемся к категориям
             backToCategories();
-            
+
             // Показываем все изображения
             document.querySelectorAll('.image-card').forEach(card => {
                 card.style.display = 'block';
             });
-            
+
             showNotification('✅ Фильтры сброшены', 'success');
         }
         
@@ -1703,6 +1764,7 @@
             card.dataset.imageId = image._id;
             card.dataset.username = image.username;
             card.dataset.caption = image.caption || '';
+            card.dataset.taggedAt = image.ximilar_tagged_at || '';
             card.onclick = function() { toggleSelection(image._id); };
 
             // Если это галерея с тегами, обрабатываем объекты
