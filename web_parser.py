@@ -256,7 +256,7 @@ def gallery():
                     {"ximilar_objects_structured": {"$exists": False}}
                 ]
             },
-            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
+            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "timestamp": 1}
         ).sort("parsed_at", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery')
@@ -289,7 +289,7 @@ def gallery_to_tag():
                     {"ximilar_objects_structured": {"$exists": False}}
                 ]
             },
-            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
+            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1, "timestamp": 1}
         ).sort("selected_at", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery_to_tag')
@@ -1153,7 +1153,7 @@ def api_load_more_images():
                     {"ximilar_objects_structured": {"$exists": False}}
                 ]
             }
-            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
+            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "timestamp": 1}
             sort_field = "parsed_at"
 
         elif gallery_type == 'gallery_to_tag':
@@ -1167,7 +1167,7 @@ def api_load_more_images():
                     {"ximilar_objects_structured": {"$exists": False}}
                 ]
             }
-            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
+            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1, "timestamp": 1}
             sort_field = "selected_at"
 
         elif gallery_type == 'gallery_tagged':

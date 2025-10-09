@@ -651,6 +651,8 @@
                 <button class="filter-btn" data-filter="unselected">Не выбранные</button>
                 {% if current_page == 'gallery_tagged' %}
                 <button class="filter-btn" id="toggleAdvancedFilters">🔍 Расширенные фильтры</button>
+                {% else %}
+                <button class="filter-btn" id="toggleDateFilter">📅 Фильтр по датам</button>
                 {% endif %}
             </div>
             
@@ -683,6 +685,29 @@
                 {% endif %}
             </div>
         </div>
+
+        {% if current_page != 'gallery_tagged' %}
+        <!-- Простой фильтр по датам для gallery и gallery_to_tag -->
+        <div class="advanced-filters" id="dateFilters">
+            <div class="date-filter-section">
+                <h4 style="margin: 0 0 15px 0; color: #495057; font-size: 16px; font-weight: 600;">📅 Фильтр по датам публикации в Instagram</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label for="simpleDateFrom" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">От:</label>
+                        <input type="date" id="simpleDateFrom" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label for="simpleDateTo" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">До:</label>
+                        <input type="date" id="simpleDateTo" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="applyDateFilterBtn">Применить</button>
+                    <button class="btn btn-secondary" id="clearDateFilterBtn">Сбросить</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         {% if current_page == 'gallery_tagged' %}
         <div class="advanced-filters" id="advancedFilters">
@@ -1004,13 +1029,60 @@
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
             if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
             
+            // Простой фильтр по датам для gallery и gallery_to_tag
+            if ('{{ current_page }}' !== 'gallery_tagged') {
+                const toggleDateFilterBtn = document.getElementById('toggleDateFilter');
+                const dateFilters = document.getElementById('dateFilters');
+                const applyDateFilterBtn = document.getElementById('applyDateFilterBtn');
+                const clearDateFilterBtn = document.getElementById('clearDateFilterBtn');
+
+                if (toggleDateFilterBtn && dateFilters) {
+                    toggleDateFilterBtn.addEventListener('click', () => {
+                        const controls = document.querySelector('.controls');
+                        if (dateFilters.classList.contains('open')) {
+                            dateFilters.classList.remove('open');
+                            controls.classList.remove('filters-open');
+                            toggleDateFilterBtn.textContent = '📅 Фильтр по датам';
+                        } else {
+                            dateFilters.classList.add('open');
+                            controls.classList.add('filters-open');
+                            toggleDateFilterBtn.textContent = '📅 Скрыть фильтр';
+                        }
+                    });
+                }
+
+                if (applyDateFilterBtn) {
+                    applyDateFilterBtn.addEventListener('click', applySimpleDateFilter);
+                }
+
+                if (clearDateFilterBtn) {
+                    clearDateFilterBtn.addEventListener('click', clearSimpleDateFilter);
+                }
+
+                // Поля даты
+                const simpleDateFromInput = document.getElementById('simpleDateFrom');
+                const simpleDateToInput = document.getElementById('simpleDateTo');
+
+                if (simpleDateFromInput) {
+                    simpleDateFromInput.addEventListener('change', (e) => {
+                        selectedFilters.dateFrom = e.target.value;
+                    });
+                }
+
+                if (simpleDateToInput) {
+                    simpleDateToInput.addEventListener('change', (e) => {
+                        selectedFilters.dateTo = e.target.value;
+                    });
+                }
+            }
+
             // Расширенные фильтры для страницы оттегированных
             if ('{{ current_page }}' === 'gallery_tagged') {
                 const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
                 const advancedFilters = document.getElementById('advancedFilters');
                 const applyFiltersBtn = document.getElementById('applyFiltersBtn');
                 const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-                
+
                 if (toggleAdvancedFiltersBtn && advancedFilters) {
                     toggleAdvancedFiltersBtn.addEventListener('click', () => {
                         const controls = document.querySelector('.controls');
@@ -1026,11 +1098,11 @@
                         }
                     });
                 }
-                
+
                 if (applyFiltersBtn) {
                     applyFiltersBtn.addEventListener('click', applyAdvancedFilters);
                 }
-                
+
                 if (clearFiltersBtn) {
                     clearFiltersBtn.addEventListener('click', clearAdvancedFilters);
                 }
@@ -1054,11 +1126,11 @@
                 // Кнопки навигации для иерархических фильтров
                 const backToCategoriesBtn = document.getElementById('backToCategories');
                 const backToSubcategoriesBtn = document.getElementById('backToSubcategories');
-                
+
                 if (backToCategoriesBtn) {
                     backToCategoriesBtn.addEventListener('click', backToCategories);
                 }
-                
+
                 if (backToSubcategoriesBtn) {
                     backToSubcategoriesBtn.addEventListener('click', backToSubcategories);
                 }
@@ -1665,7 +1737,67 @@
 
             showNotification('✅ Фильтры сброшены', 'success');
         }
-        
+
+        // Функции для простого фильтра по датам (gallery и gallery_to_tag)
+        function applySimpleDateFilter() {
+            const cards = document.querySelectorAll('.image-card');
+
+            console.log('🔍 Применение фильтра по датам:', {
+                dateFrom: selectedFilters.dateFrom,
+                dateTo: selectedFilters.dateTo
+            });
+
+            let visibleCount = 0;
+            cards.forEach(card => {
+                let showCard = true;
+
+                // Проверяем соответствие датам
+                if (selectedFilters.dateFrom || selectedFilters.dateTo) {
+                    const cardDate = card.dataset.taggedAt;
+
+                    if (!cardDate) {
+                        console.log('⚠️ Изображение без даты:', card.dataset.imageId);
+                        showCard = false;
+                    } else {
+                        // Извлекаем только дату (YYYY-MM-DD) из ISO строки
+                        const imageDate = cardDate.split('T')[0];
+
+                        if (selectedFilters.dateFrom && imageDate < selectedFilters.dateFrom) {
+                            showCard = false;
+                        }
+
+                        if (selectedFilters.dateTo && imageDate > selectedFilters.dateTo) {
+                            showCard = false;
+                        }
+                    }
+                }
+
+                card.style.display = showCard ? 'block' : 'none';
+                if (showCard) visibleCount++;
+            });
+
+            console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
+        }
+
+        function clearSimpleDateFilter() {
+            // Сбрасываем фильтры
+            selectedFilters.dateFrom = null;
+            selectedFilters.dateTo = null;
+
+            // Очищаем поля даты
+            const simpleDateFromInput = document.getElementById('simpleDateFrom');
+            const simpleDateToInput = document.getElementById('simpleDateTo');
+            if (simpleDateFromInput) simpleDateFromInput.value = '';
+            if (simpleDateToInput) simpleDateToInput.value = '';
+
+            // Показываем все изображения
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.style.display = 'block';
+            });
+
+            showNotification('✅ Фильтр сброшен', 'success');
+        }
+
         function showNotification(message, type = 'info') {
             // Создаем элемент уведомления
             const notification = document.createElement('div');
