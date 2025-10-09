@@ -1348,15 +1348,15 @@
         function selectCategory(category) {
             currentCategory = category;
             selectedFilters.category = category;
-            
+
             // Показываем подкатегории
             document.getElementById('filterCategories').style.display = 'none';
             document.getElementById('filterSubcategories').style.display = 'block';
             document.getElementById('filterDetails').style.display = 'none';
-            
+
             // Обновляем заголовок
             document.getElementById('selectedCategoryTitle').textContent = `Категория: ${category}`;
-            
+
             // Рендерим подкатегории
             renderSubcategories(category);
         }
@@ -1394,14 +1394,14 @@
         function selectSubcategory(category, subcategory) {
             currentSubcategory = subcategory;
             selectedFilters.subcategory = subcategory;
-            
+
             // Показываем детали фильтров
             document.getElementById('filterSubcategories').style.display = 'none';
             document.getElementById('filterDetails').style.display = 'block';
-            
+
             // Обновляем заголовок
             document.getElementById('selectedSubcategoryTitle').textContent = `${subcategory} - Фильтры`;
-            
+
             // Рендерим фильтры для этой подкатегории
             renderFilterDetails(category, subcategory);
         }
@@ -1478,9 +1478,9 @@
             currentSubcategory = null;
             selectedFilters.category = null;
             selectedFilters.subcategory = null;
-            
+
             // Показываем категории
-            document.getElementById('filterCategories').style.display = 'block';
+            document.getElementById('filterCategories').style.display = 'grid';
             document.getElementById('filterSubcategories').style.display = 'none';
             document.getElementById('filterDetails').style.display = 'none';
         }
@@ -1489,7 +1489,7 @@
             // Сбрасываем выбранную подкатегорию
             currentSubcategory = null;
             selectedFilters.subcategory = null;
-            
+
             // Показываем подкатегории
             document.getElementById('filterCategories').style.display = 'none';
             document.getElementById('filterSubcategories').style.display = 'block';
