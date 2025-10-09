@@ -221,14 +221,39 @@ def api_sessions():
 
 @app.route('/gallery_<username>.html')
 def serve_gallery(username):
-    """Обслуживание HTML галерей"""
-    import os
-    gallery_file = f"gallery_{username}.html"
-    if os.path.exists(gallery_file):
-        with open(gallery_file, 'r', encoding='utf-8') as f:
-            return f.read()
-    else:
-        return f"Галерея для @{username} не найдена", 404
+    """Динамическая галерея изображений для конкретного пользователя из MongoDB"""
+    try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return f"Ошибка подключения к базе данных для @{username}", 500
+
+        # Получаем изображения для этого пользователя (не скрытые)
+        images = list(parser.collection.find(
+            {
+                "local_filename": {"$exists": True},
+                "username": username,
+                "hidden": {"$ne": True}
+            },
+            {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "timestamp": 1, "ximilar_objects_structured": 1, "ximilar_tags": 1}
+        ).sort("timestamp", -1).limit(200))
+
+        if not images:
+            return f"Галерея для @{username} не найдена (нет изображений в базе)", 404
+
+        # Определяем текущую страницу в зависимости от наличия тегов
+        # Если хотя бы у одного изображения есть теги, показываем как gallery_tagged
+        has_tags = any(img.get('ximilar_objects_structured') or img.get('ximilar_tags') for img in images)
+        current_page = 'gallery_tagged' if has_tags else 'gallery'
+
+        return render_template('gallery.html', images=images, current_page=current_page, username=username)
+    except Exception as e:
+        return f"Ошибка при загрузке галереи для @{username}: {e}", 500
 
 @app.route('/gallery')
 def gallery():
