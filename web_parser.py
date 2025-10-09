@@ -245,9 +245,10 @@ def gallery():
             return "Ошибка подключения к базе данных", 500
         
         # Получаем изображения из базы данных (только не выбранные для теггирования, не скрытые и без тегов Ximilar)
+        # Загружаем только первый batch (50 изображений), остальные подгрузятся через infinite scroll
         images = list(parser.collection.find(
             {
-                "local_filename": {"$exists": True}, 
+                "local_filename": {"$exists": True},
                 "selected_for_tagging": {"$ne": True},
                 "hidden": {"$ne": True},
                 "$and": [
@@ -256,7 +257,7 @@ def gallery():
                 ]
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
-        ).sort("parsed_at", -1).limit(100))
+        ).sort("parsed_at", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery')
     except Exception as e:
@@ -277,9 +278,10 @@ def gallery_to_tag():
             return "Ошибка подключения к базе данных", 500
         
         # Получаем изображения, выбранные для теггирования (только не скрытые и без тегов Ximilar)
+        # Загружаем только первый batch (50 изображений), остальные подгрузятся через infinite scroll
         images = list(parser.collection.find(
             {
-                "local_filename": {"$exists": True}, 
+                "local_filename": {"$exists": True},
                 "selected_for_tagging": True,
                 "hidden": {"$ne": True},
                 "$and": [
@@ -288,7 +290,7 @@ def gallery_to_tag():
                 ]
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
-        ).sort("selected_at", -1).limit(100))
+        ).sort("selected_at", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery_to_tag')
     except Exception as e:
@@ -309,6 +311,7 @@ def gallery_tagged():
             return "Ошибка подключения к базе данных", 500
         
         # Получаем изображения с тегами Ximilar (только не скрытые, приоритет объектно-ориентированной структуре)
+        # Загружаем только первый batch (50 изображений), остальные подгрузятся через infinite scroll
         images = list(parser.collection.find(
             {
                 "local_filename": {"$exists": True},
@@ -319,13 +322,13 @@ def gallery_tagged():
                 ]
             },
             {
-                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, 
-                "comments_count": 1, "caption": 1, "ximilar_tags": 1, 
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+                "comments_count": 1, "caption": 1, "ximilar_tags": 1,
                 "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
             }
-        ).sort("ximilar_tagged_at", -1))
-        
-        print(f"🖼️  Загружено {len(images)} изображений в галерею (все оттегированные)")
+        ).sort("ximilar_tagged_at", -1).limit(50))
+
+        print(f"🖼️  Загружено {len(images)} изображений в галерею (первый batch, остальные подгрузятся через infinite scroll)")
         
         return render_template('gallery.html', images=images, current_page='gallery_tagged')
     except Exception as e:
@@ -1020,21 +1023,21 @@ def api_tag_images():
     try:
         data = request.get_json()
         image_ids = data.get('image_ids', [])
-        
+
         if not image_ids:
             return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
-        
+
         # Проверяем инициализацию парсера
         success, message = web_parser.init_parser()
         if not success:
             return jsonify({'success': False, 'message': message})
-        
+
         # Подключаемся к MongoDB
         if not web_parser.parser.connect_mongodb():
             return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
-        
+
         from bson import ObjectId
-        
+
         # Преобразуем строковые ID в ObjectId
         object_ids = []
         for img_id in image_ids:
@@ -1043,42 +1046,42 @@ def api_tag_images():
             except Exception as e:
                 print(f"❌ Ошибка преобразования ID {img_id}: {e}")
                 continue
-        
+
         if not object_ids:
             return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
-        
+
         # Получаем изображения из базы данных
         images = list(web_parser.parser.collection.find(
             {"_id": {"$in": object_ids}},
             {"_id": 1, "local_filename": 1, "local_path": 1}
         ))
-        
+
         if not images:
             return jsonify({'success': False, 'message': 'Изображения не найдены в базе данных'})
-        
+
         # Создаем экземпляр Ximilar теггера
         from ximilar_fashion_tagger import XimilarFashionTagger
         ximilar_api_key = os.getenv("XIMILAR_API_KEY")
-        
+
         if not ximilar_api_key:
             return jsonify({'success': False, 'message': 'XIMILAR_API_KEY не найден в переменных окружения'})
-        
+
         tagger = XimilarFashionTagger(ximilar_api_key, web_parser.parser.mongodb_uri)
-        
+
         # Подключаемся к MongoDB
         if not tagger.connect_mongodb():
             return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB для теггирования'})
-        
+
         # Теггируем изображения через Ximilar
         tagged_count = 0
         for image in images:
             try:
                 # Формируем URL изображения
                 image_url = f"http://158.160.19.119:5000/images/{image['local_filename']}"
-                
+
                 # Используем существующую функциональность теггирования
                 tags_result = tagger.tag_image_with_ximilar(image_url)
-                
+
                 if tags_result and 'success' in tags_result and tags_result['success']:
                     # Обновляем документ в базе данных с объектно-ориентированной структурой
                     update_data = {
@@ -1093,10 +1096,10 @@ def api_tag_images():
                         "tagged_at": datetime.now().isoformat(),
                         "selected_for_tagging": False  # Убираем из списка для теггирования
                     }
-                    
+
                     if not tags_result.get("success"):
                         update_data["ximilar_error"] = tags_result.get("error", "Unknown error")
-                    
+
                     web_parser.parser.collection.update_one(
                         {"_id": image['_id']},
                         {"$set": update_data}
@@ -1105,17 +1108,106 @@ def api_tag_images():
                     print(f"✅ Изображение {image['local_filename']} оттегировано")
                 else:
                     print(f"❌ Не удалось оттегировать {image['local_filename']}")
-                    
+
             except Exception as e:
                 print(f"❌ Ошибка теггирования {image['local_filename']}: {e}")
                 continue
-        
+
         return jsonify({
             'success': True,
             'message': f'Оттегировано {tagged_count} из {len(images)} изображений',
             'tagged_count': tagged_count
         })
-        
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/load-more-images', methods=['GET'])
+def api_load_more_images():
+    """API для загрузки дополнительных изображений (infinite scroll)"""
+    try:
+        gallery_type = request.args.get('gallery_type', 'gallery')
+        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get('limit', 50))
+
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Определяем запрос в зависимости от типа галереи
+        if gallery_type == 'gallery':
+            # Обычная галерея (не выбранные для теггирования, не скрытые, без тегов Ximilar)
+            query = {
+                "local_filename": {"$exists": True},
+                "selected_for_tagging": {"$ne": True},
+                "hidden": {"$ne": True},
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
+            }
+            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1}
+            sort_field = "parsed_at"
+
+        elif gallery_type == 'gallery_to_tag':
+            # Галерея изображений, выбранных для теггирования
+            query = {
+                "local_filename": {"$exists": True},
+                "selected_for_tagging": True,
+                "hidden": {"$ne": True},
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
+            }
+            projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1}
+            sort_field = "selected_at"
+
+        elif gallery_type == 'gallery_tagged':
+            # Галерея оттегированных изображений
+            query = {
+                "local_filename": {"$exists": True},
+                "hidden": {"$ne": True},
+                "$or": [
+                    {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
+                    {"ximilar_tags": {"$exists": True, "$ne": []}}
+                ]
+            }
+            projection = {
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+                "comments_count": 1, "caption": 1, "ximilar_tags": 1,
+                "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1
+            }
+            sort_field = "ximilar_tagged_at"
+        else:
+            return jsonify({'success': False, 'message': 'Неверный тип галереи'})
+
+        # Получаем изображения с пагинацией
+        images = list(parser.collection.find(query, projection).sort(sort_field, -1).skip(offset).limit(limit))
+
+        # Конвертируем ObjectId в строки для JSON
+        from bson import ObjectId
+        for image in images:
+            image['_id'] = str(image['_id'])
+
+        # Получаем общее количество изображений
+        total_count = parser.collection.count_documents(query)
+
+        return jsonify({
+            'success': True,
+            'images': images,
+            'offset': offset,
+            'limit': limit,
+            'total_count': total_count,
+            'has_more': (offset + limit) < total_count
+        })
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 

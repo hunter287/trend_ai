@@ -945,11 +945,19 @@
 
     <script>
         let selectedImages = new Set();
-        
+
+        // Переменные для infinite scroll
+        let currentOffset = parseInt('{{ images|length }}');  // Начинаем с количества уже загруженных изображений
+        let isLoading = false;
+        let hasMore = true;
+        const galleryType = '{{ current_page }}';
+        const BATCH_SIZE = 50;
+
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             updateSelectedCount();
             setupEventListeners();
+            setupInfiniteScroll();
         });
         
         function setupEventListeners() {
@@ -1587,7 +1595,7 @@
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
-            
+
             // Добавляем стили
             notification.style.cssText = `
                 position: fixed;
@@ -1602,7 +1610,7 @@
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 animation: slideIn 0.3s ease-out;
             `;
-            
+
             // Цвета в зависимости от типа
             if (type === 'success') {
                 notification.style.background = '#28a745';
@@ -1611,7 +1619,7 @@
             } else {
                 notification.style.background = '#17a2b8';
             }
-            
+
             // Добавляем анимацию
             const style = document.createElement('style');
             style.textContent = `
@@ -1621,10 +1629,10 @@
                 }
             `;
             document.head.appendChild(style);
-            
+
             // Добавляем в DOM
             document.body.appendChild(notification);
-            
+
             // Удаляем через 3 секунды
             setTimeout(() => {
                 notification.style.animation = 'slideIn 0.3s ease-out reverse';
@@ -1634,6 +1642,240 @@
                     }
                 }, 300);
             }, 3000);
+        }
+
+        // ==================== INFINITE SCROLL ====================
+
+        function setupInfiniteScroll() {
+            window.addEventListener('scroll', handleScroll);
+            console.log(`🔄 Infinite scroll activated for gallery type: ${galleryType}`);
+        }
+
+        function handleScroll() {
+            // Проверяем, достиг ли пользователь конца страницы
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const pageHeight = document.documentElement.scrollHeight;
+
+            // Загружаем новые изображения, когда пользователь на 80% прокрутил страницу
+            if (scrollPosition >= pageHeight * 0.8 && !isLoading && hasMore) {
+                loadMoreImages();
+            }
+        }
+
+        async function loadMoreImages() {
+            if (isLoading || !hasMore) return;
+
+            isLoading = true;
+            console.log(`📥 Loading more images... offset: ${currentOffset}, limit: ${BATCH_SIZE}`);
+
+            try {
+                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log(`✅ Loaded ${result.images.length} images`);
+
+                    // Добавляем новые изображения в галерею
+                    result.images.forEach(image => {
+                        appendImageCard(image);
+                    });
+
+                    // Обновляем offset
+                    currentOffset += result.images.length;
+                    hasMore = result.has_more;
+
+                    if (!hasMore) {
+                        console.log('✅ All images loaded');
+                    }
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка загрузки: ${error.message}`, 'error');
+                console.error('Error loading more images:', error);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function appendImageCard(image) {
+            const gallery = document.getElementById('gallery');
+
+            // Создаем карточку изображения
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.dataset.imageId = image._id;
+            card.dataset.username = image.username;
+            card.dataset.caption = image.caption || '';
+            card.onclick = function() { toggleSelection(image._id); };
+
+            // Если это галерея с тегами, обрабатываем объекты
+            if (galleryType === 'gallery_tagged' && image.ximilar_objects_structured) {
+                processTaggedImageData(card, image);
+            }
+
+            // HTML содержимое карточки
+            let cardHTML = `
+                <div class="image-container">
+                    <img src="/images/${image.local_filename}" alt="${image.caption || 'Изображение'}" loading="lazy">
+                    <div class="checkbox"></div>
+                </div>
+                <div class="image-info">
+                    <div class="username">@${image.username}</div>
+                    <div class="stats">
+                        <span>❤️ ${image.likes_count || 0}</span>
+                        <span>💬 ${image.comments_count || 0}</span>
+                    </div>
+                    <div class="caption">${image.caption || 'Без описания'}</div>
+            `;
+
+            // Добавляем теги, если это галерея оттегированных
+            if (galleryType === 'gallery_tagged') {
+                cardHTML += renderTags(image);
+            }
+
+            cardHTML += '</div>';
+            card.innerHTML = cardHTML;
+
+            gallery.appendChild(card);
+        }
+
+        function processTaggedImageData(card, image) {
+            // Дедупликация объектов по названию (аналогично серверной логике)
+            const uniqueCategories = [];
+            const uniqueObjects = [];
+            const uniqueColors = [];
+            const uniqueMaterials = [];
+            const uniqueStyles = [];
+
+            if (!image.ximilar_objects_structured) return;
+
+            // Собираем уникальные теги
+            image.ximilar_objects_structured.forEach(obj => {
+                // Категории
+                if (obj.top_category && !uniqueCategories.includes(obj.top_category)) {
+                    uniqueCategories.push(obj.top_category);
+                }
+
+                // Объекты (подкатегории)
+                if (obj.properties && obj.properties.other_attributes) {
+                    let objName = '';
+                    if (obj.properties.other_attributes.Subcategory && obj.properties.other_attributes.Subcategory.length > 0) {
+                        objName = obj.properties.other_attributes.Subcategory[0].name;
+                    } else if (obj.properties.other_attributes.Category && obj.properties.other_attributes.Category.length > 0) {
+                        objName = obj.properties.other_attributes.Category[0].name;
+                    }
+                    if (objName && !uniqueObjects.includes(objName)) {
+                        uniqueObjects.push(objName);
+                    }
+                }
+
+                // Цвета
+                if (obj.properties && obj.properties.visual_attributes && obj.properties.visual_attributes.Color) {
+                    obj.properties.visual_attributes.Color.forEach(color => {
+                        if (!uniqueColors.includes(color.name)) {
+                            uniqueColors.push(color.name);
+                        }
+                    });
+                }
+
+                // Материалы
+                if (obj.properties && obj.properties.material_attributes && obj.properties.material_attributes.Material) {
+                    obj.properties.material_attributes.Material.forEach(material => {
+                        if (!uniqueMaterials.includes(material.name)) {
+                            uniqueMaterials.push(material.name);
+                        }
+                    });
+                }
+
+                // Стили
+                if (obj.properties && obj.properties.style_attributes && obj.properties.style_attributes.Style) {
+                    obj.properties.style_attributes.Style.forEach(style => {
+                        if (!uniqueStyles.includes(style.name)) {
+                            uniqueStyles.push(style.name);
+                        }
+                    });
+                }
+            });
+
+            // Добавляем data-атрибуты для фильтрации
+            card.dataset.categories = uniqueCategories.join(',');
+            card.dataset.objects = uniqueObjects.join(',');
+            card.dataset.colors = uniqueColors.join(',');
+            card.dataset.materials = uniqueMaterials.join(',');
+            card.dataset.styles = uniqueStyles.join(',');
+        }
+
+        function renderTags(image) {
+            if (!image.ximilar_objects_structured || image.ximilar_objects_structured.length === 0) {
+                // Если нет объектно-ориентированной структуры, показываем обычные теги
+                if (image.ximilar_tags && image.ximilar_tags.length > 0) {
+                    let tagsHTML = '<div class="ximilar-tags">';
+                    const tagsToShow = image.ximilar_tags.slice(0, 3);
+                    tagsToShow.forEach(tag => {
+                        tagsHTML += `<span class="tag">${tag.name}</span>`;
+                    });
+                    if (image.ximilar_tags.length > 3) {
+                        tagsHTML += `<span class="tag-more">+${image.ximilar_tags.length - 3} еще</span>`;
+                    }
+                    tagsHTML += '</div>';
+                    return tagsHTML;
+                }
+                return '';
+            }
+
+            // Группируем объекты по категориям
+            const categories = {};
+            image.ximilar_objects_structured.forEach(obj => {
+                const category = obj.top_category || 'other';
+                if (!categories[category]) {
+                    categories[category] = [];
+                }
+
+                let objInfo = '';
+                if (obj.properties) {
+                    // Получаем название объекта
+                    if (obj.properties.other_attributes && obj.properties.other_attributes.Subcategory && obj.properties.other_attributes.Subcategory.length > 0) {
+                        objInfo = obj.properties.other_attributes.Subcategory[0].name;
+                    } else if (obj.properties.other_attributes && obj.properties.other_attributes.Category && obj.properties.other_attributes.Category.length > 0) {
+                        objInfo = obj.properties.other_attributes.Category[0].name;
+                    } else {
+                        objInfo = obj.name;
+                    }
+
+                    // Добавляем атрибуты
+                    const attrs = [];
+                    if (obj.properties.visual_attributes && obj.properties.visual_attributes.Color && obj.properties.visual_attributes.Color.length > 0) {
+                        attrs.push(obj.properties.visual_attributes.Color[0].name);
+                    }
+                    if (obj.properties.material_attributes && obj.properties.material_attributes.Material && obj.properties.material_attributes.Material.length > 0) {
+                        attrs.push(obj.properties.material_attributes.Material[0].name);
+                    }
+                    if (obj.properties.style_attributes && obj.properties.style_attributes.Style && obj.properties.style_attributes.Style.length > 0) {
+                        attrs.push(obj.properties.style_attributes.Style[0].name);
+                    }
+
+                    if (attrs.length > 0) {
+                        objInfo += ` (${attrs.join(', ')})`;
+                    }
+                }
+
+                categories[category].push(objInfo);
+            });
+
+            // Рендерим теги
+            let tagsHTML = '<div class="ximilar-tags">';
+            for (const [category, objects] of Object.entries(categories)) {
+                tagsHTML += `
+                    <div class="category-group">
+                        <span class="category-name">${category}:</span>
+                        <span class="category-objects">${objects.join(', ')}</span>
+                    </div>
+                `;
+            }
+            tagsHTML += '</div>';
+
+            return tagsHTML;
         }
     </script>
 </body>
