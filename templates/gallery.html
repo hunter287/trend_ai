@@ -549,7 +549,14 @@
             font-size: 0.9em;
             color: #6c757d;
         }
-        
+
+        .post-date {
+            font-size: 0.85em;
+            color: #868e96;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
         .caption {
             font-size: 0.9em;
             color: #495057;
@@ -901,6 +908,9 @@
                             <span>❤️ {{ image.likes_count or 0 }}</span>
                             <span>💬 {{ image.comments_count or 0 }}</span>
                         </div>
+                        {% if image.timestamp %}
+                        <div class="post-date">📅 {{ image.timestamp[:10] }}</div>
+                        {% endif %}
                         <div class="caption">{{ image.caption or 'Без описания' }}</div>
                         {% if current_page == 'gallery_tagged' and image.ximilar_objects_structured %}
                             <div class="ximilar-tags">
@@ -1998,6 +2008,7 @@
                         <span>❤️ ${image.likes_count || 0}</span>
                         <span>💬 ${image.comments_count || 0}</span>
                     </div>
+                    ${image.timestamp ? `<div class="post-date">📅 ${image.timestamp.substring(0, 10)}</div>` : ''}
                     <div class="caption">${image.caption || 'Без описания'}</div>
             `;
 
