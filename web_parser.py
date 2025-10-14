@@ -282,7 +282,7 @@ def gallery():
                 ]
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "timestamp": 1}
-        ).sort("parsed_at", -1).limit(50))
+        ).sort("timestamp", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery')
     except Exception as e:
@@ -315,7 +315,7 @@ def gallery_to_tag():
                 ]
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1, "timestamp": 1}
-        ).sort("selected_at", -1).limit(50))
+        ).sort("timestamp", -1).limit(50))
         
         return render_template('gallery.html', images=images, current_page='gallery_to_tag')
     except Exception as e:
@@ -352,7 +352,7 @@ def gallery_tagged():
                 "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
                 "timestamp": 1
             }
-        ).sort("ximilar_tagged_at", -1).limit(50))
+        ).sort("timestamp", -1).limit(50))
 
         print(f"🖼️  Загружено {len(images)} изображений в галерею (первый batch, остальные подгрузятся через infinite scroll)")
         
@@ -1157,6 +1157,10 @@ def api_load_more_images():
         gallery_type = request.args.get('gallery_type', 'gallery')
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', 50))
+        sort_order = request.args.get('sort_order', 'desc')  # 'desc' или 'asc'
+
+        # Преобразуем sort_order в направление MongoDB (-1 для desc, 1 для asc)
+        sort_direction = -1 if sort_order == 'desc' else 1
 
         # Создаем экземпляр парсера для доступа к MongoDB
         parser = InstagramParser(
@@ -1167,6 +1171,9 @@ def api_load_more_images():
         # Подключаемся к MongoDB
         if not parser.connect_mongodb():
             return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Используем timestamp для сортировки во всех галереях
+        sort_field = "timestamp"
 
         # Определяем запрос в зависимости от типа галереи
         if gallery_type == 'gallery':
@@ -1181,7 +1188,6 @@ def api_load_more_images():
                 ]
             }
             projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "timestamp": 1}
-            sort_field = "parsed_at"
 
         elif gallery_type == 'gallery_to_tag':
             # Галерея изображений, выбранных для теггирования
@@ -1195,7 +1201,6 @@ def api_load_more_images():
                 ]
             }
             projection = {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "selected_for_tagging": 1, "selected_at": 1, "timestamp": 1}
-            sort_field = "selected_at"
 
         elif gallery_type == 'gallery_tagged':
             # Галерея оттегированных изображений
@@ -1213,12 +1218,11 @@ def api_load_more_images():
                 "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
                 "timestamp": 1
             }
-            sort_field = "ximilar_tagged_at"
         else:
             return jsonify({'success': False, 'message': 'Неверный тип галереи'})
 
-        # Получаем изображения с пагинацией
-        images = list(parser.collection.find(query, projection).sort(sort_field, -1).skip(offset).limit(limit))
+        # Получаем изображения с пагинацией и сортировкой
+        images = list(parser.collection.find(query, projection).sort(sort_field, sort_direction).skip(offset).limit(limit))
 
         # Конвертируем ObjectId в строки для JSON
         from bson import ObjectId

@@ -708,6 +708,13 @@
                         <input type="date" id="simpleDateTo" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
                     </div>
                 </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="dateSortOrder" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">📊 Сортировка:</label>
+                    <select id="dateSortOrder" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px; background: white;">
+                        <option value="desc">Сначала новые</option>
+                        <option value="asc">Сначала старые</option>
+                    </select>
+                </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-primary" id="applyDateFilterBtn">Применить</button>
                     <button class="btn btn-secondary" id="clearDateFilterBtn">Сбросить</button>
@@ -721,7 +728,7 @@
             <!-- Фильтр по датам -->
             <div class="date-filter-section" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #dee2e6;">
                 <h4 style="margin: 0 0 15px 0; color: #495057; font-size: 16px; font-weight: 600;">📅 Фильтр по датам</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
                         <label for="dateFrom" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">От:</label>
                         <input type="date" id="dateFrom" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
@@ -730,6 +737,13 @@
                         <label for="dateTo" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">До:</label>
                         <input type="date" id="dateTo" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px;">
                     </div>
+                </div>
+                <div>
+                    <label for="taggedDateSortOrder" style="display: block; margin-bottom: 5px; color: #495057; font-size: 13px; font-weight: 600;">📊 Сортировка:</label>
+                    <select id="taggedDateSortOrder" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px; background: white;">
+                        <option value="desc">Сначала новые</option>
+                        <option value="asc">Сначала старые</option>
+                    </select>
                 </div>
             </div>
 
@@ -1103,6 +1117,14 @@
                         selectedFilters.dateTo = e.target.value;
                     });
                 }
+
+                // Обработчик для сортировки
+                const dateSortOrderSelect = document.getElementById('dateSortOrder');
+                if (dateSortOrderSelect) {
+                    dateSortOrderSelect.addEventListener('change', (e) => {
+                        sortImagesByDate(e.target.value);
+                    });
+                }
             }
 
             // Расширенные фильтры для страницы оттегированных
@@ -1149,6 +1171,14 @@
                 if (dateToInput) {
                     dateToInput.addEventListener('change', (e) => {
                         selectedFilters.dateTo = e.target.value;
+                    });
+                }
+
+                // Обработчик для сортировки
+                const taggedDateSortOrderSelect = document.getElementById('taggedDateSortOrder');
+                if (taggedDateSortOrderSelect) {
+                    taggedDateSortOrderSelect.addEventListener('change', (e) => {
+                        sortImagesByDate(e.target.value);
                     });
                 }
 
@@ -1618,8 +1648,12 @@
             });
 
             console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
+
+            // Применяем сортировку
+            const sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
+            sortImagesByDate(sortOrder);
         }
-        
+
         function backToCategories() {
             // Сбрасываем выбранную категорию и подкатегорию
             currentCategory = null;
@@ -1800,6 +1834,34 @@
             showNotification('✅ Фильтры сброшены', 'success');
         }
 
+        // Функция сортировки изображений по дате
+        function sortImagesByDate(order = 'desc') {
+            const gallery = document.getElementById('imageGallery');
+            const cards = Array.from(gallery.querySelectorAll('.image-card'));
+
+            console.log(`📊 Сортировка изображений: ${order === 'desc' ? 'сначала новые' : 'сначала старые'}`);
+
+            cards.sort((a, b) => {
+                const dateA = a.dataset.taggedAt || '';
+                const dateB = b.dataset.taggedAt || '';
+
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+
+                if (order === 'desc') {
+                    return dateB.localeCompare(dateA);
+                } else {
+                    return dateA.localeCompare(dateB);
+                }
+            });
+
+            // Перестраиваем DOM
+            cards.forEach(card => gallery.appendChild(card));
+
+            console.log(`✅ Изображения отсортированы`);
+        }
+
         // Функции для простого фильтра по датам (gallery и gallery_to_tag)
         function applySimpleDateFilter() {
             const cards = document.querySelectorAll('.image-card');
@@ -1839,6 +1901,10 @@
             });
 
             console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
+
+            // Применяем сортировку
+            const sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+            sortImagesByDate(sortOrder);
         }
 
         function clearSimpleDateFilter() {
@@ -1939,7 +2005,15 @@
             console.log(`📥 Loading more images... offset: ${currentOffset}, limit: ${BATCH_SIZE}`);
 
             try {
-                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}`);
+                // Получаем текущий порядок сортировки
+                let sortOrder = 'desc';
+                if (galleryType === 'gallery_tagged') {
+                    sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
+                } else {
+                    sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+                }
+
+                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}&sort_order=${sortOrder}`);
                 const result = await response.json();
 
                 if (result.success) {
