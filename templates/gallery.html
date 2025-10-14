@@ -1836,7 +1836,11 @@
 
         // Функция сортировки изображений по дате
         function sortImagesByDate(order = 'desc') {
-            const gallery = document.getElementById('imageGallery');
+            const gallery = document.getElementById('gallery');
+            if (!gallery) {
+                console.error('❌ Элемент gallery не найден');
+                return;
+            }
             const cards = Array.from(gallery.querySelectorAll('.image-card'));
 
             console.log(`📊 Сортировка изображений: ${order === 'desc' ? 'сначала новые' : 'сначала старые'}`);
