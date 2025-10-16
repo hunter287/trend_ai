@@ -45,6 +45,36 @@
             opacity: 0.9;
         }
         
+        .nav-menu {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .nav-btn.active {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        
         .content {
             padding: 40px;
         }
@@ -286,6 +316,13 @@
         <div class="header">
             <h1>🖼️ Instagram Parser</h1>
             <p>Парсинг Instagram аккаунтов с веб-интерфейсом</p>
+            
+            <div class="nav-menu">
+                <a href="/" class="nav-btn active">🏠 Парсер</a>
+                <a href="/gallery" class="nav-btn">🖼️ Галерея</a>
+                <a href="/gallery_to_tag" class="nav-btn">🏷️ Для тегирования</a>
+                <a href="/gallery_tagged" class="nav-btn">✅ С тегами</a>
+            </div>
         </div>
         
         <div class="content">
