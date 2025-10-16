@@ -6,6 +6,9 @@ import os
 import json
 import requests
 import pymongo
+import imagehash
+from PIL import Image
+from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 import argparse
@@ -36,6 +39,72 @@ class InstagramParser:
         except Exception as e:
             print(f"❌ Ошибка подключения к MongoDB: {e}")
             return False
+    
+    def calculate_perceptual_hash(self, image_data: bytes) -> str:
+        """Вычисление perceptual hash изображения
+        
+        Args:
+            image_data: Байты изображения
+            
+        Returns:
+            Строковое представление perceptual hash
+        """
+        try:
+            # Открываем изображение из байтов
+            image = Image.open(BytesIO(image_data))
+            
+            # Вычисляем perceptual hash (pHash)
+            # pHash более устойчив к изменениям, чем average hash
+            phash = imagehash.phash(image, hash_size=8)
+            
+            return str(phash)
+        except Exception as e:
+            print(f"❌ Ошибка вычисления perceptual hash: {e}")
+            return None
+    
+    def is_duplicate_by_hash(self, image_hash: str, threshold: int = 5) -> Optional[Dict]:
+        """Проверка на дубликаты по perceptual hash
+        
+        Args:
+            image_hash: Perceptual hash изображения
+            threshold: Пороговое значение различия (Hamming distance)
+                      0 = точное совпадение
+                      5 = допускаем небольшие различия (сжатие, фильтры)
+                      10 = более мягкая проверка
+            
+        Returns:
+            Документ дубликата из БД или None
+        """
+        try:
+            if not image_hash:
+                return None
+            
+            # Получаем все хеши из БД
+            existing_hashes = self.collection.find(
+                {"image_hash": {"$exists": True}},
+                {"image_hash": 1, "image_url": 1, "post_id": 1, "_id": 1}
+            )
+            
+            current_hash = imagehash.hex_to_hash(image_hash)
+            
+            # Проверяем каждый хеш на похожесть
+            for doc in existing_hashes:
+                try:
+                    existing_hash = imagehash.hex_to_hash(doc["image_hash"])
+                    # Вычисляем Hamming distance (количество различающихся битов)
+                    distance = current_hash - existing_hash
+                    
+                    if distance <= threshold:
+                        print(f"🔍 Найден дубликат! Hamming distance: {distance}")
+                        print(f"   Существующий: {doc.get('post_id', 'N/A')}")
+                        return doc
+                except Exception as e:
+                    continue
+            
+            return None
+        except Exception as e:
+            print(f"❌ Ошибка проверки дубликатов по хешу: {e}")
+            return None
     
     def parse_instagram_account(self, username: str, posts_limit: int = 100, date_from: str = None) -> Optional[Dict]:
         """Парсинг Instagram аккаунта через Apify
@@ -238,11 +307,31 @@ class InstagramParser:
                 # Скачиваем изображение
                 response = requests.get(url, timeout=30)
                 if response.status_code == 200:
+                    image_content = response.content
+                    
+                    # Вычисляем perceptual hash
+                    print(f"🔢 Вычисление perceptual hash...")
+                    image_hash = self.calculate_perceptual_hash(image_content)
+                    
+                    if image_hash:
+                        # Проверяем на дубликаты по perceptual hash
+                        duplicate = self.is_duplicate_by_hash(image_hash, threshold=5)
+                        
+                        if duplicate:
+                            print(f"⏭️ [{i+1}/{total_to_download}] Найден визуальный дубликат!")
+                            print(f"   Оригинал: {duplicate.get('post_id', 'N/A')}")
+                            print(f"   Текущий: {post_id}")
+                            skipped_count += 1
+                            continue
+                    
+                    # Сохраняем файл
                     with open(filepath, 'wb') as f:
-                        f.write(response.content)
+                        f.write(image_content)
                     
                     file_size = filepath.stat().st_size
                     print(f"✅ Скачано: {filename} ({file_size} байт)")
+                    if image_hash:
+                        print(f"   Hash: {image_hash}")
                     
                     # Добавляем информацию о скачанном файле
                     downloaded_data.append({
@@ -250,7 +339,8 @@ class InstagramParser:
                         "local_filename": filename,
                         "local_path": str(filepath),
                         "file_size": file_size,
-                        "downloaded_at": datetime.now().isoformat()
+                        "downloaded_at": datetime.now().isoformat(),
+                        "image_hash": image_hash  # Добавляем perceptual hash
                     })
                     
                     downloaded_count += 1
@@ -357,6 +447,10 @@ class InstagramParser:
                         "downloaded_at": img_data["downloaded_at"]
                     })
                 
+                # Добавляем perceptual hash, если есть
+                if "image_hash" in img_data and img_data["image_hash"]:
+                    doc["image_hash"] = img_data["image_hash"]
+                
                 mongo_docs.append(doc)
             
             # Вставляем в MongoDB
@@ -369,6 +463,7 @@ class InstagramParser:
                 self.collection.create_index("image_url")
                 self.collection.create_index("timestamp")
                 self.collection.create_index("selected_for_tagging")
+                self.collection.create_index("image_hash")  # Индекс для perceptual hash
                 print("✅ Созданы индексы для быстрого поиска")
             else:
                 print("❌ Нет новых данных для сохранения")
