@@ -364,6 +364,39 @@ def gallery_tagged():
     except Exception as e:
         return f"Ошибка: {e}", 500
 
+@app.route('/gallery_hidden')
+def gallery_hidden():
+    """Галерея скрытых изображений"""
+    try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return "Ошибка подключения к базе данных", 500
+        
+        # Получаем скрытые изображения
+        # Загружаем только первый batch (50 изображений), остальные подгрузятся через infinite scroll
+        images = list(parser.collection.find(
+            {
+                "local_filename": {"$exists": True},
+                "hidden": True  # Только скрытые
+            },
+            {
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+                "comments_count": 1, "caption": 1, "timestamp": 1, "hidden_at": 1
+            }
+        ).sort("hidden_at", -1).limit(50))
+
+        print(f"🙈 Загружено {len(images)} скрытых изображений (первый batch)")
+        
+        return render_template('gallery.html', images=images, current_page='gallery_hidden')
+    except Exception as e:
+        return f"Ошибка: {e}", 500
+
 @app.route('/all_accounts_gallery.html')
 @app.route('/all_accounts_gallery_page_<int:page>.html')
 def serve_combined_gallery(page=1):
@@ -764,6 +797,62 @@ def api_hide_images():
             'success': True,
             'message': f'Скрыто {result.modified_count} изображений',
             'hidden_count': result.modified_count
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/unhide-images', methods=['POST'])
+def api_unhide_images():
+    """API для восстановления скрытых изображений"""
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        if not image_ids:
+            return jsonify({'success': False, 'message': 'Список ID изображений пуст'})
+        
+        # Проверяем инициализацию парсера
+        success, message = web_parser.init_parser()
+        if not success:
+            return jsonify({'success': False, 'message': message})
+        
+        # Подключаемся к MongoDB
+        if not web_parser.parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
+        
+        # Обновляем статус изображений
+        from bson import ObjectId
+        
+        # Преобразуем строковые ID в ObjectId
+        object_ids = []
+        for img_id in image_ids:
+            try:
+                object_ids.append(ObjectId(img_id))
+            except Exception as e:
+                print(f"❌ Ошибка преобразования ID {img_id}: {e}")
+                continue
+        
+        if not object_ids:
+            return jsonify({'success': False, 'message': 'Некорректные ID изображений'})
+        
+        # Обновляем документы в MongoDB - убираем флаг скрытия
+        result = web_parser.parser.collection.update_many(
+            {"_id": {"$in": object_ids}},
+            {
+                "$set": {
+                    "hidden": False
+                },
+                "$unset": {
+                    "hidden_at": ""
+                }
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Восстановлено {result.modified_count} изображений',
+            'unhidden_count': result.modified_count
         })
         
     except Exception as e:
@@ -1203,6 +1292,11 @@ def api_get_bloggers():
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
                 ]
             }
+        elif gallery_type == 'gallery_hidden':
+            base_query = {
+                "local_filename": {"$exists": True},
+                "hidden": True  # Только скрытые
+            }
         else:
             return jsonify({'success': False, 'message': 'Неверный тип галереи'})
         
@@ -1308,6 +1402,16 @@ def api_load_more_images():
                 "comments_count": 1, "caption": 1, "ximilar_tags": 1,
                 "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
                 "timestamp": 1
+            }
+        elif gallery_type == 'gallery_hidden':
+            # Галерея скрытых изображений
+            query = {
+                "local_filename": {"$exists": True},
+                "hidden": True  # Только скрытые
+            }
+            projection = {
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+                "comments_count": 1, "caption": 1, "timestamp": 1, "hidden_at": 1
             }
         else:
             return jsonify({'success': False, 'message': 'Неверный тип галереи'})

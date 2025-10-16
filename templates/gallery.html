@@ -764,6 +764,9 @@
                 <a href="/gallery_tagged" class="nav-btn {% if current_page == 'gallery_tagged' %}active{% endif %}">
                     ✅ Оттегированы
                 </a>
+                <a href="/gallery_hidden" class="nav-btn {% if current_page == 'gallery_hidden' %}active{% endif %}">
+                    🙈 Скрытые
+                </a>
             </div>
         </div>
         
@@ -805,6 +808,13 @@
                     </button>
                     <button class="btn btn-orange" id="tagImagesBtn" disabled>
                         🏷️ Теггировать
+                        <span class="selected-count" id="selectedCount">0</span>
+                    </button>
+                {% elif current_page == 'gallery_hidden' %}
+                    <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
+                    <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
+                    <button class="btn btn-primary" id="unhideImagesBtn" disabled>
+                        👁️ Восстановить
                         <span class="selected-count" id="selectedCount">0</span>
                     </button>
                 {% else %}
@@ -1206,6 +1216,7 @@
             const clearSelectionBtn = document.getElementById('clearSelectionBtn');
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
             const hideImagesBtn = document.getElementById('hideImagesBtn');
+            const unhideImagesBtn = document.getElementById('unhideImagesBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
             const tagImagesBtn = document.getElementById('tagImagesBtn');
             
@@ -1213,6 +1224,7 @@
             if (clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
             if (markForTaggingBtn) markForTaggingBtn.addEventListener('click', markForTagging);
             if (hideImagesBtn) hideImagesBtn.addEventListener('click', hideImages);
+            if (unhideImagesBtn) unhideImagesBtn.addEventListener('click', unhideImages);
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
             if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
             
@@ -1421,11 +1433,13 @@
             
             const markForTaggingBtn = document.getElementById('markForTaggingBtn');
             const hideImagesBtn = document.getElementById('hideImagesBtn');
+            const unhideImagesBtn = document.getElementById('unhideImagesBtn');
             const unmarkBtn = document.getElementById('unmarkBtn');
             const tagImagesBtn = document.getElementById('tagImagesBtn');
             
             if (markForTaggingBtn) markForTaggingBtn.disabled = count === 0;
             if (hideImagesBtn) hideImagesBtn.disabled = count === 0;
+            if (unhideImagesBtn) unhideImagesBtn.disabled = count === 0;
             if (unmarkBtn) unmarkBtn.disabled = count === 0;
             if (tagImagesBtn) tagImagesBtn.disabled = count === 0;
         }
@@ -1522,6 +1536,51 @@
             
             try {
                 const response = await fetch('/api/hide-images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_ids: imageIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ ${result.message}`, 'success');
+                    clearSelection();
+                    // Перезагружаем страницу, чтобы обновить список
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        async function unhideImages() {
+            if (selectedImages.size === 0) return;
+            
+            const imageIds = Array.from(selectedImages);
+            const button = document.getElementById('unhideImagesBtn');
+            
+            if (!button) {
+                console.error('Кнопка unhideImagesBtn не найдена');
+                return;
+            }
+            
+            const originalText = button.innerHTML;
+            
+            // Показываем индикатор загрузки
+            button.innerHTML = '⏳ Восстановление...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/unhide-images', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
