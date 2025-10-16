@@ -49,12 +49,14 @@ def find_and_mark_duplicates(threshold: int = 5, dry_run: bool = False):
         print("💡 Сначала запустите: python add_perceptual_hash_to_existing.py")
         return
     
-    # Группируем похожие изображения
-    print("\n🔍 Поиск похожих изображений...")
-    duplicate_groups = []
+    # Поиск и пометка дубликатов в реальном времени
+    print("\n🔍 Поиск и пометка дубликатов...")
     processed_ids = set()
+    marked_count = 0
+    groups_count = 0
+    examples = []  # Храним только первые 5 примеров
     
-    for i, img in enumerate(tqdm(images_with_hash, desc="Анализ изображений")):
+    for i, img in enumerate(tqdm(images_with_hash, desc="Обработка изображений")):
         if img["_id"] in processed_ids:
             continue
         
@@ -64,10 +66,12 @@ def find_and_mark_duplicates(threshold: int = 5, dry_run: bool = False):
             print(f"⚠️  Ошибка парсинга хеша для {img.get('post_id', 'N/A')}: {e}")
             continue
         
-        # Ищем похожие изображения
-        similar_images = [img]  # Первое изображение - "оригинал"
+        # Первое изображение - "оригинал"
+        original = img
         processed_ids.add(img["_id"])
+        duplicates_in_group = []
         
+        # Ищем похожие изображения
         for j, other_img in enumerate(images_with_hash[i+1:], start=i+1):
             if other_img["_id"] in processed_ids:
                 continue
@@ -77,93 +81,80 @@ def find_and_mark_duplicates(threshold: int = 5, dry_run: bool = False):
                 distance = current_hash - other_hash
                 
                 if distance <= threshold:
-                    similar_images.append(other_img)
+                    # НАШЛИ ДУБЛИКАТ - сразу помечаем в БД!
+                    if not dry_run:
+                        collection.update_one(
+                            {"_id": other_img["_id"]},
+                            {
+                                "$set": {
+                                    "is_duplicate": True,
+                                    "duplicate_of": original["_id"],
+                                    "duplicate_of_post_id": original.get("post_id"),
+                                    "duplicate_hash_distance": int(distance),
+                                    "marked_duplicate_at": datetime.now().isoformat()
+                                }
+                            }
+                        )
+                    
+                    duplicates_in_group.append({
+                        "img": other_img,
+                        "distance": int(distance)
+                    })
                     processed_ids.add(other_img["_id"])
+                    marked_count += 1
+                    
             except Exception as e:
                 continue
         
-        # Если найдены дубликаты, добавляем группу
-        if len(similar_images) > 1:
-            duplicate_groups.append(similar_images)
+        # Если нашли дубликаты в этой группе
+        if len(duplicates_in_group) > 0:
+            groups_count += 1
+            
+            # Сохраняем первые 5 примеров для отчета
+            if len(examples) < 5:
+                examples.append({
+                    "original": original,
+                    "duplicates": duplicates_in_group
+                })
     
-    print(f"\n📊 Найдено {len(duplicate_groups)} групп дубликатов")
+    print(f"\n📊 Обработка завершена!")
+    print(f"📊 Найдено групп дубликатов: {groups_count}")
+    print(f"📊 Всего дубликатов: {marked_count}")
     
-    if len(duplicate_groups) == 0:
+    if marked_count == 0:
         print("✅ Дубликатов не найдено!")
         return
     
-    # Показываем статистику
-    total_duplicates = sum(len(group) - 1 for group in duplicate_groups)
-    print(f"📊 Всего дубликатов: {total_duplicates}")
-    
-    # Показываем примеры
-    print(f"\n📋 Примеры найденных дубликатов (первые 5 групп):")
-    print("-" * 70)
-    
-    for i, group in enumerate(duplicate_groups[:5]):
-        original = group[0]
-        duplicates = group[1:]
+    # Показываем примеры найденных дубликатов
+    if len(examples) > 0:
+        print(f"\n📋 Примеры найденных дубликатов (первые {len(examples)} групп):")
+        print("-" * 70)
         
-        print(f"\n🔵 Группа {i+1}:")
-        print(f"   ОРИГИНАЛ:")
-        print(f"      Post ID: {original.get('post_id', 'N/A')}")
-        print(f"      Username: @{original.get('username', 'N/A')}")
-        print(f"      Likes: {original.get('likes_count', 0)}")
-        print(f"      Hash: {original.get('image_hash', 'N/A')}")
-        print(f"   ДУБЛИКАТЫ ({len(duplicates)}):")
-        
-        for dup in duplicates:
-            try:
-                orig_hash = imagehash.hex_to_hash(original["image_hash"])
-                dup_hash = imagehash.hex_to_hash(dup["image_hash"])
-                distance = orig_hash - dup_hash
-            except:
-                distance = "?"
+        for i, example in enumerate(examples):
+            original = example["original"]
+            duplicates = example["duplicates"]
             
-            print(f"      • Post ID: {dup.get('post_id', 'N/A')}, "
-                  f"Username: @{dup.get('username', 'N/A')}, "
-                  f"Distance: {distance}")
+            print(f"\n🔵 Группа {i+1}:")
+            print(f"   ОРИГИНАЛ:")
+            print(f"      Post ID: {original.get('post_id', 'N/A')}")
+            print(f"      Username: @{original.get('username', 'N/A')}")
+            print(f"      Likes: {original.get('likes_count', 0)}")
+            print(f"      Hash: {original.get('image_hash', 'N/A')}")
+            print(f"   ДУБЛИКАТЫ ({len(duplicates)}):")
+            
+            for dup_info in duplicates:
+                dup = dup_info["img"]
+                distance = dup_info["distance"]
+                print(f"      • Post ID: {dup.get('post_id', 'N/A')}, "
+                      f"Username: @{dup.get('username', 'N/A')}, "
+                      f"Distance: {distance}")
+        
+        if groups_count > 5:
+            print(f"\n... и еще {groups_count - 5} групп")
     
-    if len(duplicate_groups) > 5:
-        print(f"\n... и еще {len(duplicate_groups) - 5} групп")
-    
-    # Помечаем дубликаты в БД
+    # Создаем индекс для is_duplicate
     if not dry_run:
-        print(f"\n🏷️  Пометка дубликатов в MongoDB...")
-        marked_count = 0
-        
-        for group in tqdm(duplicate_groups, desc="Пометка дубликатов"):
-            original = group[0]
-            duplicates = group[1:]
-            
-            for dup in duplicates:
-                try:
-                    # Вычисляем расстояние для записи
-                    orig_hash = imagehash.hex_to_hash(original["image_hash"])
-                    dup_hash = imagehash.hex_to_hash(dup["image_hash"])
-                    distance = int(orig_hash - dup_hash)
-                except:
-                    distance = None
-                
-                # Помечаем как дубликат
-                collection.update_one(
-                    {"_id": dup["_id"]},
-                    {
-                        "$set": {
-                            "is_duplicate": True,
-                            "duplicate_of": original["_id"],
-                            "duplicate_of_post_id": original.get("post_id"),
-                            "duplicate_hash_distance": distance,
-                            "marked_duplicate_at": datetime.now().isoformat()
-                        }
-                    }
-                )
-                marked_count += 1
-        
-        print(f"✅ Помечено {marked_count} дубликатов в MongoDB")
-        
-        # Создаем индекс для is_duplicate
-        print("🔨 Создание индекса для is_duplicate...")
+        print("\n🔨 Создание индекса для is_duplicate...")
         collection.create_index("is_duplicate")
         print("✅ Индекс создан!")
     else:
@@ -172,10 +163,8 @@ def find_and_mark_duplicates(threshold: int = 5, dry_run: bool = False):
     
     print(f"\n{'='*70}")
     print(f"✅ ЗАВЕРШЕНО!")
-    print(f"📊 Найдено групп дубликатов: {len(duplicate_groups)}")
-    print(f"📊 Всего дубликатов: {total_duplicates}")
-    if not dry_run:
-        print(f"✅ Помечено в БД: {marked_count}")
+    print(f"📊 Найдено групп дубликатов: {groups_count}")
+    print(f"📊 Всего дубликатов помечено: {marked_count}")
     print(f"{'='*70}")
 
 def unmark_all_duplicates():
