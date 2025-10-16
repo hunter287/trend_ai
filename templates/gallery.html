@@ -131,6 +131,126 @@
             background: #667eea;
             color: white;
         }
+
+        .bloggers-filter {
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            padding: 0;
+            margin: 0 30px 20px 30px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.4s ease-out, opacity 0.3s ease-out, padding 0.4s ease-out;
+        }
+
+        .bloggers-filter.open {
+            max-height: 400px;
+            opacity: 1;
+            padding: 20px;
+        }
+
+        .bloggers-filter h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .bloggers-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .bloggers-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .bloggers-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .bloggers-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .blogger-option {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .blogger-option:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .blogger-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .blogger-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .blogger-option.selected .blogger-checkbox {
+            background: white;
+            border-color: white;
+        }
+
+        .blogger-option.selected .blogger-checkbox::after {
+            content: '✓';
+            color: #667eea;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .blogger-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .blogger-count {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 8px;
+        }
+
+        .blogger-option.selected .blogger-count {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .blogger-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
         
         .action-buttons {
             display: flex;
@@ -656,6 +776,7 @@
                 <button class="filter-btn active" data-filter="all">Все</button>
                 <button class="filter-btn" data-filter="selected">Выбранные</button>
                 <button class="filter-btn" data-filter="unselected">Не выбранные</button>
+                <button class="filter-btn" id="toggleBloggersFilter">👥 Фильтр по блогерам</button>
                 {% if current_page == 'gallery_tagged' %}
                 <button class="filter-btn" id="toggleAdvancedFilters">🔍 Расширенные фильтры</button>
                 {% else %}
@@ -690,6 +811,19 @@
                     <button class="btn btn-primary" id="selectAllBtn">Выбрать все</button>
                     <button class="btn btn-secondary" id="clearSelectionBtn">Очистить выбор</button>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Фильтр по блогерам (для всех страниц) -->
+        <div class="bloggers-filter" id="bloggersFilter">
+            <h4>👥 Выберите блогеров</h4>
+            <div class="bloggers-list" id="bloggersList">
+                <!-- Блогеры будут загружены динамически через JavaScript -->
+            </div>
+            <div class="blogger-actions">
+                <button class="btn btn-primary" id="applyBloggersFilterBtn">Применить</button>
+                <button class="btn btn-secondary" id="clearBloggersFilterBtn">Сбросить</button>
+                <button class="btn btn-secondary" id="selectAllBloggersBtn">Выбрать всех</button>
             </div>
         </div>
 
@@ -1042,6 +1176,7 @@
             updateSelectedCount();
             setupEventListeners();
             setupInfiniteScroll();
+            initBloggersFilter();
         });
         
         function setupEventListeners() {
@@ -1071,6 +1206,40 @@
             if (hideImagesBtn) hideImagesBtn.addEventListener('click', hideImages);
             if (unmarkBtn) unmarkBtn.addEventListener('click', unmarkForTagging);
             if (tagImagesBtn) tagImagesBtn.addEventListener('click', tagImages);
+            
+            // Фильтр по блогерам (для всех страниц)
+            const toggleBloggersFilterBtn = document.getElementById('toggleBloggersFilter');
+            const bloggersFilter = document.getElementById('bloggersFilter');
+            const applyBloggersFilterBtn = document.getElementById('applyBloggersFilterBtn');
+            const clearBloggersFilterBtn = document.getElementById('clearBloggersFilterBtn');
+            const selectAllBloggersBtn = document.getElementById('selectAllBloggersBtn');
+            
+            if (toggleBloggersFilterBtn && bloggersFilter) {
+                toggleBloggersFilterBtn.addEventListener('click', () => {
+                    const controls = document.querySelector('.controls');
+                    if (bloggersFilter.classList.contains('open')) {
+                        bloggersFilter.classList.remove('open');
+                        controls.classList.remove('filters-open');
+                        toggleBloggersFilterBtn.textContent = '👥 Фильтр по блогерам';
+                    } else {
+                        bloggersFilter.classList.add('open');
+                        controls.classList.add('filters-open');
+                        toggleBloggersFilterBtn.textContent = '👥 Скрыть фильтр';
+                    }
+                });
+            }
+            
+            if (applyBloggersFilterBtn) {
+                applyBloggersFilterBtn.addEventListener('click', applyBloggersFilter);
+            }
+            
+            if (clearBloggersFilterBtn) {
+                clearBloggersFilterBtn.addEventListener('click', clearBloggersFilter);
+            }
+            
+            if (selectAllBloggersBtn) {
+                selectAllBloggersBtn.addEventListener('click', selectAllBloggers);
+            }
             
             // Простой фильтр по датам для gallery и gallery_to_tag
             if ('{{ current_page }}' !== 'gallery_tagged') {
@@ -1984,6 +2153,147 @@
             }, 3000);
         }
 
+        // ==================== ФИЛЬТР ПО БЛОГЕРАМ ====================
+
+        let selectedBloggers = new Set();
+
+        function initBloggersFilter() {
+            // Собираем список уникальных блогеров из изображений на странице
+            const bloggers = {};
+            document.querySelectorAll('.image-card').forEach(card => {
+                const username = card.dataset.username;
+                if (username) {
+                    bloggers[username] = (bloggers[username] || 0) + 1;
+                }
+            });
+
+            // Рендерим список блогеров
+            renderBloggersList(bloggers);
+        }
+
+        function renderBloggersList(bloggers) {
+            const container = document.getElementById('bloggersList');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            // Сортируем блогеров по количеству изображений (по убыванию)
+            const sortedBloggers = Object.entries(bloggers).sort((a, b) => b[1] - a[1]);
+
+            sortedBloggers.forEach(([username, count]) => {
+                const bloggerOption = document.createElement('div');
+                bloggerOption.className = 'blogger-option';
+                bloggerOption.dataset.username = username;
+                bloggerOption.innerHTML = `
+                    <div class="blogger-checkbox"></div>
+                    <span class="blogger-name">@${username}</span>
+                    <span class="blogger-count">(${count})</span>
+                `;
+
+                bloggerOption.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleBlogger(username);
+                });
+
+                container.appendChild(bloggerOption);
+            });
+        }
+
+        function toggleBlogger(username) {
+            const bloggerOption = document.querySelector(`.blogger-option[data-username="${username}"]`);
+            if (!bloggerOption) return;
+
+            if (selectedBloggers.has(username)) {
+                selectedBloggers.delete(username);
+                bloggerOption.classList.remove('selected');
+            } else {
+                selectedBloggers.add(username);
+                bloggerOption.classList.add('selected');
+            }
+
+            console.log('Выбранные блогеры:', Array.from(selectedBloggers));
+        }
+
+        function selectAllBloggers() {
+            document.querySelectorAll('.blogger-option').forEach(option => {
+                const username = option.dataset.username;
+                if (username && !selectedBloggers.has(username)) {
+                    selectedBloggers.add(username);
+                    option.classList.add('selected');
+                }
+            });
+            console.log('Выбраны все блогеры:', Array.from(selectedBloggers));
+        }
+
+        function applyBloggersFilter() {
+            if (selectedBloggers.size === 0) {
+                showNotification('⚠️ Выберите хотя бы одного блогера', 'info');
+                return;
+            }
+
+            const cards = document.querySelectorAll('.image-card');
+            let visibleCount = 0;
+
+            console.log('🔍 Применение фильтра по блогерам:', Array.from(selectedBloggers));
+
+            cards.forEach(card => {
+                const username = card.dataset.username;
+                const showCard = selectedBloggers.has(username);
+
+                card.style.display = showCard ? 'block' : 'none';
+                if (showCard) visibleCount++;
+            });
+
+            console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
+            showNotification(`✅ Применён фильтр: ${selectedBloggers.size} блогеров, ${visibleCount} изображений`, 'success');
+        }
+
+        function clearBloggersFilter() {
+            // Сбрасываем выбор
+            selectedBloggers.clear();
+
+            // Убираем выделение с опций
+            document.querySelectorAll('.blogger-option.selected').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Показываем все изображения
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.style.display = 'block';
+            });
+
+            console.log('✅ Фильтр по блогерам сброшен');
+            showNotification('✅ Фильтр по блогерам сброшен', 'success');
+        }
+
+        function updateBloggersListWithNewImages() {
+            // Пересчитываем блогеров с учетом всех изображений
+            const bloggers = {};
+            document.querySelectorAll('.image-card').forEach(card => {
+                const username = card.dataset.username;
+                if (username) {
+                    bloggers[username] = (bloggers[username] || 0) + 1;
+                }
+            });
+
+            // Сохраняем текущий выбор
+            const currentlySelected = new Set(selectedBloggers);
+
+            // Перерисовываем список
+            renderBloggersList(bloggers);
+
+            // Восстанавливаем выбор
+            currentlySelected.forEach(username => {
+                const option = document.querySelector(`.blogger-option[data-username="${username}"]`);
+                if (option) {
+                    selectedBloggers.add(username);
+                    option.classList.add('selected');
+                }
+            });
+
+            console.log('🔄 Список блогеров обновлён');
+        }
+
         // ==================== INFINITE SCROLL ====================
 
         function setupInfiniteScroll() {
@@ -2042,6 +2352,11 @@
                     // Обновляем offset
                     currentOffset += result.images.length;
                     hasMore = result.has_more;
+
+                    // Обновляем список блогеров с новыми изображениями
+                    if (result.images.length > 0) {
+                        updateBloggersListWithNewImages();
+                    }
 
                     if (!hasMore) {
                         console.log('✅ All images loaded');

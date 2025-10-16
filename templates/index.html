@@ -34,45 +34,15 @@
             padding: 30px;
             text-align: center;
         }
-
+        
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
         }
-
+        
         .header p {
-            font-size: 1.1em;
+            font-size: 1.2em;
             opacity: 0.9;
-            margin-bottom: 20px;
-        }
-
-        .navigation {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .nav-btn {
-            padding: 12px 24px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-
-        .nav-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-        }
-
-        .nav-btn.active {
-            background: rgba(255,255,255,0.9);
-            color: #667eea;
-            border-color: white;
         }
         
         .content {
@@ -314,24 +284,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Trend Watching</h1>
-            <p>Парсинг Instagram аккаунтов по датам</p>
-
-            <!-- Навигация -->
-            <div class="navigation">
-                <a href="/" class="nav-btn active">
-                    🔍 Парсер
-                </a>
-                <a href="/gallery" class="nav-btn">
-                    📷 Галерея
-                </a>
-                <a href="/gallery_to_tag" class="nav-btn">
-                    🏷️ Выбрано для теггирования
-                </a>
-                <a href="/gallery_tagged" class="nav-btn">
-                    ✅ Оттегированы
-                </a>
-            </div>
+            <h1>🖼️ Instagram Parser</h1>
+            <p>Парсинг Instagram аккаунтов с веб-интерфейсом</p>
         </div>
         
         <div class="content">
@@ -345,9 +299,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="date_from">📅 Парсить посты начиная с даты (обязательно):</label>
-                    <input type="date" id="date_from" placeholder="Выберите дату" required>
-                    <small style="color: #6c757d; display: block; margin-top: 5px;">Будут получены все посты с этой даты до сегодня</small>
+                    <label for="max_posts">Количество постов с каждого аккаунта:</label>
+                    <input type="number" id="max_posts" value="20" min="1" max="100">
                 </div>
                 
                 <button class="btn" id="startBtn" onclick="startParsing()">
@@ -416,7 +369,7 @@
         // Запуск парсинга
         function startParsing() {
             const accounts = document.getElementById('accounts').value.trim();
-            const dateFrom = document.getElementById('date_from').value;
+            const maxPosts = parseInt(document.getElementById('max_posts').value);
             
             if (!accounts) {
                 alert('Введите список аккаунтов');
@@ -429,55 +382,17 @@
                 return;
             }
             
-            // Проверка обязательной даты
-            if (!dateFrom) {
-                alert('Укажите дату начала парсинга');
-                return;
-            }
-            
-            // Вычисляем количество дней от указанной даты до сегодня
-            const from = new Date(dateFrom);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            from.setHours(0, 0, 0, 0);
-            
-            if (from > today) {
-                alert('Дата начала не может быть в будущем');
-                return;
-            }
-            
-            const daysDiff = Math.ceil((today - from) / (1000 * 60 * 60 * 24)) + 1;
-            
-            // Примерная оценка постов (4 поста в день для активного блогера)
-            const estimatedPostsPerAccount = Math.ceil(daysDiff * 4);
-            const totalEstimatedPosts = estimatedPostsPerAccount * accountList.length;
-            
-            // Показываем подтверждение
-            const confirmMessage = `📊 Параметры парсинга:\n\n` +
-                `• Аккаунтов: ${accountList.length}\n` +
-                `• Период: с ${dateFrom} до сегодня (${daysDiff} ${daysDiff === 1 ? 'день' : daysDiff < 5 ? 'дня' : 'дней'})\n` +
-                `• Примерное количество постов: ~${totalEstimatedPosts}\n\n` +
-                `⚠️ Парсинг может занять ${Math.ceil(totalEstimatedPosts / 20)} ${Math.ceil(totalEstimatedPosts / 20) === 1 ? 'минуту' : 'минут'}.\n\n` +
-                `Продолжить?`;
-            
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-            
-            // Формируем объект с данными
-            const requestData = {
-                accounts: accountList,
-                date_from: dateFrom,
-                session_id: 'session_' + Date.now()
-            };
-            
             // Отправляем запрос на парсинг
             fetch('/api/parse', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify({
+                    accounts: accountList,
+                    max_posts: maxPosts,
+                    session_id: 'session_' + Date.now()
+                })
             })
             .then(response => response.json())
             .then(data => {
