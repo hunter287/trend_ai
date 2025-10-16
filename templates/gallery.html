@@ -2557,6 +2557,13 @@
             }
         }
 
+        function renderImages(images) {
+            // Рендерим массив изображений
+            images.forEach(image => {
+                appendImageCard(image);
+            });
+        }
+
         function appendImageCard(image) {
             const gallery = document.getElementById('gallery');
 
