@@ -1150,6 +1150,79 @@ def api_tag_images():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/get-bloggers', methods=['GET'])
+def api_get_bloggers():
+    """API для получения списка всех блогеров из базы данных"""
+    try:
+        gallery_type = request.args.get('gallery_type', 'gallery')
+        
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+        
+        # Определяем базовый запрос в зависимости от типа галереи
+        if gallery_type == 'gallery':
+            base_query = {
+                "local_filename": {"$exists": True},
+                "selected_for_tagging": {"$ne": True},
+                "hidden": {"$ne": True},
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
+            }
+        elif gallery_type == 'gallery_to_tag':
+            base_query = {
+                "local_filename": {"$exists": True},
+                "selected_for_tagging": True,
+                "hidden": {"$ne": True},
+                "$and": [
+                    {"ximilar_tags": {"$exists": False}},
+                    {"ximilar_objects_structured": {"$exists": False}}
+                ]
+            }
+        elif gallery_type == 'gallery_tagged':
+            base_query = {
+                "local_filename": {"$exists": True},
+                "hidden": {"$ne": True},
+                "$or": [
+                    {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
+                    {"ximilar_tags": {"$exists": True, "$ne": []}}
+                ]
+            }
+        else:
+            return jsonify({'success': False, 'message': 'Неверный тип галереи'})
+        
+        # Получаем список блогеров с количеством изображений
+        pipeline = [
+            {"$match": base_query},
+            {"$group": {
+                "_id": "$username",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}}
+        ]
+        
+        bloggers = list(parser.collection.aggregate(pipeline))
+        
+        # Форматируем результат
+        bloggers_list = [{"username": b["_id"], "count": b["count"]} for b in bloggers]
+        
+        return jsonify({
+            'success': True,
+            'bloggers': bloggers_list,
+            'total_bloggers': len(bloggers_list)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/load-more-images', methods=['GET'])
 def api_load_more_images():
     """API для загрузки дополнительных изображений (infinite scroll)"""
@@ -1158,6 +1231,7 @@ def api_load_more_images():
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', 50))
         sort_order = request.args.get('sort_order', 'desc')  # 'desc' или 'asc'
+        usernames = request.args.get('usernames', '')  # Фильтр по блогерам (через запятую)
 
         # Преобразуем sort_order в направление MongoDB (-1 для desc, 1 для asc)
         sort_direction = -1 if sort_order == 'desc' else 1
@@ -1174,6 +1248,11 @@ def api_load_more_images():
 
         # Используем timestamp для сортировки во всех галереях
         sort_field = "timestamp"
+
+        # Парсим список блогеров из параметра usernames
+        usernames_list = []
+        if usernames:
+            usernames_list = [u.strip() for u in usernames.split(',') if u.strip()]
 
         # Определяем запрос в зависимости от типа галереи
         if gallery_type == 'gallery':
@@ -1220,6 +1299,10 @@ def api_load_more_images():
             }
         else:
             return jsonify({'success': False, 'message': 'Неверный тип галереи'})
+
+        # Добавляем фильтр по username, если указаны блогеры
+        if usernames_list:
+            query["username"] = {"$in": usernames_list}
 
         # Получаем изображения с пагинацией и сортировкой
         images = list(parser.collection.find(query, projection).sort(sort_field, sort_direction).skip(offset).limit(limit))

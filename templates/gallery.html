@@ -2156,19 +2156,30 @@
         // ==================== ФИЛЬТР ПО БЛОГЕРАМ ====================
 
         let selectedBloggers = new Set();
+        let allBloggers = {}; // Храним список всех блогеров из БД
 
-        function initBloggersFilter() {
-            // Собираем список уникальных блогеров из изображений на странице
-            const bloggers = {};
-            document.querySelectorAll('.image-card').forEach(card => {
-                const username = card.dataset.username;
-                if (username) {
-                    bloggers[username] = (bloggers[username] || 0) + 1;
+        async function initBloggersFilter() {
+            // Загружаем список блогеров из API (из БД, а не из DOM)
+            try {
+                const response = await fetch(`/api/get-bloggers?gallery_type=${galleryType}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    allBloggers = {};
+                    result.bloggers.forEach(blogger => {
+                        allBloggers[blogger.username] = blogger.count;
+                    });
+                    
+                    // Рендерим список блогеров
+                    renderBloggersList(allBloggers);
+                    console.log(`✅ Загружено ${result.total_bloggers} блогеров из БД`);
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
                 }
-            });
-
-            // Рендерим список блогеров
-            renderBloggersList(bloggers);
+            } catch (error) {
+                console.error('Ошибка загрузки блогеров:', error);
+                showNotification(`❌ Ошибка загрузки блогеров: ${error.message}`, 'error');
+            }
         }
 
         function renderBloggersList(bloggers) {
@@ -2225,30 +2236,65 @@
             console.log('Выбраны все блогеры:', Array.from(selectedBloggers));
         }
 
-        function applyBloggersFilter() {
+        async function applyBloggersFilter() {
             if (selectedBloggers.size === 0) {
                 showNotification('⚠️ Выберите хотя бы одного блогера', 'info');
                 return;
             }
 
-            const cards = document.querySelectorAll('.image-card');
-            let visibleCount = 0;
+            console.log('🔍 Применение фильтра по блогерам (через БД):', Array.from(selectedBloggers));
 
-            console.log('🔍 Применение фильтра по блогерам:', Array.from(selectedBloggers));
+            // Перезагружаем галерею с фильтром по блогерам
+            try {
+                // Очищаем галерею
+                const gallery = document.getElementById('gallery');
+                gallery.innerHTML = '<div class="loading">⏳ Загрузка изображений...</div>';
 
-            cards.forEach(card => {
-                const username = card.dataset.username;
-                const showCard = selectedBloggers.has(username);
+                // Сбрасываем offset для перезагрузки
+                currentOffset = 0;
+                hasMore = true;
 
-                card.style.display = showCard ? 'block' : 'none';
-                if (showCard) visibleCount++;
-            });
+                // Получаем текущий порядок сортировки
+                let sortOrder = 'desc';
+                if (galleryType === 'gallery_tagged') {
+                    sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
+                } else {
+                    sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+                }
 
-            console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
-            showNotification(`✅ Применён фильтр: ${selectedBloggers.size} блогеров, ${visibleCount} изображений`, 'success');
+                // Формируем список блогеров для запроса
+                const usernamesParam = Array.from(selectedBloggers).join(',');
+
+                // Загружаем изображения с фильтром
+                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=0&limit=${BATCH_SIZE}&sort_order=${sortOrder}&usernames=${encodeURIComponent(usernamesParam)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    gallery.innerHTML = '';
+                    
+                    if (result.images.length === 0) {
+                        gallery.innerHTML = '<div class="no-images"><h3>📷 Изображения не найдены</h3><p>У выбранных блогеров нет изображений</p></div>';
+                    } else {
+                        result.images.forEach(image => {
+                            appendImageCard(image);
+                        });
+                        
+                        currentOffset = result.images.length;
+                        hasMore = result.has_more;
+                    }
+
+                    showNotification(`✅ Применён фильтр: ${selectedBloggers.size} блогеров, ${result.images.length} изображений`, 'success');
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
+                    gallery.innerHTML = '<div class="no-images"><h3>❌ Ошибка загрузки</h3></div>';
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                console.error('Error applying bloggers filter:', error);
+            }
         }
 
-        function clearBloggersFilter() {
+        async function clearBloggersFilter() {
             // Сбрасываем выбор
             selectedBloggers.clear();
 
@@ -2257,41 +2303,47 @@
                 option.classList.remove('selected');
             });
 
-            // Показываем все изображения
-            document.querySelectorAll('.image-card').forEach(card => {
-                card.style.display = 'block';
-            });
-
             console.log('✅ Фильтр по блогерам сброшен');
-            showNotification('✅ Фильтр по блогерам сброшен', 'success');
-        }
 
-        function updateBloggersListWithNewImages() {
-            // Пересчитываем блогеров с учетом всех изображений
-            const bloggers = {};
-            document.querySelectorAll('.image-card').forEach(card => {
-                const username = card.dataset.username;
-                if (username) {
-                    bloggers[username] = (bloggers[username] || 0) + 1;
+            // Перезагружаем галерею без фильтра
+            try {
+                const gallery = document.getElementById('gallery');
+                gallery.innerHTML = '<div class="loading">⏳ Загрузка изображений...</div>';
+
+                // Сбрасываем offset
+                currentOffset = 0;
+                hasMore = true;
+
+                // Получаем текущий порядок сортировки
+                let sortOrder = 'desc';
+                if (galleryType === 'gallery_tagged') {
+                    sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
+                } else {
+                    sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
                 }
-            });
 
-            // Сохраняем текущий выбор
-            const currentlySelected = new Set(selectedBloggers);
+                // Загружаем изображения БЕЗ фильтра
+                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=0&limit=${BATCH_SIZE}&sort_order=${sortOrder}`);
+                const result = await response.json();
 
-            // Перерисовываем список
-            renderBloggersList(bloggers);
+                if (result.success) {
+                    gallery.innerHTML = '';
+                    
+                    result.images.forEach(image => {
+                        appendImageCard(image);
+                    });
+                    
+                    currentOffset = result.images.length;
+                    hasMore = result.has_more;
 
-            // Восстанавливаем выбор
-            currentlySelected.forEach(username => {
-                const option = document.querySelector(`.blogger-option[data-username="${username}"]`);
-                if (option) {
-                    selectedBloggers.add(username);
-                    option.classList.add('selected');
+                    showNotification('✅ Фильтр по блогерам сброшен', 'success');
+                } else {
+                    showNotification(`❌ ${result.message}`, 'error');
                 }
-            });
-
-            console.log('🔄 Список блогеров обновлён');
+            } catch (error) {
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+                console.error('Error clearing bloggers filter:', error);
+            }
         }
 
         // ==================== INFINITE SCROLL ====================
@@ -2327,7 +2379,14 @@
                     sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
                 }
 
-                const response = await fetch(`/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}&sort_order=${sortOrder}`);
+                // Формируем URL с учётом фильтра по блогерам
+                let url = `/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}&sort_order=${sortOrder}`;
+                if (selectedBloggers.size > 0) {
+                    const usernamesParam = Array.from(selectedBloggers).join(',');
+                    url += `&usernames=${encodeURIComponent(usernamesParam)}`;
+                }
+
+                const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.success) {
@@ -2352,11 +2411,6 @@
                     // Обновляем offset
                     currentOffset += result.images.length;
                     hasMore = result.has_more;
-
-                    // Обновляем список блогеров с новыми изображениями
-                    if (result.images.length > 0) {
-                        updateBloggersListWithNewImages();
-                    }
 
                     if (!hasMore) {
                         console.log('✅ All images loaded');
