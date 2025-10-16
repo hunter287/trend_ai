@@ -1159,6 +1159,14 @@
                 </div>
             {% endif %}
         </div>
+        
+        <!-- Кнопка "Показать еще" -->
+        <div style="text-align: center; padding: 30px 0; display: none;" id="loadMoreContainer">
+            <button class="btn btn-primary" id="loadMoreBtn" style="font-size: 16px; padding: 15px 40px;">
+                📥 Показать еще
+            </button>
+            <p id="loadMoreStatus" style="margin-top: 10px; color: #6c757d; font-size: 14px;"></p>
+        </div>
     </div>
 
     <script>
@@ -1177,6 +1185,7 @@
             setupEventListeners();
             setupInfiniteScroll();
             initBloggersFilter();
+            setupLoadMoreButton();
         });
         
         function setupEventListeners() {
@@ -2091,6 +2100,7 @@
                         hasMore = result.has_more;
                         showNotification(`✅ Загружено ${result.images.length} изображений`, 'success');
                     }
+                    updateLoadMoreButton();
                 } else {
                     gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
                     showNotification(`❌ ${result.message}`, 'error');
@@ -2146,6 +2156,7 @@
                         hasMore = result.has_more;
                         showNotification(`✅ Фильтр сброшен. Загружено ${result.images.length} изображений`, 'success');
                     }
+                    updateLoadMoreButton();
                 } else {
                     gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
                     showNotification(`❌ ${result.message}`, 'error');
@@ -2268,6 +2279,7 @@
                         hasMore = result.has_more;
                         console.log(`✅ Загружено ${result.images.length} изображений`);
                     }
+                    updateLoadMoreButton();
                 } else {
                     gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
                     showNotification(`❌ ${result.message}`, 'error');
@@ -2485,6 +2497,31 @@
             }
         }
 
+        // ==================== КНОПКА "ПОКАЗАТЬ ЕЩЕ" ====================
+
+        function setupLoadMoreButton() {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', loadMoreImages);
+            }
+            updateLoadMoreButton();
+        }
+
+        function updateLoadMoreButton() {
+            const container = document.getElementById('loadMoreContainer');
+            const status = document.getElementById('loadMoreStatus');
+            
+            if (!container || !status) return;
+
+            if (hasMore) {
+                container.style.display = 'block';
+                const gallery = document.querySelectorAll('.image-card').length;
+                status.textContent = `Показано изображений: ${gallery}. Прокрутите вниз или нажмите кнопку для загрузки еще.`;
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
         async function loadMoreImages() {
             if (isLoading || !hasMore) return;
 
@@ -2554,6 +2591,7 @@
                 console.error('Error loading more images:', error);
             } finally {
                 isLoading = false;
+                updateLoadMoreButton();
             }
         }
 
