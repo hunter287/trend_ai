@@ -238,7 +238,8 @@ def serve_gallery(username):
             {
                 "local_filename": {"$exists": True},
                 "username": username,
-                "hidden": {"$ne": True}
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True}  # Не показываем дубликаты
             },
             {"_id": 1, "local_filename": 1, "username": 1, "likes_count": 1, "comments_count": 1, "caption": 1, "timestamp": 1, "ximilar_objects_structured": 1, "ximilar_tags": 1}
         ).sort("timestamp", -1).limit(200))
@@ -276,6 +277,7 @@ def gallery():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": {"$ne": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -309,6 +311,7 @@ def gallery_to_tag():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": True,
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -341,6 +344,7 @@ def gallery_tagged():
             {
                 "local_filename": {"$exists": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$or": [
                     {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
@@ -1172,6 +1176,7 @@ def api_get_bloggers():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": {"$ne": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -1182,6 +1187,7 @@ def api_get_bloggers():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": True,
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -1191,6 +1197,7 @@ def api_get_bloggers():
             base_query = {
                 "local_filename": {"$exists": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$or": [
                     {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
@@ -1261,6 +1268,7 @@ def api_load_more_images():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": {"$ne": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -1274,6 +1282,7 @@ def api_load_more_images():
                 "local_filename": {"$exists": True},
                 "selected_for_tagging": True,
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$and": [
                     {"ximilar_tags": {"$exists": False}},
                     {"ximilar_objects_structured": {"$exists": False}}
@@ -1286,6 +1295,7 @@ def api_load_more_images():
             query = {
                 "local_filename": {"$exists": True},
                 "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},  # Не показываем дубликаты
                 "$or": [
                     {"ximilar_objects_structured": {"$exists": True, "$ne": []}},
                     {"ximilar_tags": {"$exists": True, "$ne": []}}
