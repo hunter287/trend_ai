@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import pymongo
 from collections import defaultdict
 from tqdm import tqdm
+from datetime import datetime
 
 load_dotenv()
 load_dotenv('mongodb_config.env')
@@ -153,7 +154,7 @@ def find_and_mark_duplicates(threshold: int = 5, dry_run: bool = False):
                             "duplicate_of": original["_id"],
                             "duplicate_of_post_id": original.get("post_id"),
                             "duplicate_hash_distance": distance,
-                            "marked_duplicate_at": pymongo.datetime.datetime.now().isoformat()
+                            "marked_duplicate_at": datetime.now().isoformat()
                         }
                     }
                 )
