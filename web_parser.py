@@ -1239,6 +1239,8 @@ def api_load_more_images():
         limit = int(request.args.get('limit', 50))
         sort_order = request.args.get('sort_order', 'desc')  # 'desc' или 'asc'
         usernames = request.args.get('usernames', '')  # Фильтр по блогерам (через запятую)
+        date_from = request.args.get('date_from', '')  # Фильтр по дате от (YYYY-MM-DD)
+        date_to = request.args.get('date_to', '')  # Фильтр по дате до (YYYY-MM-DD)
 
         # Преобразуем sort_order в направление MongoDB (-1 для desc, 1 для asc)
         sort_direction = -1 if sort_order == 'desc' else 1
@@ -1313,6 +1315,19 @@ def api_load_more_images():
         # Добавляем фильтр по username, если указаны блогеры
         if usernames_list:
             query["username"] = {"$in": usernames_list}
+
+        # Добавляем фильтр по датам, если указаны
+        if date_from or date_to:
+            date_query = {}
+            if date_from:
+                # Начало дня date_from
+                date_query["$gte"] = f"{date_from}T00:00:00"
+            if date_to:
+                # Конец дня date_to
+                date_query["$lte"] = f"{date_to}T23:59:59"
+            
+            # Используем timestamp для фильтрации (формат ISO строки)
+            query["timestamp"] = date_query
 
         # Получаем изображения с пагинацией и сортировкой
         images = list(parser.collection.find(query, projection).sort(sort_field, sort_direction).skip(offset).limit(limit))

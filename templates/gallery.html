@@ -1287,11 +1287,11 @@
                     });
                 }
 
-                // Обработчик для сортировки
+                // Обработчик для сортировки - перезагружаем через API
                 const dateSortOrderSelect = document.getElementById('dateSortOrder');
                 if (dateSortOrderSelect) {
-                    dateSortOrderSelect.addEventListener('change', (e) => {
-                        sortImagesByDate(e.target.value);
+                    dateSortOrderSelect.addEventListener('change', async (e) => {
+                        await reloadGalleryWithCurrentFilters();
                     });
                 }
             }
@@ -1346,8 +1346,8 @@
                 // Обработчик для сортировки
                 const taggedDateSortOrderSelect = document.getElementById('taggedDateSortOrder');
                 if (taggedDateSortOrderSelect) {
-                    taggedDateSortOrderSelect.addEventListener('change', (e) => {
-                        sortImagesByDate(e.target.value);
+                    taggedDateSortOrderSelect.addEventListener('change', async (e) => {
+                        await reloadGalleryWithCurrentFilters();
                     });
                 }
 
@@ -1818,9 +1818,7 @@
 
             console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
 
-            // Применяем сортировку
-            const sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
-            sortImagesByDate(sortOrder);
+            console.log(`✅ Фильтрация завершена. Показано: ${visibleCount} изображений`);
         }
 
         function backToCategories() {
@@ -2036,54 +2034,78 @@
         }
 
         // Функции для простого фильтра по датам (gallery и gallery_to_tag)
-        function applySimpleDateFilter() {
-            const cards = document.querySelectorAll('.image-card');
+        async function applySimpleDateFilter() {
+            // Получаем значения дат из полей
+            const simpleDateFromInput = document.getElementById('simpleDateFrom');
+            const simpleDateToInput = document.getElementById('simpleDateTo');
+            
+            selectedDateFrom = simpleDateFromInput?.value || null;
+            selectedDateTo = simpleDateToInput?.value || null;
 
-            console.log('🔍 Применение фильтра по датам:', {
-                dateFrom: selectedFilters.dateFrom,
-                dateTo: selectedFilters.dateTo
+            if (!selectedDateFrom && !selectedDateTo) {
+                showNotification('⚠️ Выберите хотя бы одну дату', 'error');
+                return;
+            }
+
+            console.log('🔍 Применение фильтра по датам (через БД):', {
+                dateFrom: selectedDateFrom,
+                dateTo: selectedDateTo
             });
 
-            let visibleCount = 0;
-            cards.forEach(card => {
-                let showCard = true;
+            // Очищаем галерею и перезагружаем с фильтром
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '<div class="loading">⏳ Загрузка изображений...</div>';
+            
+            currentOffset = 0;
+            hasMore = true;
 
-                // Проверяем соответствие датам
-                if (selectedFilters.dateFrom || selectedFilters.dateTo) {
-                    const cardDate = card.dataset.taggedAt;
-
-                    if (!cardDate) {
-                        console.log('⚠️ Изображение без даты:', card.dataset.imageId);
-                        showCard = false;
-                    } else {
-                        // Извлекаем только дату (YYYY-MM-DD) из ISO строки
-                        const imageDate = cardDate.split('T')[0];
-
-                        if (selectedFilters.dateFrom && imageDate < selectedFilters.dateFrom) {
-                            showCard = false;
-                        }
-
-                        if (selectedFilters.dateTo && imageDate > selectedFilters.dateTo) {
-                            showCard = false;
-                        }
-                    }
+            try {
+                let sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+                let url = `/api/load-more-images?gallery_type=${galleryType}&offset=0&limit=${BATCH_SIZE}&sort_order=${sortOrder}`;
+                
+                // Добавляем фильтр по датам
+                if (selectedDateFrom) {
+                    url += `&date_from=${encodeURIComponent(selectedDateFrom)}`;
+                }
+                if (selectedDateTo) {
+                    url += `&date_to=${encodeURIComponent(selectedDateTo)}`;
+                }
+                
+                // Добавляем фильтр по блогерам, если активен
+                if (selectedBloggers.size > 0) {
+                    const usernamesParam = Array.from(selectedBloggers).join(',');
+                    url += `&usernames=${encodeURIComponent(usernamesParam)}`;
                 }
 
-                card.style.display = showCard ? 'block' : 'none';
-                if (showCard) visibleCount++;
-            });
+                const response = await fetch(url);
+                const result = await response.json();
 
-            console.log(`✅ Показано изображений: ${visibleCount} из ${cards.length}`);
-
-            // Применяем сортировку
-            const sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
-            sortImagesByDate(sortOrder);
+                if (result.success) {
+                    gallery.innerHTML = '';
+                    if (result.images.length === 0) {
+                        gallery.innerHTML = '<div class="no-results">😔 Изображений с выбранными параметрами не найдено</div>';
+                        hasMore = false;
+                    } else {
+                        renderImages(result.images);
+                        currentOffset = result.images.length;
+                        hasMore = result.has_more;
+                        showNotification(`✅ Загружено ${result.images.length} изображений`, 'success');
+                    }
+                } else {
+                    gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                    showNotification(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки изображений:', error);
+                gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            }
         }
 
-        function clearSimpleDateFilter() {
-            // Сбрасываем фильтры
-            selectedFilters.dateFrom = null;
-            selectedFilters.dateTo = null;
+        async function clearSimpleDateFilter() {
+            // Сбрасываем переменные дат
+            selectedDateFrom = null;
+            selectedDateTo = null;
 
             // Очищаем поля даты
             const simpleDateFromInput = document.getElementById('simpleDateFrom');
@@ -2091,12 +2113,48 @@
             if (simpleDateFromInput) simpleDateFromInput.value = '';
             if (simpleDateToInput) simpleDateToInput.value = '';
 
-            // Показываем все изображения
-            document.querySelectorAll('.image-card').forEach(card => {
-                card.style.display = 'block';
-            });
+            console.log('✅ Фильтр по датам сброшен');
 
-            showNotification('✅ Фильтр сброшен', 'success');
+            // Перезагружаем галерею без фильтра по датам
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '<div class="loading">⏳ Загрузка изображений...</div>';
+            
+            currentOffset = 0;
+            hasMore = true;
+
+            try {
+                let sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+                let url = `/api/load-more-images?gallery_type=${galleryType}&offset=0&limit=${BATCH_SIZE}&sort_order=${sortOrder}`;
+                
+                // Добавляем фильтр по блогерам, если активен
+                if (selectedBloggers.size > 0) {
+                    const usernamesParam = Array.from(selectedBloggers).join(',');
+                    url += `&usernames=${encodeURIComponent(usernamesParam)}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    gallery.innerHTML = '';
+                    if (result.images.length === 0) {
+                        gallery.innerHTML = '<div class="no-results">😔 Изображений не найдено</div>';
+                        hasMore = false;
+                    } else {
+                        renderImages(result.images);
+                        currentOffset = result.images.length;
+                        hasMore = result.has_more;
+                        showNotification(`✅ Фильтр сброшен. Загружено ${result.images.length} изображений`, 'success');
+                    }
+                } else {
+                    gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                    showNotification(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки изображений:', error);
+                gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            }
         }
 
         function showNotification(message, type = 'info') {
@@ -2157,6 +2215,69 @@
 
         let selectedBloggers = new Set();
         let allBloggers = {}; // Храним список всех блогеров из БД
+
+        // ==================== ФИЛЬТР ПО ДАТАМ ====================
+
+        let selectedDateFrom = null;
+        let selectedDateTo = null;
+
+        // Функция для перезагрузки галереи с текущими фильтрами
+        async function reloadGalleryWithCurrentFilters() {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '<div class="loading">⏳ Загрузка изображений...</div>';
+            
+            currentOffset = 0;
+            hasMore = true;
+
+            try {
+                // Получаем текущий порядок сортировки
+                let sortOrder = 'desc';
+                if (galleryType === 'gallery_tagged') {
+                    sortOrder = document.getElementById('taggedDateSortOrder')?.value || 'desc';
+                } else {
+                    sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
+                }
+
+                let url = `/api/load-more-images?gallery_type=${galleryType}&offset=0&limit=${BATCH_SIZE}&sort_order=${sortOrder}`;
+                
+                // Добавляем фильтр по блогерам
+                if (selectedBloggers.size > 0) {
+                    const usernamesParam = Array.from(selectedBloggers).join(',');
+                    url += `&usernames=${encodeURIComponent(usernamesParam)}`;
+                }
+                
+                // Добавляем фильтр по датам
+                if (selectedDateFrom) {
+                    url += `&date_from=${encodeURIComponent(selectedDateFrom)}`;
+                }
+                if (selectedDateTo) {
+                    url += `&date_to=${encodeURIComponent(selectedDateTo)}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    gallery.innerHTML = '';
+                    if (result.images.length === 0) {
+                        gallery.innerHTML = '<div class="no-results">😔 Изображений не найдено</div>';
+                        hasMore = false;
+                    } else {
+                        renderImages(result.images);
+                        currentOffset = result.images.length;
+                        hasMore = result.has_more;
+                        console.log(`✅ Загружено ${result.images.length} изображений`);
+                    }
+                } else {
+                    gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                    showNotification(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки изображений:', error);
+                gallery.innerHTML = '<div class="no-results">❌ Ошибка загрузки изображений</div>';
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
 
         async function initBloggersFilter() {
             // Загружаем список блогеров из API (из БД, а не из DOM)
@@ -2379,11 +2500,21 @@
                     sortOrder = document.getElementById('dateSortOrder')?.value || 'desc';
                 }
 
-                // Формируем URL с учётом фильтра по блогерам
+                // Формируем URL с учётом фильтров
                 let url = `/api/load-more-images?gallery_type=${galleryType}&offset=${currentOffset}&limit=${BATCH_SIZE}&sort_order=${sortOrder}`;
+                
+                // Добавляем фильтр по блогерам
                 if (selectedBloggers.size > 0) {
                     const usernamesParam = Array.from(selectedBloggers).join(',');
                     url += `&usernames=${encodeURIComponent(usernamesParam)}`;
+                }
+                
+                // Добавляем фильтр по датам
+                if (selectedDateFrom) {
+                    url += `&date_from=${encodeURIComponent(selectedDateFrom)}`;
+                }
+                if (selectedDateTo) {
+                    url += `&date_to=${encodeURIComponent(selectedDateTo)}`;
                 }
 
                 const response = await fetch(url);
