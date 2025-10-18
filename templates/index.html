@@ -664,16 +664,10 @@
                 const nextDate = lastDate.toISOString().split('T')[0];
                 document.getElementById('since_date').value = nextDate;
                 
-                // Показываем уведомление
-                alert(`✅ Форма заполнена!\n\n` +
-                      `Блогер: @${blogger.username}\n` +
-                      `Последний пост: ${blogger.latest_post_date}\n` +
-                      `Парсинг продолжится с: ${nextDate}\n\n` +
-                      `Нажмите "Запустить парсинг" для продолжения`);
+                console.log(`✅ Форма заполнена для @${blogger.username}, дата: ${nextDate}`);
             } catch (error) {
                 console.error('Ошибка обработки даты:', error);
                 document.getElementById('accounts').value = blogger.username;
-                alert(`Форма заполнена. Укажите дату вручную.`);
             }
         }
 
