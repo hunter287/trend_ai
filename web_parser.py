@@ -101,6 +101,65 @@ def index():
     """Главная страница"""
     return render_template('index.html')
 
+@app.route('/api/bloggers-stats', methods=['GET'])
+def api_bloggers_stats():
+    """API для получения статистики по блогерам (последняя дата поста)"""
+    try:
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+        
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+        
+        # Получаем статистику по блогерам с последними датами постов
+        pipeline = [
+            {
+                "$match": {
+                    "username": {"$exists": True, "$ne": None},
+                    "timestamp": {"$exists": True, "$ne": "N/A"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$username",
+                    "latest_post_date": {"$max": "$timestamp"},
+                    "total_posts": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"latest_post_date": -1}
+            }
+        ]
+        
+        bloggers = list(parser.collection.aggregate(pipeline))
+        
+        # Форматируем результат
+        bloggers_list = []
+        for blogger in bloggers:
+            latest_date = blogger.get('latest_post_date', 'N/A')
+            # Извлекаем только дату (YYYY-MM-DD) из ISO строки
+            if latest_date != 'N/A' and 'T' in latest_date:
+                latest_date = latest_date.split('T')[0]
+            
+            bloggers_list.append({
+                'username': blogger['_id'],
+                'latest_post_date': latest_date,
+                'total_posts': blogger.get('total_posts', 0)
+            })
+        
+        return jsonify({
+            'success': True,
+            'bloggers': bloggers_list,
+            'total_bloggers': len(bloggers_list)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/status')
 def api_status():
     """API статуса"""

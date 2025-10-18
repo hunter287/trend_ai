@@ -308,6 +308,56 @@
             color: #0c5460;
             border-left-color: #17a2b8;
         }
+        
+        .blogger-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .blogger-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+        
+        .blogger-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .blogger-username {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .blogger-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .blogger-date {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .blogger-posts {
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -346,6 +396,19 @@
                 <button class="btn" id="startBtn" onclick="startParsing()">
                     🚀 Запустить парсинг
                 </button>
+            </div>
+            
+            <!-- Статистика по блогерам -->
+            <div class="form-section">
+                <h2>📊 Блогеры в базе данных</h2>
+                <p style="color: #6c757d; margin-bottom: 15px;">
+                    Кликните на блогера, чтобы автоматически заполнить форму для продолжения парсинга
+                </p>
+                <div id="bloggersStatsContainer" style="max-height: 300px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 20px; color: #6c757d;">
+                        ⏳ Загрузка данных...
+                    </div>
+                </div>
             </div>
             
             <!-- Статус парсинга -->
@@ -549,8 +612,74 @@
         }
         
         // Инициализация при загрузке страницы
+        // Загрузка статистики по блогерам
+        async function loadBloggersStats() {
+            try {
+                const response = await fetch('/api/bloggers-stats');
+                const result = await response.json();
+                
+                const container = document.getElementById('bloggersStatsContainer');
+                
+                if (result.success && result.bloggers.length > 0) {
+                    container.innerHTML = '';
+                    
+                    result.bloggers.forEach(blogger => {
+                        const item = document.createElement('div');
+                        item.className = 'blogger-item';
+                        item.onclick = () => fillFormWithBlogger(blogger);
+                        
+                        item.innerHTML = `
+                            <div class="blogger-info">
+                                <div class="blogger-username">@${blogger.username}</div>
+                            </div>
+                            <div class="blogger-stats">
+                                <div class="blogger-date">📅 ${blogger.latest_post_date}</div>
+                                <div class="blogger-posts">📊 ${blogger.total_posts} постов</div>
+                            </div>
+                        `;
+                        
+                        container.appendChild(item);
+                    });
+                } else if (result.bloggers.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">📭 Блогеры пока не добавлены</div>';
+                } else {
+                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">❌ Ошибка загрузки данных</div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки статистики блогеров:', error);
+                document.getElementById('bloggersStatsContainer').innerHTML = 
+                    '<div style="text-align: center; padding: 20px; color: #dc3545;">❌ Ошибка: ' + error.message + '</div>';
+            }
+        }
+        
+        // Заполнение формы данными блогера
+        function fillFormWithBlogger(blogger) {
+            // Заполняем поле аккаунтов
+            document.getElementById('accounts').value = blogger.username;
+            
+            // Вычисляем дату для продолжения парсинга (следующий день после последнего поста)
+            try {
+                const lastDate = new Date(blogger.latest_post_date);
+                lastDate.setDate(lastDate.getDate() + 1); // Следующий день
+                const nextDate = lastDate.toISOString().split('T')[0];
+                document.getElementById('since_date').value = nextDate;
+                
+                // Показываем уведомление
+                alert(`✅ Форма заполнена!\n\n` +
+                      `Блогер: @${blogger.username}\n` +
+                      `Последний пост: ${blogger.latest_post_date}\n` +
+                      `Парсинг продолжится с: ${nextDate}\n\n` +
+                      `Нажмите "Запустить парсинг" для продолжения`);
+            } catch (error) {
+                console.error('Ошибка обработки даты:', error);
+                document.getElementById('accounts').value = blogger.username;
+                alert(`Форма заполнена. Укажите дату вручную.`);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             initSocket();
+            loadBloggersStats(); // Загружаем статистику при загрузке страницы
         });
     </script>
 </body>
