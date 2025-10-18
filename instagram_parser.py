@@ -208,11 +208,16 @@ class InstagramParser:
             if not isinstance(post, dict):
                 continue
                 
+            # Обработка количества лайков (Instagram может скрывать лайки, Apify возвращает -1)
+            likes_count = post.get("likesCount", 0)
+            if likes_count < 0:
+                likes_count = 0  # Заменяем отрицательные значения на 0
+            
             post_info = {
                 "post_id": post.get("shortCode", "N/A"),
                 "username": post.get("ownerUsername", "N/A"),
                 "timestamp": post.get("timestamp", "N/A"),
-                "likes_count": post.get("likesCount", 0),
+                "likes_count": likes_count,
                 "comments_count": post.get("commentsCount", 0),
                 "caption": post.get("caption", "")[:200] + "..." if post.get("caption") else ""
             }

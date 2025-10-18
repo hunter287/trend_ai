@@ -1063,8 +1063,8 @@
                     <div class="image-info">
                         <div class="username">@{{ image.username }}</div>
                         <div class="stats">
-                            <span>❤️ {{ image.likes_count or 0 }}</span>
-                            <span>💬 {{ image.comments_count or 0 }}</span>
+                            <span>❤️ {{ image.likes_count if image.likes_count and image.likes_count >= 0 else 0 }}</span>
+                            <span>💬 {{ image.comments_count if image.comments_count and image.comments_count >= 0 else 0 }}</span>
                         </div>
                         {% if image.timestamp %}
                         <div class="post-date">📅 {{ image.timestamp[:10] }}</div>
@@ -2687,8 +2687,8 @@
                 <div class="image-info">
                     <div class="username">@${image.username}</div>
                     <div class="stats">
-                        <span>❤️ ${image.likes_count || 0}</span>
-                        <span>💬 ${image.comments_count || 0}</span>
+                        <span>❤️ ${image.likes_count && image.likes_count >= 0 ? image.likes_count : 0}</span>
+                        <span>💬 ${image.comments_count && image.comments_count >= 0 ? image.comments_count : 0}</span>
                     </div>
                     ${image.timestamp ? `<div class="post-date">📅 ${image.timestamp.substring(0, 10)}</div>` : ''}
                     <div class="caption">${image.caption || 'Без описания'}</div>

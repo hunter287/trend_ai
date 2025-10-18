@@ -336,8 +336,11 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="max_posts">Количество постов с каждого аккаунта:</label>
-                    <input type="number" id="max_posts" value="20" min="1" max="100">
+                    <label for="since_date">Парсить посты с даты (YYYY-MM-DD):</label>
+                    <input type="date" id="since_date" placeholder="2024-01-01">
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">
+                        Оставьте пустым для парсинга всех постов
+                    </small>
                 </div>
                 
                 <button class="btn" id="startBtn" onclick="startParsing()">
@@ -406,7 +409,7 @@
         // Запуск парсинга
         function startParsing() {
             const accounts = document.getElementById('accounts').value.trim();
-            const maxPosts = parseInt(document.getElementById('max_posts').value);
+            const sinceDate = document.getElementById('since_date').value;
             
             if (!accounts) {
                 alert('Введите список аккаунтов');
@@ -419,17 +422,24 @@
                 return;
             }
             
+            // Формируем тело запроса
+            const requestBody = {
+                accounts: accountList,
+                session_id: 'session_' + Date.now()
+            };
+            
+            // Добавляем дату, если указана
+            if (sinceDate) {
+                requestBody.since_date = sinceDate;
+            }
+            
             // Отправляем запрос на парсинг
             fetch('/api/parse', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    accounts: accountList,
-                    max_posts: maxPosts,
-                    session_id: 'session_' + Date.now()
-                })
+                body: JSON.stringify(requestBody)
             })
             .then(response => response.json())
             .then(data => {
