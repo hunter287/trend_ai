@@ -358,6 +358,58 @@
         .blogger-posts {
             color: #6c757d;
         }
+        
+        .disk-indicator {
+            background: rgba(255,255,255,0.15);
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .disk-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .disk-bar {
+            width: 200px;
+            height: 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .disk-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+            transition: width 0.5s ease, background 0.5s ease;
+            border-radius: 6px;
+        }
+        
+        .disk-bar-fill.warning {
+            background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+        }
+        
+        .disk-bar-fill.danger {
+            background: linear-gradient(90deg, #f87171 0%, #ef4444 100%);
+        }
+        
+        .disk-text {
+            font-weight: 600;
+            min-width: 80px;
+        }
+        
+        .disk-details {
+            font-size: 12px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -372,6 +424,18 @@
                 <a href="/gallery_to_tag" class="nav-btn">🏷️ Выбрано для теггирования</a>
                 <a href="/gallery_tagged" class="nav-btn">✅ Оттегированы</a>
                 <a href="/gallery_hidden" class="nav-btn">🙈 Скрытые</a>
+            </div>
+            
+            <!-- Индикатор использования диска -->
+            <div class="disk-indicator" id="diskIndicator">
+                <div class="disk-info">
+                    <span>💾 Диск:</span>
+                    <div class="disk-bar">
+                        <div class="disk-bar-fill" id="diskBarFill"></div>
+                    </div>
+                    <span class="disk-text" id="diskText">Загрузка...</span>
+                    <span class="disk-details" id="diskDetails"></span>
+                </div>
             </div>
         </div>
         
@@ -671,9 +735,58 @@
             }
         }
 
+        // Загрузка информации о диске
+        async function loadDiskUsage() {
+            try {
+                const response = await fetch('/api/disk-usage');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const diskBarFill = document.getElementById('diskBarFill');
+                    const diskText = document.getElementById('diskText');
+                    const diskDetails = document.getElementById('diskDetails');
+                    
+                    const usedPercent = result.used_percent;
+                    const freePercent = result.free_percent;
+                    
+                    // Обновляем прогресс-бар
+                    diskBarFill.style.width = usedPercent + '%';
+                    
+                    // Меняем цвет в зависимости от процента занятости
+                    diskBarFill.className = 'disk-bar-fill';
+                    if (usedPercent >= 90) {
+                        diskBarFill.classList.add('danger');
+                    } else if (usedPercent >= 75) {
+                        diskBarFill.classList.add('warning');
+                    }
+                    
+                    // Обновляем текст
+                    diskText.textContent = `Занято ${usedPercent}%`;
+                    diskDetails.textContent = `${result.used_gb} ГБ / ${result.total_gb} ГБ (свободно ${result.free_gb} ГБ)`;
+                    
+                    // Предупреждение, если места мало
+                    if (usedPercent >= 90) {
+                        console.warn('⚠️ ВНИМАНИЕ: Осталось мало места на диске! ' + freePercent.toFixed(2) + '% свободно');
+                    }
+                } else {
+                    console.error('Ошибка загрузки информации о диске:', result.message);
+                    document.getElementById('diskText').textContent = 'Ошибка';
+                    document.getElementById('diskDetails').textContent = '';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки информации о диске:', error);
+                document.getElementById('diskText').textContent = 'Ошибка';
+                document.getElementById('diskDetails').textContent = '';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             initSocket();
             loadBloggersStats(); // Загружаем статистику при загрузке страницы
+            loadDiskUsage(); // Загружаем информацию о диске
+            
+            // Обновляем информацию о диске каждые 30 секунд
+            setInterval(loadDiskUsage, 30000);
         });
     </script>
 </body>

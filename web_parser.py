@@ -170,6 +170,36 @@ def api_status():
         'active_sessions': len(active_parsing_sessions)
     })
 
+@app.route('/api/disk-usage')
+def api_disk_usage():
+    """API для получения информации о дисковом пространстве"""
+    try:
+        import shutil
+        
+        # Получаем информацию о диске для текущей директории (где хранятся изображения)
+        disk_usage = shutil.disk_usage('/')
+        
+        # Вычисляем проценты
+        total_gb = disk_usage.total / (1024 ** 3)
+        used_gb = disk_usage.used / (1024 ** 3)
+        free_gb = disk_usage.free / (1024 ** 3)
+        used_percent = (disk_usage.used / disk_usage.total) * 100
+        free_percent = 100 - used_percent
+        
+        return jsonify({
+            'success': True,
+            'total_gb': round(total_gb, 2),
+            'used_gb': round(used_gb, 2),
+            'free_gb': round(free_gb, 2),
+            'used_percent': round(used_percent, 2),
+            'free_percent': round(free_percent, 2)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Ошибка получения информации о диске: {e}'
+        })
+
 def log_print(message):
     """Принудительный вывод в stderr с flush"""
     import sys
