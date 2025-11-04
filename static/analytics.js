@@ -40,7 +40,10 @@ const chartInstances = {};
 // Функция для скрытия всех линий на графике
 function hideAllLines(chartId) {
     const chart = chartInstances[chartId];
-    if (!chart) return;
+    if (!chart) {
+        console.log('Chart not found:', chartId);
+        return;
+    }
 
     chart.data.datasets.forEach((dataset, index) => {
         chart.hide(index);
@@ -48,18 +51,28 @@ function hideAllLines(chartId) {
     chart.update();
 
     // Обновляем HTML-легенду
-    const legendContainer = document.getElementById(chartId + 'Legend');
+    const legendContainerId = chartId + 'Legend';
+    console.log('Looking for legend container:', legendContainerId);
+    const legendContainer = document.getElementById(legendContainerId);
+
     if (legendContainer) {
         const checkmarks = legendContainer.querySelectorAll('.legend-checkmark');
         const labels = legendContainer.querySelectorAll('.legend-label');
 
-        checkmarks.forEach(checkmark => {
+        console.log('Found checkmarks:', checkmarks.length);
+        console.log('Found labels:', labels.length);
+
+        checkmarks.forEach((checkmark, idx) => {
+            console.log('Hiding checkmark', idx, checkmark);
             checkmark.style.display = 'none';
         });
 
-        labels.forEach(label => {
+        labels.forEach((label, idx) => {
+            console.log('Fading label', idx, label);
             label.style.opacity = '0.5';
         });
+    } else {
+        console.log('Legend container not found:', legendContainerId);
     }
 }
 
