@@ -37,6 +37,88 @@ const colorMapping = {
 // Глобальное хранилище для Chart instances
 const chartInstances = {};
 
+// ============================================
+// МОДАЛЬНОЕ ОКНО ГАЛЕРЕИ ВЕЩЕЙ
+// ============================================
+
+function openItemGallery(itemName, topCategory) {
+    const modal = document.getElementById('itemGalleryModal');
+    const title = document.getElementById('itemGalleryTitle');
+    const loader = document.getElementById('itemGalleryLoader');
+    const grid = document.getElementById('itemGalleryGrid');
+
+    // Показываем модальное окно и loader
+    modal.style.display = 'block';
+    title.textContent = `Галерея: ${itemName}`;
+    loader.classList.remove('hidden');
+    grid.innerHTML = '';
+
+    // Загружаем изображения
+    fetch(`/api/analytics/item-gallery?item_name=${encodeURIComponent(itemName)}&top_category=${encodeURIComponent(topCategory)}`)
+        .then(response => response.json())
+        .then(data => {
+            loader.classList.add('hidden');
+
+            if (!data.success) {
+                grid.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 40px;">${data.message}</div>`;
+                return;
+            }
+
+            if (data.images.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">Изображения не найдены</div>';
+                return;
+            }
+
+            // Отображаем изображения
+            data.images.forEach(image => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item-gallery-item';
+
+                const imageUrl = `/images/${image.local_filename}`;
+
+                itemDiv.innerHTML = `
+                    <img src="${imageUrl}" alt="${itemName}" loading="lazy">
+                    <div class="item-gallery-item-info">
+                        <div class="item-gallery-item-username">@${image.username || 'unknown'}</div>
+                        <div class="item-gallery-item-stats">
+                            <div class="item-gallery-item-stat">❤️ ${image.likes_count || 0}</div>
+                            <div class="item-gallery-item-stat">💬 ${image.comments_count || 0}</div>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(itemDiv);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading gallery:', error);
+            loader.classList.add('hidden');
+            grid.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 40px;">Ошибка загрузки галереи</div>';
+        });
+}
+
+function closeItemGallery() {
+    const modal = document.getElementById('itemGalleryModal');
+    modal.style.display = 'none';
+}
+
+// Настройка закрытия модального окна
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('itemGalleryModal');
+    const closeBtn = document.querySelector('.item-gallery-close');
+
+    if (closeBtn) {
+        closeBtn.onclick = closeItemGallery;
+    }
+
+    // Закрытие при клике вне модального окна
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            closeItemGallery();
+        }
+    };
+});
+
 // Функция для скрытия всех линий на графике
 function hideAllLines(chartId) {
     const chart = chartInstances[chartId];
@@ -781,12 +863,22 @@ function drawTopAccessoriesChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const itemName = items[index].name;
+                    openItemGallery(itemName, 'Accessories');
+                }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             return context.parsed.x + ' упоминаний';
+                        },
+                        footer: function() {
+                            return 'Кликните для просмотра галереи';
                         }
                     }
                 }
@@ -901,12 +993,22 @@ function drawTopClothingChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const itemName = items[index].name;
+                    openItemGallery(itemName, 'Clothing');
+                }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             return context.parsed.x + ' упоминаний';
+                        },
+                        footer: function() {
+                            return 'Кликните для просмотра галереи';
                         }
                     }
                 }
@@ -1021,12 +1123,22 @@ function drawTopFootwearChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const itemName = items[index].name;
+                    openItemGallery(itemName, 'Footwear');
+                }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             return context.parsed.x + ' упоминаний';
+                        },
+                        footer: function() {
+                            return 'Кликните для просмотра галереи';
                         }
                     }
                 }

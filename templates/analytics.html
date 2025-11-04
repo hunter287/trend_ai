@@ -278,6 +278,138 @@
         .chart-control-btn:active {
             transform: translateY(0);
         }
+
+        /* Модальное окно для галереи изображений */
+        .item-gallery-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        .item-gallery-modal-content {
+            background-color: white;
+            margin: 2% auto;
+            width: 90%;
+            max-width: 1400px;
+            border-radius: 20px;
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .item-gallery-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-gallery-header h2 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .item-gallery-close {
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .item-gallery-close:hover {
+            transform: scale(1.2);
+        }
+
+        .item-gallery-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .item-gallery-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            gap: 20px;
+        }
+
+        .item-gallery-loader.hidden {
+            display: none;
+        }
+
+        .item-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .item-gallery-item {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .item-gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .item-gallery-item img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .item-gallery-item-info {
+            padding: 15px;
+        }
+
+        .item-gallery-item-username {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .item-gallery-item-stats {
+            display: flex;
+            gap: 15px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .item-gallery-item-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -479,6 +611,23 @@
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=18"></script>
+    <!-- Модальное окно для галереи изображений вещи -->
+    <div id="itemGalleryModal" class="item-gallery-modal">
+        <div class="item-gallery-modal-content">
+            <div class="item-gallery-header">
+                <h2 id="itemGalleryTitle">Галерея изображений</h2>
+                <span class="item-gallery-close">&times;</span>
+            </div>
+            <div class="item-gallery-body">
+                <div id="itemGalleryLoader" class="item-gallery-loader">
+                    <div class="spinner"></div>
+                    <div class="loader-text">Загрузка изображений...</div>
+                </div>
+                <div id="itemGalleryGrid" class="item-gallery-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/analytics.js?v=19"></script>
 </body>
 </html>

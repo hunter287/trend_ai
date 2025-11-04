@@ -3115,6 +3115,104 @@ def api_analytics_top_footwear_dynamics():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/analytics/item-gallery', methods=['GET'])
+def api_analytics_item_gallery():
+    """API для получения галереи изображений по конкретной вещи"""
+    try:
+        item_name = request.args.get('item_name')
+        top_category = request.args.get('top_category')
+
+        if not item_name or not top_category:
+            return jsonify({'success': False, 'message': 'Требуются параметры item_name и top_category'})
+
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Парсим item_name для извлечения подкатегории и цвета
+        # Формат: "Subcategory (Color)" или просто "Subcategory"
+        subcategory = item_name
+        color = None
+
+        if '(' in item_name and ')' in item_name:
+            parts = item_name.split('(')
+            subcategory = parts[0].strip()
+            color = parts[1].replace(')', '').strip()
+
+        # Ищем изображения с этой вещью
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "local_filename": {"$exists": True}
+            },
+            {
+                "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+                "comments_count": 1, "caption": 1, "ximilar_objects_structured": 1,
+                "timestamp": 1
+            }
+        ).sort("timestamp", -1))
+
+        # Фильтруем изображения, которые содержат нужную вещь
+        matching_images = []
+
+        for image in images:
+            has_item = False
+
+            for obj in image.get('ximilar_objects_structured', []):
+                # Проверяем категорию
+                if obj.get('top_category') != top_category:
+                    continue
+
+                # Проверяем подкатегорию
+                obj_subcategory = ''
+                if obj.get('properties', {}).get('other_attributes', {}).get('Subcategory'):
+                    obj_subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+
+                if obj_subcategory != subcategory:
+                    continue
+
+                # Если цвет указан, проверяем и его
+                if color:
+                    obj_colors = []
+                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                        for c in obj['properties']['visual_attributes']['Color']:
+                            obj_colors.append(c['name'])
+
+                    if color not in obj_colors:
+                        continue
+
+                # Вещь найдена!
+                has_item = True
+                break
+
+            if has_item:
+                matching_images.append({
+                    '_id': str(image['_id']),
+                    'local_filename': image.get('local_filename'),
+                    'username': image.get('username'),
+                    'likes_count': image.get('likes_count', 0),
+                    'comments_count': image.get('comments_count', 0),
+                    'caption': image.get('caption', ''),
+                    'timestamp': image.get('timestamp', '')
+                })
+
+        return jsonify({
+            'success': True,
+            'item_name': item_name,
+            'top_category': top_category,
+            'count': len(matching_images),
+            'images': matching_images
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 if __name__ == '__main__':
     print("🌐 ЗАПУСК ВЕБ-ИНТЕРФЕЙСА ДЛЯ ПАРСИНГА INSTAGRAM")
     print("="*60)
