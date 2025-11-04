@@ -403,13 +403,17 @@ async function loadPredictiveAnalytics() {
 
     try {
         console.log('📡 Fetching predictive API data...');
-        const [trends, dynamics, predictions, recommendations] = await Promise.all([
+        const [trends, dynamics, colorDynamics, predictions, recommendations] = await Promise.all([
             fetch('/api/analytics/emerging-trends').then(r => {
                 console.log('✅ Emerging trends response:', r.status);
                 return r.json();
             }),
             fetch('/api/analytics/emerging-trends-dynamics').then(r => {
                 console.log('✅ Emerging trends dynamics response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/color-dynamics').then(r => {
+                console.log('✅ Color dynamics response:', r.status);
                 return r.json();
             }),
             fetch('/api/analytics/trend-predictions').then(r => {
@@ -424,6 +428,7 @@ async function loadPredictiveAnalytics() {
 
         console.log('📊 Trends data:', trends);
         console.log('📊 Dynamics data:', dynamics);
+        console.log('📊 Color dynamics data:', colorDynamics);
         console.log('📊 Predictions data:', predictions);
         console.log('📊 Recommendations data:', recommendations);
 
@@ -455,6 +460,11 @@ async function loadPredictiveAnalytics() {
         if (dynamics.success) {
             console.log('📈 Drawing emerging trends dynamics');
             drawEmergingTrendsDynamicsChart(dynamics);
+        }
+
+        if (colorDynamics.success) {
+            console.log('🎨 Drawing color dynamics');
+            drawColorDynamicsChart(colorDynamics);
         }
 
         if (predictions.success) {
@@ -590,6 +600,85 @@ function drawEmergingTrendsDynamicsChart(dynamics) {
                         afterLabel: function(context) {
                             const trend = dynamics.series[context.datasetIndex];
                             return trend.category;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Месяц'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { display: true },
+                    title: {
+                        display: true,
+                        text: 'Количество упоминаний'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function drawColorDynamicsChart(dynamics) {
+    const ctx = document.getElementById('colorDynamicsChart').getContext('2d');
+
+    // Создаём datasets для каждого цвета с реальными цветами
+    const datasets = dynamics.series.map((colorData, index) => {
+        const colorName = colorData.name;
+        const realColor = colorMapping[colorName] || chartColors.palette[index % chartColors.palette.length];
+
+        return {
+            label: `${colorName} (+${colorData.growth_rate}%)`,
+            data: colorData.data,
+            borderColor: realColor,
+            backgroundColor: realColor + '20',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: false,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: realColor,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+        };
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dynamics.months,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: { size: 11 },
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return 'Месяц: ' + context[0].label;
+                        },
+                        label: function(context) {
+                            const colorData = dynamics.series[context.datasetIndex];
+                            return colorData.name + ': ' + context.parsed.y + ' упоминаний';
                         }
                     }
                 }
