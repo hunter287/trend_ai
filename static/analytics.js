@@ -865,53 +865,11 @@ function drawTopAccessoriesChart(items) {
             responsive: true,
             maintainAspectRatio: false,
             onClick: (event, elements, chart) => {
-                console.log('Click on accessories chart');
-
                 // Клик на столбец
                 if (elements.length > 0) {
-                    console.log('Clicked on bar element');
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Accessories');
-                    return;
-                }
-
-                // Клик на label (текст на оси Y)
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                console.log('Canvas position:', canvasPosition);
-                console.log('Y scale left:', dataY.left, 'top:', dataY.top, 'bottom:', dataY.bottom);
-                console.log('Checking if clicked on label area...');
-
-                // Проверяем, попали ли в область labels
-                if (canvasPosition.x < dataY.left) {
-                    console.log('Clicked in label area!');
-                    const index = Math.round(dataY.getValueForPixel(canvasPosition.y));
-                    console.log('Calculated index:', index, 'Items length:', items.length);
-
-                    if (index >= 0 && index < items.length) {
-                        const itemName = items[index].name;
-                        console.log('Opening gallery for:', itemName);
-                        openItemGallery(itemName, 'Accessories');
-                    } else {
-                        console.log('Index out of bounds');
-                    }
-                } else {
-                    console.log('Not in label area, x:', canvasPosition.x, 'dataY.left:', dataY.left);
-                }
-            },
-            onHover: (event, activeElements, chart) => {
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                // Проверяем, наведен ли курсор на label
-                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
-                    canvas.style.cursor = 'pointer';
-                } else if (activeElements.length > 0) {
-                    canvas.style.cursor = 'pointer';
-                } else {
-                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -944,6 +902,54 @@ function drawTopAccessoriesChart(items) {
                     }
                 }
             }
+        }
+    });
+
+    // Добавляем обработчик клика напрямую на canvas для обработки кликов на labels
+    canvas.addEventListener('click', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        console.log('Direct canvas click - X:', x, 'Y:', y);
+        console.log('Y scale left:', dataY.left, 'top:', dataY.top, 'bottom:', dataY.bottom);
+
+        // Проверяем, попали ли в область labels (слева от графика)
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            console.log('Clicked in label area!');
+
+            // Вычисляем индекс по Y-координате
+            const yRelative = y - dataY.top;
+            const itemHeight = (dataY.bottom - dataY.top) / items.length;
+            const index = Math.floor(yRelative / itemHeight);
+
+            console.log('Calculated index:', index, 'Items length:', items.length);
+
+            if (index >= 0 && index < items.length) {
+                const itemName = items[index].name;
+                console.log('Opening gallery for:', itemName);
+                openItemGallery(itemName, 'Accessories');
+            }
+        }
+    });
+
+    // Добавляем обработчик hover для cursor pointer
+    canvas.addEventListener('mousemove', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        // Проверяем, находится ли курсор в области labels
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            canvas.style.cursor = 'pointer';
+        } else {
+            // Проверяем через Chart.js API, находится ли на столбце
+            const elements = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+            canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
         }
     });
 }
@@ -1045,33 +1051,6 @@ function drawTopClothingChart(items) {
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Clothing');
-                    return;
-                }
-
-                // Клик на label (текст на оси Y)
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                // Проверяем, попали ли в область labels
-                if (canvasPosition.x < dataY.left) {
-                    const index = dataY.getValueForPixel(canvasPosition.y);
-                    if (index >= 0 && index < items.length) {
-                        const itemName = items[index].name;
-                        openItemGallery(itemName, 'Clothing');
-                    }
-                }
-            },
-            onHover: (event, activeElements, chart) => {
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                // Проверяем, наведен ли курсор на label
-                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
-                    canvas.style.cursor = 'pointer';
-                } else if (activeElements.length > 0) {
-                    canvas.style.cursor = 'pointer';
-                } else {
-                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -1104,6 +1083,46 @@ function drawTopClothingChart(items) {
                     }
                 }
             }
+        }
+    });
+
+    // Добавляем обработчик клика напрямую на canvas для обработки кликов на labels
+    canvas.addEventListener('click', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        // Проверяем, попали ли в область labels (слева от графика)
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            // Вычисляем индекс по Y-координате
+            const yRelative = y - dataY.top;
+            const itemHeight = (dataY.bottom - dataY.top) / items.length;
+            const index = Math.floor(yRelative / itemHeight);
+
+            if (index >= 0 && index < items.length) {
+                const itemName = items[index].name;
+                openItemGallery(itemName, 'Clothing');
+            }
+        }
+    });
+
+    // Добавляем обработчик hover для cursor pointer
+    canvas.addEventListener('mousemove', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        // Проверяем, находится ли курсор в области labels
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            canvas.style.cursor = 'pointer';
+        } else {
+            // Проверяем через Chart.js API, находится ли на столбце
+            const elements = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+            canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
         }
     });
 }
@@ -1205,33 +1224,6 @@ function drawTopFootwearChart(items) {
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Footwear');
-                    return;
-                }
-
-                // Клик на label (текст на оси Y)
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                // Проверяем, попали ли в область labels
-                if (canvasPosition.x < dataY.left) {
-                    const index = dataY.getValueForPixel(canvasPosition.y);
-                    if (index >= 0 && index < items.length) {
-                        const itemName = items[index].name;
-                        openItemGallery(itemName, 'Footwear');
-                    }
-                }
-            },
-            onHover: (event, activeElements, chart) => {
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                const dataY = chart.scales.y;
-
-                // Проверяем, наведен ли курсор на label
-                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
-                    canvas.style.cursor = 'pointer';
-                } else if (activeElements.length > 0) {
-                    canvas.style.cursor = 'pointer';
-                } else {
-                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -1264,6 +1256,46 @@ function drawTopFootwearChart(items) {
                     }
                 }
             }
+        }
+    });
+
+    // Добавляем обработчик клика напрямую на canvas для обработки кликов на labels
+    canvas.addEventListener('click', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        // Проверяем, попали ли в область labels (слева от графика)
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            // Вычисляем индекс по Y-координате
+            const yRelative = y - dataY.top;
+            const itemHeight = (dataY.bottom - dataY.top) / items.length;
+            const index = Math.floor(yRelative / itemHeight);
+
+            if (index >= 0 && index < items.length) {
+                const itemName = items[index].name;
+                openItemGallery(itemName, 'Footwear');
+            }
+        }
+    });
+
+    // Добавляем обработчик hover для cursor pointer
+    canvas.addEventListener('mousemove', function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        const dataY = chart.scales.y;
+
+        // Проверяем, находится ли курсор в области labels
+        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+            canvas.style.cursor = 'pointer';
+        } else {
+            // Проверяем через Chart.js API, находится ли на столбце
+            const elements = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+            canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
         }
     });
 }
