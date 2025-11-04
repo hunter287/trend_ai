@@ -865,8 +865,11 @@ function drawTopAccessoriesChart(items) {
             responsive: true,
             maintainAspectRatio: false,
             onClick: (event, elements, chart) => {
+                console.log('Click on accessories chart');
+
                 // Клик на столбец
                 if (elements.length > 0) {
+                    console.log('Clicked on bar element');
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Accessories');
@@ -877,13 +880,25 @@ function drawTopAccessoriesChart(items) {
                 const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
                 const dataY = chart.scales.y;
 
+                console.log('Canvas position:', canvasPosition);
+                console.log('Y scale left:', dataY.left, 'top:', dataY.top, 'bottom:', dataY.bottom);
+                console.log('Checking if clicked on label area...');
+
                 // Проверяем, попали ли в область labels
                 if (canvasPosition.x < dataY.left) {
-                    const index = dataY.getValueForPixel(canvasPosition.y);
+                    console.log('Clicked in label area!');
+                    const index = Math.round(dataY.getValueForPixel(canvasPosition.y));
+                    console.log('Calculated index:', index, 'Items length:', items.length);
+
                     if (index >= 0 && index < items.length) {
                         const itemName = items[index].name;
+                        console.log('Opening gallery for:', itemName);
                         openItemGallery(itemName, 'Accessories');
+                    } else {
+                        console.log('Index out of bounds');
                     }
+                } else {
+                    console.log('Not in label area, x:', canvasPosition.x, 'dataY.left:', dataY.left);
                 }
             },
             onHover: (event, activeElements, chart) => {
