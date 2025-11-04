@@ -291,6 +291,48 @@
             margin: 20px 0;
             border-left: 4px solid #dc3545;
         }
+
+        /* Loader Spinner */
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            gap: 20px;
+        }
+
+        .loader-container.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: #667eea;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .content-wrapper {
+            display: none;
+        }
+
+        .content-wrapper.loaded {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -324,8 +366,16 @@
         <div class="content">
             <!-- Вкладка: Модные тренды -->
             <div class="tab-content active" id="trends-content">
-                <!-- Обзорная статистика -->
-                <div class="stats-overview" id="statsOverview">
+                <!-- Loader -->
+                <div class="loader-container" id="trendsLoader">
+                    <div class="spinner"></div>
+                    <div class="loader-text">Загрузка аналитики трендов...</div>
+                </div>
+
+                <!-- Content -->
+                <div class="content-wrapper" id="trendsContentWrapper">
+                    <!-- Обзорная статистика -->
+                    <div class="stats-overview" id="statsOverview">
                     <div class="stat-card">
                         <div class="stat-value" id="totalImages">-</div>
                         <div class="stat-label">Изображений проанализировано</div>
@@ -382,20 +432,29 @@
                     </div>
                 </div>
 
-                <div class="chart-card">
-                    <h3>📈 Тренды по времени</h3>
-                    <div class="chart-container large">
-                        <canvas id="timelineChart"></canvas>
+                    <div class="chart-card">
+                        <h3>📈 Тренды по времени</h3>
+                        <div class="chart-container large">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Вкладка: Прогнозная аналитика -->
             <div class="tab-content" id="predictive-content">
-                <h2 style="margin-bottom: 30px; color: #333;">🔮 Прогнозная аналитика</h2>
+                <!-- Loader -->
+                <div class="loader-container" id="predictiveLoader">
+                    <div class="spinner"></div>
+                    <div class="loader-text">Загрузка прогнозной аналитики...</div>
+                </div>
 
-                <!-- Обзор прогнозов -->
-                <div class="stats-overview" id="predictiveStats">
+                <!-- Content -->
+                <div class="content-wrapper" id="predictiveContentWrapper">
+                    <h2 style="margin-bottom: 30px; color: #333;">🔮 Прогнозная аналитика</h2>
+
+                    <!-- Обзор прогнозов -->
+                    <div class="stats-overview" id="predictiveStats">
                     <div class="stat-card">
                         <div class="stat-value" id="emergingTrendsCount">-</div>
                         <div class="stat-label">Растущих трендов</div>
@@ -448,15 +507,16 @@
                     </div>
                 </div>
 
-                <!-- Рекомендации -->
-                <div class="chart-card">
-                    <h3>💼 Рекомендации для контента</h3>
-                    <ul class="recommendation-list" id="recommendationsList"></ul>
+                    <!-- Рекомендации -->
+                    <div class="chart-card">
+                        <h3>💼 Рекомендации для контента</h3>
+                        <ul class="recommendation-list" id="recommendationsList"></ul>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=3"></script>
+    <script src="/static/analytics.js?v=4"></script>
 </body>
 </html>

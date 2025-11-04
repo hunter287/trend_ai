@@ -78,6 +78,13 @@ function setupTabHandlers() {
 
 async function loadTrendsAnalytics() {
     console.log('🔄 Loading trends analytics...');
+
+    // Показываем спиннер, скрываем контент
+    const loader = document.getElementById('trendsLoader');
+    const content = document.getElementById('trendsContentWrapper');
+    loader.classList.remove('hidden');
+    content.classList.remove('loaded');
+
     try {
         console.log('📡 Fetching API data...');
         const [categories, subcategories, colors, materials, styles, timeline] = await Promise.all([
@@ -155,9 +162,18 @@ async function loadTrendsAnalytics() {
 
         console.log('✅ Trends analytics loaded successfully!');
 
+        // Скрываем спиннер, показываем контент
+        loader.classList.add('hidden');
+        content.classList.add('loaded');
+
     } catch (error) {
         console.error('❌ Ошибка загрузки аналитики трендов:', error);
         console.error('Stack trace:', error.stack);
+
+        // Скрываем спиннер при ошибке тоже
+        loader.classList.add('hidden');
+        content.classList.add('loaded');
+
         document.querySelector('#trends-content').insertAdjacentHTML('afterbegin',
             '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
     }
@@ -378,6 +394,13 @@ function drawTimelineChart(timeline) {
 
 async function loadPredictiveAnalytics() {
     console.log('🔮 Loading predictive analytics...');
+
+    // Показываем спиннер, скрываем контент
+    const loader = document.getElementById('predictiveLoader');
+    const content = document.getElementById('predictiveContentWrapper');
+    loader.classList.remove('hidden');
+    content.classList.remove('loaded');
+
     try {
         console.log('📡 Fetching predictive API data...');
         const [trends, dynamics, predictions, recommendations] = await Promise.all([
@@ -447,9 +470,18 @@ async function loadPredictiveAnalytics() {
 
         console.log('✅ Predictive analytics loaded successfully!');
 
+        // Скрываем спиннер, показываем контент
+        loader.classList.add('hidden');
+        content.classList.add('loaded');
+
     } catch (error) {
         console.error('❌ Ошибка загрузки прогнозной аналитики:', error);
         console.error('Stack trace:', error.stack);
+
+        // Скрываем спиннер при ошибке тоже
+        loader.classList.add('hidden');
+        content.classList.add('loaded');
+
         document.querySelector('#predictive-content').insertAdjacentHTML('afterbegin',
             '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
     }
