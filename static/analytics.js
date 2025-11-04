@@ -59,6 +59,88 @@ function showAllLines(chartId) {
     chart.update();
 }
 
+// Функция для создания HTML-легенды с галочками в цветных кружках
+function createHtmlLegend(chart, containerId) {
+    const legendContainer = document.getElementById(containerId);
+    if (!legendContainer) return;
+
+    legendContainer.innerHTML = '';
+    legendContainer.style.display = 'flex';
+    legendContainer.style.flexWrap = 'wrap';
+    legendContainer.style.gap = '12px';
+    legendContainer.style.justifyContent = 'center';
+    legendContainer.style.marginTop = '15px';
+
+    chart.data.datasets.forEach((dataset, index) => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        legendItem.style.display = 'flex';
+        legendItem.style.alignItems = 'center';
+        legendItem.style.gap = '6px';
+        legendItem.style.cursor = 'pointer';
+        legendItem.style.padding = '4px 8px';
+        legendItem.style.borderRadius = '4px';
+        legendItem.style.transition = 'background-color 0.2s';
+
+        // Цветной кружок с галочкой
+        const circle = document.createElement('div');
+        circle.className = 'legend-circle';
+        circle.style.width = '18px';
+        circle.style.height = '18px';
+        circle.style.borderRadius = '50%';
+        circle.style.backgroundColor = dataset.borderColor;
+        circle.style.display = 'flex';
+        circle.style.alignItems = 'center';
+        circle.style.justifyContent = 'center';
+        circle.style.fontSize = '12px';
+        circle.style.fontWeight = 'bold';
+        circle.style.color = 'white';
+        circle.style.textShadow = '0 0 2px rgba(0,0,0,0.3)';
+
+        // Галочка (отображается только если датасет видимый)
+        const checkmark = document.createElement('span');
+        checkmark.textContent = '✓';
+        checkmark.style.display = chart.isDatasetVisible(index) ? 'block' : 'none';
+        circle.appendChild(checkmark);
+
+        // Текст названия
+        const label = document.createElement('span');
+        label.textContent = dataset.label;
+        label.style.fontSize = '11px';
+        label.style.opacity = chart.isDatasetVisible(index) ? '1' : '0.5';
+
+        legendItem.appendChild(circle);
+        legendItem.appendChild(label);
+
+        // Обработчик клика для переключения видимости
+        legendItem.onclick = () => {
+            const meta = chart.getDatasetMeta(index);
+            meta.hidden = !meta.hidden;
+
+            // Обновляем визуальное состояние
+            if (meta.hidden) {
+                checkmark.style.display = 'none';
+                label.style.opacity = '0.5';
+            } else {
+                checkmark.style.display = 'block';
+                label.style.opacity = '1';
+            }
+
+            chart.update();
+        };
+
+        // Hover эффект
+        legendItem.onmouseenter = () => {
+            legendItem.style.backgroundColor = 'rgba(0,0,0,0.05)';
+        };
+        legendItem.onmouseleave = () => {
+            legendItem.style.backgroundColor = 'transparent';
+        };
+
+        legendContainer.appendChild(legendItem);
+    });
+}
+
 // ============================================
 // ЗАГРУЗКА ВСЕЙ АНАЛИТИКИ
 // ============================================
@@ -337,7 +419,7 @@ function drawTimelineChart(timeline) {
         fill: true
     }));
 
-    chartInstances['timelineChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: timeline.months,
@@ -352,8 +434,7 @@ function drawTimelineChart(timeline) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
+                    display: false  // Отключаем стандартную легенду
                 }
             },
             scales: {
@@ -362,6 +443,9 @@ function drawTimelineChart(timeline) {
             }
         }
     });
+
+    chartInstances['timelineChart'] = chart;
+    createHtmlLegend(chart, 'timelineLegend');
 }
 
 // ============================================
@@ -426,7 +510,7 @@ function drawEmergingTrendsDynamicsChart(dynamics) {
         pointHoverRadius: 6
     }));
 
-    chartInstances['emergingTrendsDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -441,12 +525,7 @@ function drawEmergingTrendsDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: { size: 11 },
-                        usePointStyle: true
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -479,6 +558,9 @@ function drawEmergingTrendsDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['emergingTrendsDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'emergingTrendsDynamicsLegend');
 }
 
 function drawColorDynamicsChart(dynamics) {
@@ -505,7 +587,7 @@ function drawColorDynamicsChart(dynamics) {
         };
     });
 
-    chartInstances['colorDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -520,12 +602,7 @@ function drawColorDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: { size: 11 },
-                        usePointStyle: true
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -558,6 +635,9 @@ function drawColorDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['colorDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'colorDynamicsLegend');
 }
 
 function drawMaterialDynamicsChart(dynamics) {
@@ -583,7 +663,7 @@ function drawMaterialDynamicsChart(dynamics) {
         };
     });
 
-    chartInstances['materialDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -598,12 +678,7 @@ function drawMaterialDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: { size: 11 },
-                        usePointStyle: true
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -636,6 +711,9 @@ function drawMaterialDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['materialDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'materialDynamicsLegend');
 }
 
 function drawTopAccessoriesChart(items) {
@@ -705,7 +783,7 @@ function drawTopAccessoriesDynamicsChart(dynamics) {
         };
     });
 
-    chartInstances['topAccessoriesDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -720,13 +798,7 @@ function drawTopAccessoriesDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 10,
-                        font: { size: 10 },
-                        usePointStyle: true,
-                        boxWidth: 6
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -759,6 +831,9 @@ function drawTopAccessoriesDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['topAccessoriesDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'topAccessoriesDynamicsLegend');
 }
 
 function drawTopClothingChart(items) {
@@ -828,7 +903,7 @@ function drawTopClothingDynamicsChart(dynamics) {
         };
     });
 
-    chartInstances['topClothingDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -843,13 +918,7 @@ function drawTopClothingDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 10,
-                        font: { size: 10 },
-                        usePointStyle: true,
-                        boxWidth: 6
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -882,6 +951,9 @@ function drawTopClothingDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['topClothingDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'topClothingDynamicsLegend');
 }
 
 function drawTopFootwearChart(items) {
@@ -951,7 +1023,7 @@ function drawTopFootwearDynamicsChart(dynamics) {
         };
     });
 
-    chartInstances['topFootwearDynamicsChart'] = new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -966,13 +1038,7 @@ function drawTopFootwearDynamicsChart(dynamics) {
             },
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 10,
-                        font: { size: 10 },
-                        usePointStyle: true,
-                        boxWidth: 6
-                    }
+                    display: false  // Отключаем стандартную легенду
                 },
                 tooltip: {
                     callbacks: {
@@ -1005,6 +1071,9 @@ function drawTopFootwearDynamicsChart(dynamics) {
             }
         }
     });
+
+    chartInstances['topFootwearDynamicsChart'] = chart;
+    createHtmlLegend(chart, 'topFootwearDynamicsLegend');
 }
 
 // Загрузка данных при загрузке страницы
