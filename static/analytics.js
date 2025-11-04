@@ -35,45 +35,81 @@ const colorMapping = {
 };
 
 // Переключение вкладок
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        const targetTab = this.dataset.tab;
+function setupTabHandlers() {
+    console.log('🎯 Setting up tab handlers...');
+    const tabs = document.querySelectorAll('.tab');
+    console.log('Found tabs:', tabs.length);
 
-        // Обновляем активную вкладку
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            console.log('🔄 Tab clicked:', targetTab);
 
-        // Показываем нужный контент
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
+            // Обновляем активную вкладку
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            // Показываем нужный контент
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(targetTab + '-content').classList.add('active');
+
+            // Загружаем данные для вкладки, если еще не загружены
+            if (targetTab === 'trends' && !window.trendsLoaded) {
+                console.log('📊 Loading trends for the first time');
+                loadTrendsAnalytics();
+                window.trendsLoaded = true;
+            } else if (targetTab === 'predictive' && !window.predictiveLoaded) {
+                console.log('🔮 Loading predictive for the first time');
+                loadPredictiveAnalytics();
+                window.predictiveLoaded = true;
+            } else {
+                console.log('✅ Tab already loaded');
+            }
         });
-        document.getElementById(targetTab + '-content').classList.add('active');
-
-        // Загружаем данные для вкладки, если еще не загружены
-        if (targetTab === 'trends' && !window.trendsLoaded) {
-            loadTrendsAnalytics();
-            window.trendsLoaded = true;
-        } else if (targetTab === 'predictive' && !window.predictiveLoaded) {
-            loadPredictiveAnalytics();
-            window.predictiveLoaded = true;
-        }
     });
-});
+    console.log('✅ Tab handlers set up');
+}
 
 // ============================================
 // МОДНЫЕ ТРЕНДЫ
 // ============================================
 
 async function loadTrendsAnalytics() {
+    console.log('🔄 Loading trends analytics...');
     try {
+        console.log('📡 Fetching API data...');
         const [categories, subcategories, colors, materials, styles, timeline] = await Promise.all([
-            fetch('/api/analytics/categories-stats').then(r => r.json()),
-            fetch('/api/analytics/subcategories-stats').then(r => r.json()),
-            fetch('/api/analytics/colors-stats').then(r => r.json()),
-            fetch('/api/analytics/materials-stats').then(r => r.json()),
-            fetch('/api/analytics/styles-stats').then(r => r.json()),
-            fetch('/api/analytics/trends-timeline').then(r => r.json())
+            fetch('/api/analytics/categories-stats').then(r => {
+                console.log('✅ Categories response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/subcategories-stats').then(r => {
+                console.log('✅ Subcategories response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/colors-stats').then(r => {
+                console.log('✅ Colors response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/materials-stats').then(r => {
+                console.log('✅ Materials response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/styles-stats').then(r => {
+                console.log('✅ Styles response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/trends-timeline').then(r => {
+                console.log('✅ Timeline response:', r.status);
+                return r.json();
+            })
         ]);
+
+        console.log('📊 Categories data:', categories);
+        console.log('📊 Subcategories data:', subcategories);
+        console.log('📊 Colors data:', colors);
 
         // Обновляем статистику
         if (categories.success) {
@@ -91,15 +127,37 @@ async function loadTrendsAnalytics() {
         }
 
         // Рисуем графики
-        if (categories.success) drawCategoriesChart(categories.categories);
-        if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
-        if (colors.success) drawColorsChart(colors.colors);
-        if (materials.success) drawMaterialsChart(materials.materials);
-        if (styles.success) drawStylesChart(styles.styles);
-        if (timeline.success) drawTimelineChart(timeline.timeline);
+        console.log('🎨 Drawing charts...');
+        if (categories.success) {
+            console.log('📊 Drawing categories chart');
+            drawCategoriesChart(categories.categories);
+        }
+        if (subcategories.success) {
+            console.log('📊 Drawing subcategories chart');
+            drawSubcategoriesChart(subcategories.subcategories);
+        }
+        if (colors.success) {
+            console.log('📊 Drawing colors chart');
+            drawColorsChart(colors.colors);
+        }
+        if (materials.success) {
+            console.log('📊 Drawing materials chart');
+            drawMaterialsChart(materials.materials);
+        }
+        if (styles.success) {
+            console.log('📊 Drawing styles chart');
+            drawStylesChart(styles.styles);
+        }
+        if (timeline.success) {
+            console.log('📊 Drawing timeline chart');
+            drawTimelineChart(timeline.timeline);
+        }
+
+        console.log('✅ Trends analytics loaded successfully!');
 
     } catch (error) {
-        console.error('Ошибка загрузки аналитики трендов:', error);
+        console.error('❌ Ошибка загрузки аналитики трендов:', error);
+        console.error('Stack trace:', error.stack);
         document.querySelector('#trends-content').insertAdjacentHTML('afterbegin',
             '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
     }
@@ -319,12 +377,27 @@ function drawTimelineChart(timeline) {
 // ============================================
 
 async function loadPredictiveAnalytics() {
+    console.log('🔮 Loading predictive analytics...');
     try {
+        console.log('📡 Fetching predictive API data...');
         const [trends, predictions, recommendations] = await Promise.all([
-            fetch('/api/analytics/emerging-trends').then(r => r.json()),
-            fetch('/api/analytics/trend-predictions').then(r => r.json()),
-            fetch('/api/analytics/recommendations').then(r => r.json())
+            fetch('/api/analytics/emerging-trends').then(r => {
+                console.log('✅ Emerging trends response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/trend-predictions').then(r => {
+                console.log('✅ Predictions response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/recommendations').then(r => {
+                console.log('✅ Recommendations response:', r.status);
+                return r.json();
+            })
         ]);
+
+        console.log('📊 Trends data:', trends);
+        console.log('📊 Predictions data:', predictions);
+        console.log('📊 Recommendations data:', recommendations);
 
         // Обновляем статистику
         if (trends.success) {
@@ -358,11 +431,15 @@ async function loadPredictiveAnalytics() {
 
         // Рисуем рекомендации
         if (recommendations.success) {
+            console.log('📝 Drawing recommendations');
             drawRecommendations(recommendations.recommendations);
         }
 
+        console.log('✅ Predictive analytics loaded successfully!');
+
     } catch (error) {
-        console.error('Ошибка загрузки прогнозной аналитики:', error);
+        console.error('❌ Ошибка загрузки прогнозной аналитики:', error);
+        console.error('Stack trace:', error.stack);
         document.querySelector('#predictive-content').insertAdjacentHTML('afterbegin',
             '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
     }
@@ -517,7 +594,16 @@ function drawRecommendations(recommendations) {
 }
 
 // Загрузка данных при загрузке страницы
+console.log('🚀 Analytics.js loaded');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM Content Loaded - initializing analytics');
+
+    // Настраиваем обработчики вкладок
+    setupTabHandlers();
+
+    // Загружаем начальные данные для первой вкладки
     loadTrendsAnalytics();
     window.trendsLoaded = true;
+    console.log('✅ Initial load complete');
 });
