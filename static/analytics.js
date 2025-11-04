@@ -50,8 +50,8 @@ function hideAllLines(chartId) {
     });
     chart.update();
 
-    // Обновляем HTML-легенду
-    const legendContainerId = chartId + 'Legend';
+    // Обновляем HTML-легенду (убираем "Chart" из ID, если есть)
+    const legendContainerId = chartId.replace('Chart', '') + 'Legend';
     console.log('Looking for legend container:', legendContainerId);
     const legendContainer = document.getElementById(legendContainerId);
 
@@ -86,8 +86,9 @@ function showAllLines(chartId) {
     });
     chart.update();
 
-    // Обновляем HTML-легенду
-    const legendContainer = document.getElementById(chartId + 'Legend');
+    // Обновляем HTML-легенду (убираем "Chart" из ID, если есть)
+    const legendContainerId = chartId.replace('Chart', '') + 'Legend';
+    const legendContainer = document.getElementById(legendContainerId);
     if (legendContainer) {
         const checkmarks = legendContainer.querySelectorAll('.legend-checkmark');
         const labels = legendContainer.querySelectorAll('.legend-label');
