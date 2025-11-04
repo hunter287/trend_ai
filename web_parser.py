@@ -17,7 +17,12 @@ from instagram_parser import InstagramParser
 load_dotenv()
 load_dotenv('mongodb_config.env')
 
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+# Получаем абсолютный путь к директории скрипта
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+IMAGES_DIR = os.path.join(BASE_DIR, 'images')
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='/static')
 app.config['SECRET_KEY'] = os.urandom(24)
 
 # Дополнительный маршрут для изображений
@@ -25,7 +30,7 @@ from flask import send_from_directory
 
 @app.route('/images/<path:filename>')
 def serve_images(filename):
-    return send_from_directory('images', filename)
+    return send_from_directory(IMAGES_DIR, filename)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -2207,6 +2212,25 @@ if __name__ == '__main__':
     print("="*60)
     print("📡 Сервер: http://0.0.0.0:5000")
     print("🔗 WebSocket: ws://0.0.0.0:5000/socket.io/")
+    print("📁 Базовая директория:", BASE_DIR)
+    print("📂 Static папка:", STATIC_DIR)
+    print("🖼️ Images папка:", IMAGES_DIR)
+    print("📄 Static файлы доступны по: /static/")
+    print("🖼️ Изображения доступны по: /images/")
     print("="*60)
-    
+
+    # Проверяем существование папок
+    if os.path.exists(STATIC_DIR):
+        print("✅ Static папка найдена")
+        print(f"   Файлов в static: {len(os.listdir(STATIC_DIR))}")
+    else:
+        print("❌ ВНИМАНИЕ: Static папка не найдена!")
+
+    if os.path.exists(IMAGES_DIR):
+        print("✅ Images папка найдена")
+    else:
+        print("⚠️ Images папка не найдена (будет создана при парсинге)")
+
+    print("="*60)
+
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
