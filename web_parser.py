@@ -2105,6 +2105,108 @@ def api_analytics_color_dynamics():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/analytics/material-dynamics', methods=['GET'])
+def api_analytics_material_dynamics():
+    """API для получения динамики растущих материалов по месяцам"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем данные по месяцам
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Группируем по месяцам и материалам
+        monthly_data = {}
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]
+                if year_month not in monthly_data:
+                    monthly_data[year_month] = {}
+
+                seen_materials = set()
+                for obj in image.get('ximilar_objects_structured', []):
+                    if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
+                        for material in obj['properties']['material_attributes']['Material']:
+                            material_name = material['name']
+
+                            if material_name not in seen_materials:
+                                seen_materials.add(material_name)
+                                if material_name not in monthly_data[year_month]:
+                                    monthly_data[year_month][material_name] = 0
+                                monthly_data[year_month][material_name] += 1
+            except Exception:
+                continue
+
+        sorted_months = sorted(monthly_data.keys())
+        if len(sorted_months) < 2:
+            return jsonify({
+                'success': True,
+                'months': [],
+                'series': [],
+                'message': 'Недостаточно данных для анализа динамики'
+            })
+
+        # Определяем топ-5 растущих материалов за последние периоды
+        recent_months = sorted_months[-3:] if len(sorted_months) >= 3 else sorted_months
+        material_changes = {}
+        all_materials = set()
+
+        for month in recent_months:
+            all_materials.update(monthly_data[month].keys())
+
+        for material in all_materials:
+            values = [monthly_data[month].get(material, 0) for month in recent_months]
+            if len(values) >= 2:
+                first_val = values[0] if values[0] > 0 else 1
+                last_val = values[-1]
+                growth_rate = ((last_val - first_val) / first_val) * 100
+
+                if growth_rate > 20:  # Только растущие материалы
+                    material_changes[material] = {
+                        'growth_rate': growth_rate,
+                        'current': last_val
+                    }
+
+        # Сортируем и берем топ-5 растущих материалов
+        top_emerging = sorted(material_changes.items(), key=lambda x: x[1]['growth_rate'], reverse=True)[:5]
+
+        # Формируем временные ряды для каждого из топ-5
+        series = []
+        for material, data in top_emerging:
+            values = [monthly_data[month].get(material, 0) for month in sorted_months]
+
+            series.append({
+                'name': material,
+                'data': values,
+                'growth_rate': round(data['growth_rate'], 1)
+            })
+
+        return jsonify({
+            'success': True,
+            'months': sorted_months,
+            'series': series
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/analytics/trend-predictions', methods=['GET'])
 def api_analytics_trend_predictions():
     """API для прогнозирования трендов"""

@@ -50,7 +50,7 @@ async function loadAllAnalytics() {
     try {
         console.log('📡 Fetching all API data...');
         const [categories, subcategories, colors, materials, styles, timeline,
-               trends, dynamics, colorDynamics, predictions, recommendations] = await Promise.all([
+               trends, dynamics, colorDynamics, materialDynamics, predictions, recommendations] = await Promise.all([
             fetch('/api/analytics/categories-stats').then(r => r.json()),
             fetch('/api/analytics/subcategories-stats').then(r => r.json()),
             fetch('/api/analytics/colors-stats').then(r => r.json()),
@@ -60,6 +60,7 @@ async function loadAllAnalytics() {
             fetch('/api/analytics/emerging-trends').then(r => r.json()),
             fetch('/api/analytics/emerging-trends-dynamics').then(r => r.json()),
             fetch('/api/analytics/color-dynamics').then(r => r.json()),
+            fetch('/api/analytics/material-dynamics').then(r => r.json()),
             fetch('/api/analytics/trend-predictions').then(r => r.json()),
             fetch('/api/analytics/recommendations').then(r => r.json())
         ]);
@@ -95,6 +96,7 @@ async function loadAllAnalytics() {
         if (trends.success) drawEmergingTrendsTop10Chart(trends.emerging.slice(0, 10));
         if (dynamics.success) drawEmergingTrendsDynamicsChart(dynamics);
         if (colorDynamics.success) drawColorDynamicsChart(colorDynamics);
+        if (materialDynamics.success) drawMaterialDynamicsChart(materialDynamics);
         if (predictions.success) {
             drawColorPredictionChart(predictions.color_predictions || []);
             drawCombinationsChart(predictions.top_combinations || []);
@@ -504,6 +506,84 @@ function drawColorDynamicsChart(dynamics) {
                         label: function(context) {
                             const colorData = dynamics.series[context.datasetIndex];
                             return colorData.name + ': ' + context.parsed.y + ' упоминаний';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Месяц'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { display: true },
+                    title: {
+                        display: true,
+                        text: 'Количество упоминаний'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function drawMaterialDynamicsChart(dynamics) {
+    const ctx = document.getElementById('materialDynamicsChart').getContext('2d');
+
+    // Создаём datasets для каждого материала
+    const datasets = dynamics.series.map((materialData, index) => {
+        const color = chartColors.palette[index % chartColors.palette.length];
+
+        return {
+            label: `${materialData.name} (+${materialData.growth_rate}%)`,
+            data: materialData.data,
+            borderColor: color,
+            backgroundColor: color + '20',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: false,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: color,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+        };
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dynamics.months,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: { size: 11 },
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return 'Месяц: ' + context[0].label;
+                        },
+                        label: function(context) {
+                            const materialData = dynamics.series[context.datasetIndex];
+                            return materialData.name + ': ' + context.parsed.y + ' упоминаний';
                         }
                     }
                 }
