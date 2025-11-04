@@ -2559,14 +2559,15 @@ def api_analytics_top_accessories_stats():
                 if category != 'Accessories':
                     continue
 
+                # Извлекаем только конкретную подкатегорию (не общую Category)
                 subcategory = ''
-
-                # Извлекаем подкатегорию
                 if obj.get('properties', {}).get('other_attributes'):
                     if obj['properties']['other_attributes'].get('Subcategory'):
                         subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                    elif obj['properties']['other_attributes'].get('Category'):
-                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                # Пропускаем записи без конкретной подкатегории
+                if not subcategory:
+                    continue
 
                 # Извлекаем цвет
                 colors = []
@@ -2575,22 +2576,21 @@ def api_analytics_top_accessories_stats():
                         colors.append(color['name'])
 
                 # Создаем комбинацию подкатегория + цвет
-                if subcategory:
-                    if colors:
-                        for color in colors:
-                            item_key = f"{subcategory} ({color})"
-                            if item_key not in seen_items:
-                                seen_items.add(item_key)
-                                if item_key not in item_counts:
-                                    item_counts[item_key] = 0
-                                item_counts[item_key] += 1
-                    else:
-                        # Если нет цвета, просто используем подкатегорию
-                        if subcategory not in seen_items:
-                            seen_items.add(subcategory)
-                            if subcategory not in item_counts:
-                                item_counts[subcategory] = 0
-                            item_counts[subcategory] += 1
+                if colors:
+                    for color in colors:
+                        item_key = f"{subcategory} ({color})"
+                        if item_key not in seen_items:
+                            seen_items.add(item_key)
+                            if item_key not in item_counts:
+                                item_counts[item_key] = 0
+                            item_counts[item_key] += 1
+                else:
+                    # Если нет цвета, используем подкатегорию без цвета
+                    if subcategory not in seen_items:
+                        seen_items.add(subcategory)
+                        if subcategory not in item_counts:
+                            item_counts[subcategory] = 0
+                        item_counts[subcategory] += 1
 
         # Сортируем и берем топ-20
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
@@ -2646,14 +2646,15 @@ def api_analytics_top_accessories_dynamics():
                     if category != 'Accessories':
                         continue
 
+                    # Извлекаем только конкретную подкатегорию (не общую Category)
                     subcategory = ''
-
-                    # Извлекаем подкатегорию
                     if obj.get('properties', {}).get('other_attributes'):
                         if obj['properties']['other_attributes'].get('Subcategory'):
                             subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                        elif obj['properties']['other_attributes'].get('Category'):
-                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    # Пропускаем записи без конкретной подкатегории
+                    if not subcategory:
+                        continue
 
                     # Извлекаем цвет
                     colors = []
@@ -2662,22 +2663,21 @@ def api_analytics_top_accessories_dynamics():
                             colors.append(color['name'])
 
                     # Создаем комбинацию подкатегория + цвет
-                    if subcategory:
-                        if colors:
-                            for color in colors:
-                                item_key = f"{subcategory} ({color})"
-                                if item_key not in seen_items:
-                                    seen_items.add(item_key)
-                                    if item_key not in monthly_data[year_month]:
-                                        monthly_data[year_month][item_key] = 0
-                                    monthly_data[year_month][item_key] += 1
-                        else:
-                            # Если нет цвета, просто используем подкатегорию
-                            if subcategory not in seen_items:
-                                seen_items.add(subcategory)
-                                if subcategory not in monthly_data[year_month]:
-                                    monthly_data[year_month][subcategory] = 0
-                                monthly_data[year_month][subcategory] += 1
+                    if colors:
+                        for color in colors:
+                            item_key = f"{subcategory} ({color})"
+                            if item_key not in seen_items:
+                                seen_items.add(item_key)
+                                if item_key not in monthly_data[year_month]:
+                                    monthly_data[year_month][item_key] = 0
+                                monthly_data[year_month][item_key] += 1
+                    else:
+                        # Если нет цвета, используем подкатегорию без цвета
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in monthly_data[year_month]:
+                                monthly_data[year_month][subcategory] = 0
+                            monthly_data[year_month][subcategory] += 1
             except Exception:
                 continue
 
@@ -2756,14 +2756,15 @@ def api_analytics_top_clothing_stats():
                 if category != 'Clothing':
                     continue
 
+                # Извлекаем только конкретную подкатегорию (не общую Category)
                 subcategory = ''
-
-                # Извлекаем подкатегорию
                 if obj.get('properties', {}).get('other_attributes'):
                     if obj['properties']['other_attributes'].get('Subcategory'):
                         subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                    elif obj['properties']['other_attributes'].get('Category'):
-                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                # Пропускаем записи без конкретной подкатегории
+                if not subcategory:
+                    continue
 
                 # Извлекаем цвет
                 colors = []
@@ -2772,22 +2773,21 @@ def api_analytics_top_clothing_stats():
                         colors.append(color['name'])
 
                 # Создаем комбинацию подкатегория + цвет
-                if subcategory:
-                    if colors:
-                        for color in colors:
-                            item_key = f"{subcategory} ({color})"
-                            if item_key not in seen_items:
-                                seen_items.add(item_key)
-                                if item_key not in item_counts:
-                                    item_counts[item_key] = 0
-                                item_counts[item_key] += 1
-                    else:
-                        # Если нет цвета, просто используем подкатегорию
-                        if subcategory not in seen_items:
-                            seen_items.add(subcategory)
-                            if subcategory not in item_counts:
-                                item_counts[subcategory] = 0
-                            item_counts[subcategory] += 1
+                if colors:
+                    for color in colors:
+                        item_key = f"{subcategory} ({color})"
+                        if item_key not in seen_items:
+                            seen_items.add(item_key)
+                            if item_key not in item_counts:
+                                item_counts[item_key] = 0
+                            item_counts[item_key] += 1
+                else:
+                    # Если нет цвета, используем подкатегорию без цвета
+                    if subcategory not in seen_items:
+                        seen_items.add(subcategory)
+                        if subcategory not in item_counts:
+                            item_counts[subcategory] = 0
+                        item_counts[subcategory] += 1
 
         # Сортируем и берем топ-20
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
@@ -2843,14 +2843,15 @@ def api_analytics_top_clothing_dynamics():
                     if category != 'Clothing':
                         continue
 
+                    # Извлекаем только конкретную подкатегорию (не общую Category)
                     subcategory = ''
-
-                    # Извлекаем подкатегорию
                     if obj.get('properties', {}).get('other_attributes'):
                         if obj['properties']['other_attributes'].get('Subcategory'):
                             subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                        elif obj['properties']['other_attributes'].get('Category'):
-                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    # Пропускаем записи без конкретной подкатегории
+                    if not subcategory:
+                        continue
 
                     # Извлекаем цвет
                     colors = []
@@ -2859,22 +2860,21 @@ def api_analytics_top_clothing_dynamics():
                             colors.append(color['name'])
 
                     # Создаем комбинацию подкатегория + цвет
-                    if subcategory:
-                        if colors:
-                            for color in colors:
-                                item_key = f"{subcategory} ({color})"
-                                if item_key not in seen_items:
-                                    seen_items.add(item_key)
-                                    if item_key not in monthly_data[year_month]:
-                                        monthly_data[year_month][item_key] = 0
-                                    monthly_data[year_month][item_key] += 1
-                        else:
-                            # Если нет цвета, просто используем подкатегорию
-                            if subcategory not in seen_items:
-                                seen_items.add(subcategory)
-                                if subcategory not in monthly_data[year_month]:
-                                    monthly_data[year_month][subcategory] = 0
-                                monthly_data[year_month][subcategory] += 1
+                    if colors:
+                        for color in colors:
+                            item_key = f"{subcategory} ({color})"
+                            if item_key not in seen_items:
+                                seen_items.add(item_key)
+                                if item_key not in monthly_data[year_month]:
+                                    monthly_data[year_month][item_key] = 0
+                                monthly_data[year_month][item_key] += 1
+                    else:
+                        # Если нет цвета, используем подкатегорию без цвета
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in monthly_data[year_month]:
+                                monthly_data[year_month][subcategory] = 0
+                            monthly_data[year_month][subcategory] += 1
             except Exception:
                 continue
 
@@ -2953,14 +2953,15 @@ def api_analytics_top_footwear_stats():
                 if category != 'Footwear':
                     continue
 
+                # Извлекаем только конкретную подкатегорию (не общую Category)
                 subcategory = ''
-
-                # Извлекаем подкатегорию
                 if obj.get('properties', {}).get('other_attributes'):
                     if obj['properties']['other_attributes'].get('Subcategory'):
                         subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                    elif obj['properties']['other_attributes'].get('Category'):
-                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                # Пропускаем записи без конкретной подкатегории
+                if not subcategory:
+                    continue
 
                 # Извлекаем цвет
                 colors = []
@@ -2969,22 +2970,21 @@ def api_analytics_top_footwear_stats():
                         colors.append(color['name'])
 
                 # Создаем комбинацию подкатегория + цвет
-                if subcategory:
-                    if colors:
-                        for color in colors:
-                            item_key = f"{subcategory} ({color})"
-                            if item_key not in seen_items:
-                                seen_items.add(item_key)
-                                if item_key not in item_counts:
-                                    item_counts[item_key] = 0
-                                item_counts[item_key] += 1
-                    else:
-                        # Если нет цвета, просто используем подкатегорию
-                        if subcategory not in seen_items:
-                            seen_items.add(subcategory)
-                            if subcategory not in item_counts:
-                                item_counts[subcategory] = 0
-                            item_counts[subcategory] += 1
+                if colors:
+                    for color in colors:
+                        item_key = f"{subcategory} ({color})"
+                        if item_key not in seen_items:
+                            seen_items.add(item_key)
+                            if item_key not in item_counts:
+                                item_counts[item_key] = 0
+                            item_counts[item_key] += 1
+                else:
+                    # Если нет цвета, просто используем подкатегорию
+                    if subcategory not in seen_items:
+                        seen_items.add(subcategory)
+                        if subcategory not in item_counts:
+                            item_counts[subcategory] = 0
+                        item_counts[subcategory] += 1
 
         # Сортируем и берем топ-20
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
@@ -3040,14 +3040,15 @@ def api_analytics_top_footwear_dynamics():
                     if category != 'Footwear':
                         continue
 
+                    # Извлекаем только конкретную подкатегорию (не общую Category)
                     subcategory = ''
-
-                    # Извлекаем подкатегорию
                     if obj.get('properties', {}).get('other_attributes'):
                         if obj['properties']['other_attributes'].get('Subcategory'):
                             subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                        elif obj['properties']['other_attributes'].get('Category'):
-                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    # Пропускаем записи без конкретной подкатегории
+                    if not subcategory:
+                        continue
 
                     # Извлекаем цвет
                     colors = []
@@ -3056,22 +3057,21 @@ def api_analytics_top_footwear_dynamics():
                             colors.append(color['name'])
 
                     # Создаем комбинацию подкатегория + цвет
-                    if subcategory:
-                        if colors:
-                            for color in colors:
-                                item_key = f"{subcategory} ({color})"
-                                if item_key not in seen_items:
-                                    seen_items.add(item_key)
-                                    if item_key not in monthly_data[year_month]:
-                                        monthly_data[year_month][item_key] = 0
-                                    monthly_data[year_month][item_key] += 1
-                        else:
-                            # Если нет цвета, просто используем подкатегорию
-                            if subcategory not in seen_items:
-                                seen_items.add(subcategory)
-                                if subcategory not in monthly_data[year_month]:
-                                    monthly_data[year_month][subcategory] = 0
-                                monthly_data[year_month][subcategory] += 1
+                    if colors:
+                        for color in colors:
+                            item_key = f"{subcategory} ({color})"
+                            if item_key not in seen_items:
+                                seen_items.add(item_key)
+                                if item_key not in monthly_data[year_month]:
+                                    monthly_data[year_month][item_key] = 0
+                                monthly_data[year_month][item_key] += 1
+                    else:
+                        # Если нет цвета, просто используем подкатегорию
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in monthly_data[year_month]:
+                                monthly_data[year_month][subcategory] = 0
+                            monthly_data[year_month][subcategory] += 1
             except Exception:
                 continue
 
