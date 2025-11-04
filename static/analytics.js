@@ -50,7 +50,7 @@ async function loadAllAnalytics() {
     try {
         console.log('📡 Fetching all API data...');
         const [categories, subcategories, colors, materials, styles, timeline,
-               trends, dynamics, colorDynamics, materialDynamics, predictions, recommendations] = await Promise.all([
+               trends, dynamics, colorDynamics, materialDynamics, predictions] = await Promise.all([
             fetch('/api/analytics/categories-stats').then(r => r.json()),
             fetch('/api/analytics/subcategories-stats').then(r => r.json()),
             fetch('/api/analytics/colors-stats').then(r => r.json()),
@@ -61,8 +61,7 @@ async function loadAllAnalytics() {
             fetch('/api/analytics/emerging-trends-dynamics').then(r => r.json()),
             fetch('/api/analytics/color-dynamics').then(r => r.json()),
             fetch('/api/analytics/material-dynamics').then(r => r.json()),
-            fetch('/api/analytics/trend-predictions').then(r => r.json()),
-            fetch('/api/analytics/recommendations').then(r => r.json())
+            fetch('/api/analytics/trend-predictions').then(r => r.json())
         ]);
 
         console.log('✅ All data fetched successfully');
@@ -100,11 +99,6 @@ async function loadAllAnalytics() {
         if (predictions.success) {
             drawColorPredictionChart(predictions.color_predictions || []);
             drawCombinationsChart(predictions.top_combinations || []);
-        }
-
-        // Рисуем рекомендации
-        if (recommendations.success) {
-            drawRecommendations(recommendations.recommendations);
         }
 
         console.log('✅ All analytics loaded successfully!');
@@ -664,27 +658,6 @@ function drawCombinationsChart(combinations) {
                 y: { grid: { display: false } }
             }
         }
-    });
-}
-
-function drawRecommendations(recommendations) {
-    const container = document.getElementById('recommendationsList');
-    container.innerHTML = '';
-
-    recommendations.forEach(rec => {
-        const item = document.createElement('li');
-        item.className = 'recommendation-item';
-        item.innerHTML = `
-            <h5>${rec.title}</h5>
-            <p>${rec.description}</p>
-            <div class="confidence-bar">
-                <div class="confidence-fill" style="width: ${rec.confidence * 100}%"></div>
-            </div>
-            <small style="color: #6c757d; margin-top: 5px; display: block;">
-                Уверенность: ${(rec.confidence * 100).toFixed(0)}%
-            </small>
-        `;
-        container.appendChild(item);
     });
 }
 
