@@ -46,6 +46,18 @@ function hideAllLines(chartId) {
         chart.hide(index);
     });
     chart.update();
+
+    // Обновляем HTML-легенду
+    const legendContainer = document.getElementById(chartId + 'Legend');
+    if (legendContainer) {
+        const legendItems = legendContainer.querySelectorAll('.legend-item');
+        legendItems.forEach((item, index) => {
+            const checkmark = item.querySelector('.legend-circle span');
+            const label = item.querySelector('span:last-child');
+            if (checkmark) checkmark.style.display = 'none';
+            if (label) label.style.opacity = '0.5';
+        });
+    }
 }
 
 // Функция для показа всех линий на графике
@@ -57,6 +69,18 @@ function showAllLines(chartId) {
         chart.show(index);
     });
     chart.update();
+
+    // Обновляем HTML-легенду
+    const legendContainer = document.getElementById(chartId + 'Legend');
+    if (legendContainer) {
+        const legendItems = legendContainer.querySelectorAll('.legend-item');
+        legendItems.forEach((item, index) => {
+            const checkmark = item.querySelector('.legend-circle span');
+            const label = item.querySelector('span:last-child');
+            if (checkmark) checkmark.style.display = 'block';
+            if (label) label.style.opacity = '1';
+        });
+    }
 }
 
 // Функция для создания HTML-легенды с галочками в цветных кружках
