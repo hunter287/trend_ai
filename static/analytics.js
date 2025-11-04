@@ -50,7 +50,7 @@ async function loadAllAnalytics() {
     try {
         console.log('📡 Fetching all API data...');
         const [categories, subcategories, colors, materials, styles, timeline,
-               trends, dynamics, colorDynamics, materialDynamics, predictions] = await Promise.all([
+               trends, dynamics, colorDynamics, materialDynamics] = await Promise.all([
             fetch('/api/analytics/categories-stats').then(r => r.json()),
             fetch('/api/analytics/subcategories-stats').then(r => r.json()),
             fetch('/api/analytics/colors-stats').then(r => r.json()),
@@ -60,8 +60,7 @@ async function loadAllAnalytics() {
             fetch('/api/analytics/emerging-trends').then(r => r.json()),
             fetch('/api/analytics/emerging-trends-dynamics').then(r => r.json()),
             fetch('/api/analytics/color-dynamics').then(r => r.json()),
-            fetch('/api/analytics/material-dynamics').then(r => r.json()),
-            fetch('/api/analytics/trend-predictions').then(r => r.json())
+            fetch('/api/analytics/material-dynamics').then(r => r.json())
         ]);
 
         console.log('✅ All data fetched successfully');
@@ -96,10 +95,6 @@ async function loadAllAnalytics() {
         if (dynamics.success) drawEmergingTrendsDynamicsChart(dynamics);
         if (colorDynamics.success) drawColorDynamicsChart(colorDynamics);
         if (materialDynamics.success) drawMaterialDynamicsChart(materialDynamics);
-        if (predictions.success) {
-            drawColorPredictionChart(predictions.color_predictions || []);
-            drawCombinationsChart(predictions.top_combinations || []);
-        }
 
         console.log('✅ All analytics loaded successfully!');
 
@@ -598,64 +593,6 @@ function drawMaterialDynamicsChart(dynamics) {
                         text: 'Количество упоминаний'
                     }
                 }
-            }
-        }
-    });
-}
-
-function drawColorPredictionChart(predictions) {
-    const ctx = document.getElementById('colorPredictionChart').getContext('2d');
-    const backgroundColors = predictions.map(p => colorMapping[p.color] || chartColors.palette[0]);
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: predictions.map(p => p.color),
-            datasets: [{
-                label: 'Прогноз популярности',
-                data: predictions.map(p => p.predicted_score),
-                backgroundColor: backgroundColors,
-                borderColor: '#fff',
-                borderWidth: 1,
-                borderRadius: 8
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { beginAtZero: true },
-                y: { grid: { display: false } }
-            }
-        }
-    });
-}
-
-function drawCombinationsChart(combinations) {
-    const ctx = document.getElementById('combinationsChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: combinations.map(c => c.name),
-            datasets: [{
-                label: 'Прогноз engagement',
-                data: combinations.map(c => c.engagement_score),
-                backgroundColor: chartColors.palette[1],
-                borderRadius: 8
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { beginAtZero: true },
-                y: { grid: { display: false } }
             }
         }
     });
