@@ -81,20 +81,6 @@ async function loadAllAnalytics() {
             document.getElementById('totalMaterials').textContent = materials.materials.length;
         }
 
-        // Обновляем статистику прогнозов
-        if (trends.success) {
-            document.getElementById('emergingTrendsCount').textContent = trends.emerging.length;
-            document.getElementById('decliningTrendsCount').textContent = trends.declining.length;
-        }
-
-        if (predictions.success) {
-            const avgEngagement = predictions.overall_metrics?.predicted_engagement || 0;
-            document.getElementById('predictedEngagement').textContent = '+' + avgEngagement.toFixed(0) + '%';
-
-            const confidence = predictions.confidence_score || 0;
-            document.getElementById('confidenceScore').textContent = (confidence * 100).toFixed(0) + '%';
-        }
-
         // Рисуем графики трендов
         console.log('🎨 Drawing trends charts...');
         if (categories.success) drawCategoriesChart(categories.categories);
@@ -103,11 +89,6 @@ async function loadAllAnalytics() {
         if (materials.success) drawMaterialsChart(materials.materials);
         if (styles.success) drawStylesChart(styles.styles);
         if (timeline.success) drawTimelineChart(timeline.timeline);
-
-        // Рисуем инсайты
-        if (predictions.success && predictions.insights) {
-            drawInsights(predictions.insights);
-        }
 
         // Рисуем графики прогнозов
         console.log('🔮 Drawing predictive charts...');
@@ -355,21 +336,6 @@ function drawTimelineChart(timeline) {
 // ============================================
 // ФУНКЦИИ ОТРИСОВКИ
 // ============================================
-
-function drawInsights(insights) {
-    const container = document.getElementById('insightsContainer');
-    container.innerHTML = '';
-
-    insights.forEach(insight => {
-        const card = document.createElement('div');
-        card.className = 'insight-card';
-        card.innerHTML = `
-            <h4>💡 ${insight.title}</h4>
-            <p>${insight.description}</p>
-        `;
-        container.appendChild(card);
-    });
-}
 
 function drawEmergingTrendsTop10Chart(trends) {
     const ctx = document.getElementById('emergingTrendsTop10Chart').getContext('2d');

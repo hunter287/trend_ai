@@ -375,42 +375,6 @@
                 </div>
 
                     <div class="chart-card">
-                        <h3>📈 Тренды по времени</h3>
-                        <div class="chart-container large">
-                            <canvas id="timelineChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Прогнозная аналитика -->
-                <h2 style="margin: 50px 0 30px 0; color: #333; font-size: 2em; text-align: center;">🔮 Прогнозная аналитика</h2>
-
-                <!-- Обзор прогнозов -->
-                <div class="stats-overview" id="predictiveStats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="emergingTrendsCount">-</div>
-                        <div class="stat-label">Растущих трендов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="decliningTrendsCount">-</div>
-                        <div class="stat-label">Угасающих трендов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="predictedEngagement">-</div>
-                        <div class="stat-label">Прогноз engagement</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="confidenceScore">-</div>
-                        <div class="stat-label">Точность прогноза</div>
-                    </div>
-                </div>
-
-                <!-- Инсайты и рекомендации -->
-                <div id="insightsContainer"></div>
-
-                <!-- Графики прогнозов -->
-                <div class="dashboard-grid">
-                    <div class="chart-card">
                         <h3>🚀 Топ-10 растущих трендов</h3>
                         <div class="chart-container">
                             <canvas id="emergingTrendsTop10Chart"></canvas>
@@ -446,6 +410,13 @@
                     </div>
                 </div>
 
+                <div class="chart-card">
+                    <h3>📈 Тренды по времени</h3>
+                    <div class="chart-container large">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- Рекомендации -->
                 <div class="chart-card">
                     <h3>💼 Рекомендации для контента</h3>
@@ -455,6 +426,6 @@
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=6"></script>
+    <script src="/static/analytics.js?v=7"></script>
 </body>
 </html>
