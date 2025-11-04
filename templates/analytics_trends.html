@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Модные тренды - Аналитика</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: rgba(255,255,255,0.9);
+            color: #667eea;
+            border-color: white;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .chart-container.large {
+            height: 450px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        .loading:after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+        }
+
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .color-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 3px solid white;
+        }
+
+        .color-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-align: center;
+        }
+
+        .color-count {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Модные тренды</h1>
+            <p>Аналитика модных трендов на основе данных Instagram</p>
+
+            <div class="navigation">
+                <a href="/" class="nav-btn">🔍 Парсер</a>
+                <a href="/gallery" class="nav-btn">📷 Галерея</a>
+                <a href="/gallery_to_tag" class="nav-btn">🏷️ Выбрано для теггирования</a>
+                <a href="/gallery_tagged" class="nav-btn">✅ Оттегированы</a>
+                <a href="/gallery_hidden" class="nav-btn">🙈 Скрытые</a>
+                <a href="/analytics/trends" class="nav-btn active">📊 Аналитика</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Обзорная статистика -->
+            <div class="stats-overview" id="statsOverview">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalImages">-</div>
+                    <div class="stat-label">Изображений проанализировано</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCategories">-</div>
+                    <div class="stat-label">Категорий обнаружено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalColors">-</div>
+                    <div class="stat-label">Уникальных цветов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalMaterials">-</div>
+                    <div class="stat-label">Типов материалов</div>
+                </div>
+            </div>
+
+            <!-- Дашборды -->
+            <div class="dashboard-grid">
+                <!-- Популярные категории -->
+                <div class="chart-card">
+                    <h3>👗 Популярные категории</h3>
+                    <div class="chart-container">
+                        <canvas id="categoriesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Топ-10 подкатегорий -->
+                <div class="chart-card">
+                    <h3>🔥 Топ-10 подкатегорий</h3>
+                    <div class="chart-container">
+                        <canvas id="subcategoriesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Популярные цвета -->
+                <div class="chart-card">
+                    <h3>🎨 Популярные цвета</h3>
+                    <div class="chart-container">
+                        <canvas id="colorsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Популярные материалы -->
+                <div class="chart-card">
+                    <h3>🧵 Популярные материалы</h3>
+                    <div class="chart-container">
+                        <canvas id="materialsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Популярные стили -->
+                <div class="chart-card">
+                    <h3>✨ Популярные стили</h3>
+                    <div class="chart-container">
+                        <canvas id="stylesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Тренды по времени (полная ширина) -->
+            <div class="chart-card">
+                <h3>📈 Тренды по времени</h3>
+                <div class="chart-container large">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация цветов для графиков
+        const chartColors = {
+            primary: '#667eea',
+            secondary: '#764ba2',
+            success: '#28a745',
+            danger: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8',
+            palette: [
+                '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+                '#a8edea', '#fed6e3', '#c471ed', '#12c2e9'
+            ]
+        };
+
+        // Маппинг цветов на CSS цвета
+        const colorMapping = {
+            'Black': '#000000',
+            'White': '#FFFFFF',
+            'Red': '#FF0000',
+            'Blue': '#0000FF',
+            'Green': '#00FF00',
+            'Yellow': '#FFFF00',
+            'Pink': '#FFC0CB',
+            'Purple': '#800080',
+            'Orange': '#FFA500',
+            'Brown': '#8B4513',
+            'Gray': '#808080',
+            'Grey': '#808080',
+            'Beige': '#F5F5DC',
+            'Navy': '#000080',
+            'Turquoise': '#40E0D0',
+            'Gold': '#FFD700',
+            'Silver': '#C0C0C0'
+        };
+
+        // Загрузка данных
+        async function loadAnalytics() {
+            try {
+                // Загружаем все данные параллельно
+                const [categories, subcategories, colors, materials, styles, timeline] = await Promise.all([
+                    fetch('/api/analytics/categories-stats').then(r => r.json()),
+                    fetch('/api/analytics/subcategories-stats').then(r => r.json()),
+                    fetch('/api/analytics/colors-stats').then(r => r.json()),
+                    fetch('/api/analytics/materials-stats').then(r => r.json()),
+                    fetch('/api/analytics/styles-stats').then(r => r.json()),
+                    fetch('/api/analytics/trends-timeline').then(r => r.json())
+                ]);
+
+                // Обновляем статистику
+                if (categories.success) {
+                    const totalImages = categories.categories.reduce((sum, c) => sum + c.count, 0);
+                    document.getElementById('totalImages').textContent = totalImages.toLocaleString();
+                    document.getElementById('totalCategories').textContent = categories.categories.length;
+                }
+
+                if (colors.success) {
+                    document.getElementById('totalColors').textContent = colors.colors.length;
+                }
+
+                if (materials.success) {
+                    document.getElementById('totalMaterials').textContent = materials.materials.length;
+                }
+
+                // Рисуем графики
+                if (categories.success) drawCategoriesChart(categories.categories);
+                if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
+                if (colors.success) drawColorsChart(colors.colors);
+                if (materials.success) drawMaterialsChart(materials.materials);
+                if (styles.success) drawStylesChart(styles.styles);
+                if (timeline.success) drawTimelineChart(timeline.timeline);
+
+            } catch (error) {
+                console.error('Ошибка загрузки аналитики:', error);
+                document.querySelector('.content').insertAdjacentHTML('afterbegin',
+                    '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
+            }
+        }
+
+        // График категорий (круговая диаграмма)
+        function drawCategoriesChart(data) {
+            const ctx = document.getElementById('categoriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График подкатегорий (горизонтальная гистограмма)
+        function drawSubcategoriesChart(data) {
+            const ctx = document.getElementById('subcategoriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        label: 'Количество',
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette[0],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return data[context[0].dataIndex].name + ' (' + data[context[0].dataIndex].category + ')';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График цветов (горизонтальная гистограмма с цветами)
+        function drawColorsChart(data) {
+            const ctx = document.getElementById('colorsChart').getContext('2d');
+
+            // Создаем цвета для баров на основе названий
+            const backgroundColors = data.map(d => {
+                const colorName = d.name;
+                return colorMapping[colorName] || chartColors.palette[0];
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        label: 'Количество',
+                        data: data.map(d => d.count),
+                        backgroundColor: backgroundColors,
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График материалов (круговая диаграмма)
+        function drawMaterialsChart(data) {
+            const ctx = document.getElementById('materialsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График стилей (круговая диаграмма)
+        function drawStylesChart(data) {
+            const ctx = document.getElementById('stylesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График трендов по времени (линейный график)
+        function drawTimelineChart(timeline) {
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+
+            const datasets = Object.keys(timeline.series).map((category, index) => ({
+                label: category,
+                data: timeline.series[category],
+                borderColor: chartColors.palette[index % chartColors.palette.length],
+                backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeline.months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Месяц: ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Загрузка данных при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalytics();
+        });
+    </script>
+</body>
+</html>
