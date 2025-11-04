@@ -34,6 +34,31 @@ const colorMapping = {
     'Silver': '#C0C0C0'
 };
 
+// Глобальное хранилище для Chart instances
+const chartInstances = {};
+
+// Функция для скрытия всех линий на графике
+function hideAllLines(chartId) {
+    const chart = chartInstances[chartId];
+    if (!chart) return;
+
+    chart.data.datasets.forEach((dataset, index) => {
+        chart.hide(index);
+    });
+    chart.update();
+}
+
+// Функция для показа всех линий на графике
+function showAllLines(chartId) {
+    const chart = chartInstances[chartId];
+    if (!chart) return;
+
+    chart.data.datasets.forEach((dataset, index) => {
+        chart.show(index);
+    });
+    chart.update();
+}
+
 // ============================================
 // ЗАГРУЗКА ВСЕЙ АНАЛИТИКИ
 // ============================================
@@ -301,7 +326,7 @@ function drawTimelineChart(timeline) {
         fill: true
     }));
 
-    new Chart(ctx, {
+    chartInstances['timelineChart'] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: timeline.months,
@@ -390,7 +415,7 @@ function drawEmergingTrendsDynamicsChart(dynamics) {
         pointHoverRadius: 6
     }));
 
-    new Chart(ctx, {
+    chartInstances['emergingTrendsDynamicsChart'] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -469,7 +494,7 @@ function drawColorDynamicsChart(dynamics) {
         };
     });
 
-    new Chart(ctx, {
+    chartInstances['colorDynamicsChart'] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -547,7 +572,7 @@ function drawMaterialDynamicsChart(dynamics) {
         };
     });
 
-    new Chart(ctx, {
+    chartInstances['materialDynamicsChart'] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,
@@ -670,7 +695,7 @@ function drawTopItemsDynamicsChart(dynamics) {
         };
     });
 
-    new Chart(ctx, {
+    chartInstances['topItemsDynamicsChart'] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dynamics.months,

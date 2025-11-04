@@ -249,6 +249,35 @@
         .content-wrapper.loaded {
             display: block;
         }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: flex-end;
+        }
+
+        .chart-control-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chart-control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .chart-control-btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -343,6 +372,10 @@
 
                 <div class="chart-card">
                     <h3>📈 Динамика топ-20 вещей</h3>
+                    <div class="chart-controls">
+                        <button onclick="hideAllLines('topItemsDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                        <button onclick="showAllLines('topItemsDynamicsChart')" class="chart-control-btn">Показать все</button>
+                    </div>
                     <div class="chart-container large">
                         <canvas id="topItemsDynamicsChart"></canvas>
                     </div>
@@ -357,6 +390,10 @@
 
                     <div class="chart-card">
                         <h3>📈 Динамика растущих трендов</h3>
+                        <div class="chart-controls">
+                            <button onclick="hideAllLines('emergingTrendsDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                            <button onclick="showAllLines('emergingTrendsDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        </div>
                         <div class="chart-container">
                             <canvas id="emergingTrendsDynamicsChart"></canvas>
                         </div>
@@ -364,6 +401,10 @@
 
                     <div class="chart-card">
                         <h3>🎨 Динамика растущих цветов</h3>
+                        <div class="chart-controls">
+                            <button onclick="hideAllLines('colorDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                            <button onclick="showAllLines('colorDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        </div>
                         <div class="chart-container">
                             <canvas id="colorDynamicsChart"></canvas>
                         </div>
@@ -371,6 +412,10 @@
 
                     <div class="chart-card">
                         <h3>🧵 Динамика растущих материалов</h3>
+                        <div class="chart-controls">
+                            <button onclick="hideAllLines('materialDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                            <button onclick="showAllLines('materialDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        </div>
                         <div class="chart-container">
                             <canvas id="materialDynamicsChart"></canvas>
                         </div>
@@ -379,6 +424,10 @@
 
                 <div class="chart-card">
                     <h3>📈 Тренды по времени</h3>
+                    <div class="chart-controls">
+                        <button onclick="hideAllLines('timelineChart')" class="chart-control-btn">Скрыть все</button>
+                        <button onclick="showAllLines('timelineChart')" class="chart-control-btn">Показать все</button>
+                    </div>
                     <div class="chart-container large">
                         <canvas id="timelineChart"></canvas>
                     </div>
@@ -387,6 +436,6 @@
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=11"></script>
+    <script src="/static/analytics.js?v=12"></script>
 </body>
 </html>
