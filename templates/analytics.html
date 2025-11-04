@@ -75,52 +75,8 @@
             border-color: white;
         }
 
-        .tabs-container {
-            display: flex;
-            justify-content: center;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-            padding: 0 40px;
-        }
-
-        .tab {
-            padding: 20px 40px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #6c757d;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            position: relative;
-            user-select: none;
-        }
-
-        .tab:hover {
-            color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            background: white;
-        }
-
-        .tab-icon {
-            font-size: 1.3em;
-            margin-right: 8px;
-        }
-
         .content {
             padding: 40px;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in;
         }
 
         @keyframes fadeIn {
@@ -338,8 +294,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Аналитика</h1>
-            <p>Комплексный анализ модных трендов и прогнозирование</p>
+            <h1>📊 Аналитика модных трендов</h1>
+            <p>Комплексный анализ и прогнозирование модных трендов</p>
 
             <div class="navigation">
                 <a href="/" class="nav-btn">🔍 Парсер</a>
@@ -351,29 +307,15 @@
             </div>
         </div>
 
-        <!-- Вкладки -->
-        <div class="tabs-container">
-            <div class="tab active" data-tab="trends">
-                <span class="tab-icon">📈</span>
-                Модные тренды
-            </div>
-            <div class="tab" data-tab="predictive">
-                <span class="tab-icon">🔮</span>
-                Прогнозная аналитика
-            </div>
-        </div>
-
         <div class="content">
-            <!-- Вкладка: Модные тренды -->
-            <div class="tab-content active" id="trends-content">
-                <!-- Loader -->
-                <div class="loader-container" id="trendsLoader">
-                    <div class="spinner"></div>
-                    <div class="loader-text">Загрузка аналитики трендов...</div>
-                </div>
+            <!-- Loader -->
+            <div class="loader-container" id="analyticsLoader">
+                <div class="spinner"></div>
+                <div class="loader-text">Загрузка аналитики...</div>
+            </div>
 
-                <!-- Content -->
-                <div class="content-wrapper" id="trendsContentWrapper">
+            <!-- Content -->
+            <div class="content-wrapper" id="analyticsContentWrapper">
                     <!-- Обзорная статистика -->
                     <div class="stats-overview" id="statsOverview">
                     <div class="stat-card">
@@ -439,22 +381,12 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Вкладка: Прогнозная аналитика -->
-            <div class="tab-content" id="predictive-content">
-                <!-- Loader -->
-                <div class="loader-container" id="predictiveLoader">
-                    <div class="spinner"></div>
-                    <div class="loader-text">Загрузка прогнозной аналитики...</div>
-                </div>
+                <!-- Прогнозная аналитика -->
+                <h2 style="margin: 50px 0 30px 0; color: #333; font-size: 2em; text-align: center;">🔮 Прогнозная аналитика</h2>
 
-                <!-- Content -->
-                <div class="content-wrapper" id="predictiveContentWrapper">
-                    <h2 style="margin-bottom: 30px; color: #333;">🔮 Прогнозная аналитика</h2>
-
-                    <!-- Обзор прогнозов -->
-                    <div class="stats-overview" id="predictiveStats">
+                <!-- Обзор прогнозов -->
+                <div class="stats-overview" id="predictiveStats">
                     <div class="stat-card">
                         <div class="stat-value" id="emergingTrendsCount">-</div>
                         <div class="stat-label">Растущих трендов</div>
@@ -514,16 +446,15 @@
                     </div>
                 </div>
 
-                    <!-- Рекомендации -->
-                    <div class="chart-card">
-                        <h3>💼 Рекомендации для контента</h3>
-                        <ul class="recommendation-list" id="recommendationsList"></ul>
-                    </div>
+                <!-- Рекомендации -->
+                <div class="chart-card">
+                    <h3>💼 Рекомендации для контента</h3>
+                    <ul class="recommendation-list" id="recommendationsList"></ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=5"></script>
+    <script src="/static/analytics.js?v=6"></script>
 </body>
 </html>
