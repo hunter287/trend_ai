@@ -420,8 +420,10 @@ async function loadPredictiveAnalytics() {
 
         // Рисуем графики
         if (trends.success) {
-            drawTrendDirectionChart(trends.emerging, trends.declining);
-            drawEmergingTrendsChart(trends.emerging.slice(0, 5));
+            console.log('📊 Drawing emerging trends (top 10)');
+            drawEmergingTrendsTop10Chart(trends.emerging.slice(0, 10));
+            console.log('📊 Drawing declining trends (top 10)');
+            drawDecliningTrendsTop10Chart(trends.declining.slice(0, 10));
         }
 
         if (predictions.success) {
@@ -460,34 +462,8 @@ function drawInsights(insights) {
     });
 }
 
-function drawTrendDirectionChart(emerging, declining) {
-    const ctx = document.getElementById('trendDirectionChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Растущие тренды', 'Угасающие тренды', 'Стабильные'],
-            datasets: [{
-                data: [emerging.length, declining.length, Math.max(0, 20 - emerging.length - declining.length)],
-                backgroundColor: [chartColors.success, chartColors.danger, chartColors.warning],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
-                }
-            }
-        }
-    });
-}
-
-function drawEmergingTrendsChart(trends) {
-    const ctx = document.getElementById('emergingTrendsChart').getContext('2d');
+function drawEmergingTrendsTop10Chart(trends) {
+    const ctx = document.getElementById('emergingTrendsTop10Chart').getContext('2d');
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -504,10 +480,74 @@ function drawEmergingTrendsChart(trends) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            return trends[index].name + ' (' + trends[index].category + ')';
+                        }
+                    }
+                }
             },
             scales: {
-                x: { beginAtZero: true },
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Рост (%)'
+                    }
+                },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function drawDecliningTrendsTop10Chart(trends) {
+    const ctx = document.getElementById('decliningTrendsTop10Chart').getContext('2d');
+
+    // Преобразуем отрицательные значения в положительные для визуализации
+    const absData = trends.map(t => Math.abs(t.growth_rate));
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: trends.map(t => t.name),
+            datasets: [{
+                label: 'Падение (%)',
+                data: absData,
+                backgroundColor: chartColors.danger,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            return trends[index].name + ' (' + trends[index].category + ')';
+                        },
+                        label: function(context) {
+                            // Показываем со знаком минус
+                            return 'Падение: ' + trends[context.dataIndex].growth_rate.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Падение (%)'
+                    }
+                },
                 y: { grid: { display: false } }
             }
         }
