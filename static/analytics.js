@@ -847,8 +847,9 @@ function drawMaterialDynamicsChart(dynamics) {
 
 function drawTopAccessoriesChart(items) {
     const ctx = document.getElementById('topAccessoriesChart').getContext('2d');
+    const canvas = ctx.canvas;
 
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: items.map(item => item.name),
@@ -863,11 +864,39 @@ function drawTopAccessoriesChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            onClick: (event, elements) => {
+            onClick: (event, elements, chart) => {
+                // Клик на столбец
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Accessories');
+                    return;
+                }
+
+                // Клик на label (текст на оси Y)
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, попали ли в область labels
+                if (canvasPosition.x < dataY.left) {
+                    const index = dataY.getValueForPixel(canvasPosition.y);
+                    if (index >= 0 && index < items.length) {
+                        const itemName = items[index].name;
+                        openItemGallery(itemName, 'Accessories');
+                    }
+                }
+            },
+            onHover: (event, activeElements, chart) => {
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, наведен ли курсор на label
+                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
+                    canvas.style.cursor = 'pointer';
+                } else if (activeElements.length > 0) {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -895,7 +924,8 @@ function drawTopAccessoriesChart(items) {
                 y: {
                     grid: { display: false },
                     ticks: {
-                        font: { size: 11 }
+                        font: { size: 11 },
+                        color: '#667eea'
                     }
                 }
             }
@@ -977,8 +1007,9 @@ function drawTopAccessoriesDynamicsChart(dynamics) {
 
 function drawTopClothingChart(items) {
     const ctx = document.getElementById('topClothingChart').getContext('2d');
+    const canvas = ctx.canvas;
 
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: items.map(item => item.name),
@@ -993,11 +1024,39 @@ function drawTopClothingChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            onClick: (event, elements) => {
+            onClick: (event, elements, chart) => {
+                // Клик на столбец
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Clothing');
+                    return;
+                }
+
+                // Клик на label (текст на оси Y)
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, попали ли в область labels
+                if (canvasPosition.x < dataY.left) {
+                    const index = dataY.getValueForPixel(canvasPosition.y);
+                    if (index >= 0 && index < items.length) {
+                        const itemName = items[index].name;
+                        openItemGallery(itemName, 'Clothing');
+                    }
+                }
+            },
+            onHover: (event, activeElements, chart) => {
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, наведен ли курсор на label
+                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
+                    canvas.style.cursor = 'pointer';
+                } else if (activeElements.length > 0) {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -1025,7 +1084,8 @@ function drawTopClothingChart(items) {
                 y: {
                     grid: { display: false },
                     ticks: {
-                        font: { size: 11 }
+                        font: { size: 11 },
+                        color: '#667eea'
                     }
                 }
             }
@@ -1107,8 +1167,9 @@ function drawTopClothingDynamicsChart(dynamics) {
 
 function drawTopFootwearChart(items) {
     const ctx = document.getElementById('topFootwearChart').getContext('2d');
+    const canvas = ctx.canvas;
 
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: items.map(item => item.name),
@@ -1123,11 +1184,39 @@ function drawTopFootwearChart(items) {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            onClick: (event, elements) => {
+            onClick: (event, elements, chart) => {
+                // Клик на столбец
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const itemName = items[index].name;
                     openItemGallery(itemName, 'Footwear');
+                    return;
+                }
+
+                // Клик на label (текст на оси Y)
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, попали ли в область labels
+                if (canvasPosition.x < dataY.left) {
+                    const index = dataY.getValueForPixel(canvasPosition.y);
+                    if (index >= 0 && index < items.length) {
+                        const itemName = items[index].name;
+                        openItemGallery(itemName, 'Footwear');
+                    }
+                }
+            },
+            onHover: (event, activeElements, chart) => {
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                const dataY = chart.scales.y;
+
+                // Проверяем, наведен ли курсор на label
+                if (canvasPosition.x < dataY.left && canvasPosition.y >= dataY.top && canvasPosition.y <= dataY.bottom) {
+                    canvas.style.cursor = 'pointer';
+                } else if (activeElements.length > 0) {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'default';
                 }
             },
             plugins: {
@@ -1155,7 +1244,8 @@ function drawTopFootwearChart(items) {
                 y: {
                     grid: { display: false },
                     ticks: {
-                        font: { size: 11 }
+                        font: { size: 11 },
+                        color: '#667eea'
                     }
                 }
             }
