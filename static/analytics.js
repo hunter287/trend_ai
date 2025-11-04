@@ -50,12 +50,15 @@ function hideAllLines(chartId) {
     // Обновляем HTML-легенду
     const legendContainer = document.getElementById(chartId + 'Legend');
     if (legendContainer) {
-        const legendItems = legendContainer.querySelectorAll('.legend-item');
-        legendItems.forEach((item, index) => {
-            const checkmark = item.querySelector('.legend-circle span');
-            const label = item.querySelector('span:last-child');
-            if (checkmark) checkmark.style.display = 'none';
-            if (label) label.style.opacity = '0.5';
+        const checkmarks = legendContainer.querySelectorAll('.legend-checkmark');
+        const labels = legendContainer.querySelectorAll('.legend-label');
+
+        checkmarks.forEach(checkmark => {
+            checkmark.style.display = 'none';
+        });
+
+        labels.forEach(label => {
+            label.style.opacity = '0.5';
         });
     }
 }
@@ -73,12 +76,15 @@ function showAllLines(chartId) {
     // Обновляем HTML-легенду
     const legendContainer = document.getElementById(chartId + 'Legend');
     if (legendContainer) {
-        const legendItems = legendContainer.querySelectorAll('.legend-item');
-        legendItems.forEach((item, index) => {
-            const checkmark = item.querySelector('.legend-circle span');
-            const label = item.querySelector('span:last-child');
-            if (checkmark) checkmark.style.display = 'block';
-            if (label) label.style.opacity = '1';
+        const checkmarks = legendContainer.querySelectorAll('.legend-checkmark');
+        const labels = legendContainer.querySelectorAll('.legend-label');
+
+        checkmarks.forEach(checkmark => {
+            checkmark.style.display = 'block';
+        });
+
+        labels.forEach(label => {
+            label.style.opacity = '1';
         });
     }
 }
@@ -98,6 +104,7 @@ function createHtmlLegend(chart, containerId) {
     chart.data.datasets.forEach((dataset, index) => {
         const legendItem = document.createElement('div');
         legendItem.className = 'legend-item';
+        legendItem.setAttribute('data-index', index);
         legendItem.style.display = 'flex';
         legendItem.style.alignItems = 'center';
         legendItem.style.gap = '6px';
@@ -123,12 +130,14 @@ function createHtmlLegend(chart, containerId) {
 
         // Галочка (отображается только если датасет видимый)
         const checkmark = document.createElement('span');
+        checkmark.className = 'legend-checkmark';
         checkmark.textContent = '✓';
         checkmark.style.display = chart.isDatasetVisible(index) ? 'block' : 'none';
         circle.appendChild(checkmark);
 
         // Текст названия
         const label = document.createElement('span');
+        label.className = 'legend-label';
         label.textContent = dataset.label;
         label.style.fontSize = '11px';
         label.style.opacity = chart.isDatasetVisible(index) ? '1' : '0.5';
