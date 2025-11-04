@@ -50,7 +50,7 @@ async function loadAllAnalytics() {
     try {
         console.log('📡 Fetching all API data...');
         const [categories, subcategories, colors, materials, styles, timeline,
-               trends, dynamics, colorDynamics, materialDynamics] = await Promise.all([
+               trends, dynamics, colorDynamics, materialDynamics, topItems, topItemsDynamics] = await Promise.all([
             fetch('/api/analytics/categories-stats').then(r => r.json()),
             fetch('/api/analytics/subcategories-stats').then(r => r.json()),
             fetch('/api/analytics/colors-stats').then(r => r.json()),
@@ -60,7 +60,9 @@ async function loadAllAnalytics() {
             fetch('/api/analytics/emerging-trends').then(r => r.json()),
             fetch('/api/analytics/emerging-trends-dynamics').then(r => r.json()),
             fetch('/api/analytics/color-dynamics').then(r => r.json()),
-            fetch('/api/analytics/material-dynamics').then(r => r.json())
+            fetch('/api/analytics/material-dynamics').then(r => r.json()),
+            fetch('/api/analytics/top-items-stats').then(r => r.json()),
+            fetch('/api/analytics/top-items-dynamics').then(r => r.json())
         ]);
 
         console.log('✅ All data fetched successfully');
@@ -95,6 +97,8 @@ async function loadAllAnalytics() {
         if (dynamics.success) drawEmergingTrendsDynamicsChart(dynamics);
         if (colorDynamics.success) drawColorDynamicsChart(colorDynamics);
         if (materialDynamics.success) drawMaterialDynamicsChart(materialDynamics);
+        if (topItems.success) drawTopItemsChart(topItems.items);
+        if (topItemsDynamics.success) drawTopItemsDynamicsChart(topItemsDynamics);
 
         console.log('✅ All analytics loaded successfully!');
 
@@ -573,6 +577,130 @@ function drawMaterialDynamicsChart(dynamics) {
                         label: function(context) {
                             const materialData = dynamics.series[context.datasetIndex];
                             return materialData.name + ': ' + context.parsed.y + ' упоминаний';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Месяц'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { display: true },
+                    title: {
+                        display: true,
+                        text: 'Количество упоминаний'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function drawTopItemsChart(items) {
+    const ctx = document.getElementById('topItemsChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: items.map(item => item.name),
+            datasets: [{
+                label: 'Количество упоминаний',
+                data: items.map(item => item.count),
+                backgroundColor: chartColors.palette[3],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.x + ' упоминаний';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { display: true },
+                    title: {
+                        display: true,
+                        text: 'Количество упоминаний'
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function drawTopItemsDynamicsChart(dynamics) {
+    const ctx = document.getElementById('topItemsDynamicsChart').getContext('2d');
+
+    // Создаем датасеты для каждой вещи
+    const datasets = dynamics.series.map((itemData, index) => {
+        const color = chartColors.palette[index % chartColors.palette.length];
+
+        return {
+            label: itemData.name,
+            data: itemData.data,
+            borderColor: color,
+            backgroundColor: color + '20',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false,
+            pointRadius: 3,
+            pointHoverRadius: 5
+        };
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dynamics.months,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 10,
+                        font: { size: 10 },
+                        usePointStyle: true,
+                        boxWidth: 6
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return 'Месяц: ' + context[0].label;
+                        },
+                        label: function(context) {
+                            const itemData = dynamics.series[context.datasetIndex];
+                            return itemData.name + ': ' + context.parsed.y + ' упоминаний';
                         }
                     }
                 }
