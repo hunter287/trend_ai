@@ -17,19 +17,15 @@ from instagram_parser import InstagramParser
 load_dotenv()
 load_dotenv('mongodb_config.env')
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = os.urandom(24)
 
-# Регистрируем маршруты для статических файлов
+# Дополнительный маршрут для изображений
 from flask import send_from_directory
 
 @app.route('/images/<path:filename>')
 def serve_images(filename):
     return send_from_directory('images', filename)
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
