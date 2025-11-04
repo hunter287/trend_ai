@@ -2571,11 +2571,9 @@ def api_analytics_top_items_stats():
 
                 # Создаем комбинацию подкатегория + цвет
                 if subcategory:
-                    normalized = normalize_subcategory_name(subcategory, category)
-
                     if colors:
                         for color in colors:
-                            item_key = f"{normalized} ({color})"
+                            item_key = f"{subcategory} ({color})"
                             if item_key not in seen_items:
                                 seen_items.add(item_key)
                                 if item_key not in item_counts:
@@ -2583,11 +2581,11 @@ def api_analytics_top_items_stats():
                                 item_counts[item_key] += 1
                     else:
                         # Если нет цвета, просто используем подкатегорию
-                        if normalized not in seen_items:
-                            seen_items.add(normalized)
-                            if normalized not in item_counts:
-                                item_counts[normalized] = 0
-                            item_counts[normalized] += 1
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in item_counts:
+                                item_counts[subcategory] = 0
+                            item_counts[subcategory] += 1
 
         # Сортируем и берем топ-20
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
@@ -2655,11 +2653,9 @@ def api_analytics_top_items_dynamics():
 
                     # Создаем комбинацию подкатегория + цвет
                     if subcategory:
-                        normalized = normalize_subcategory_name(subcategory, category)
-
                         if colors:
                             for color in colors:
-                                item_key = f"{normalized} ({color})"
+                                item_key = f"{subcategory} ({color})"
                                 if item_key not in seen_items:
                                     seen_items.add(item_key)
                                     if item_key not in monthly_data[year_month]:
@@ -2667,11 +2663,11 @@ def api_analytics_top_items_dynamics():
                                     monthly_data[year_month][item_key] += 1
                         else:
                             # Если нет цвета, просто используем подкатегорию
-                            if normalized not in seen_items:
-                                seen_items.add(normalized)
-                                if normalized not in monthly_data[year_month]:
-                                    monthly_data[year_month][normalized] = 0
-                                monthly_data[year_month][normalized] += 1
+                            if subcategory not in seen_items:
+                                seen_items.add(subcategory)
+                                if subcategory not in monthly_data[year_month]:
+                                    monthly_data[year_month][subcategory] = 0
+                                monthly_data[year_month][subcategory] += 1
             except Exception:
                 continue
 
