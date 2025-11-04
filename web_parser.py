@@ -2524,9 +2524,9 @@ def api_load_more_images():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
-@app.route('/api/analytics/top-items-stats', methods=['GET'])
-def api_analytics_top_items_stats():
-    """API для получения топ-20 популярных вещей (подкатегория + цвет)"""
+@app.route('/api/analytics/top-accessories-stats', methods=['GET'])
+def api_analytics_top_accessories_stats():
+    """API для получения топ-20 популярных аксессуаров (подкатегория + цвет)"""
     try:
         parser = InstagramParser(
             apify_token=os.getenv("APIFY_API_TOKEN"),
@@ -2546,7 +2546,7 @@ def api_analytics_top_items_stats():
             {"ximilar_objects_structured": 1}
         ))
 
-        # Подсчитываем вещи (подкатегория + цвет)
+        # Подсчитываем аксессуары (подкатегория + цвет)
         item_counts = {}
 
         for image in images:
@@ -2554,6 +2554,11 @@ def api_analytics_top_items_stats():
 
             for obj in image.get('ximilar_objects_structured', []):
                 category = obj.get('top_category', 'Other')
+
+                # Фильтруем только аксессуары
+                if category != 'Accessories':
+                    continue
+
                 subcategory = ''
 
                 # Извлекаем подкатегорию
@@ -2598,9 +2603,9 @@ def api_analytics_top_items_stats():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
-@app.route('/api/analytics/top-items-dynamics', methods=['GET'])
-def api_analytics_top_items_dynamics():
-    """API для получения динамики топ-20 популярных вещей по месяцам"""
+@app.route('/api/analytics/top-accessories-dynamics', methods=['GET'])
+def api_analytics_top_accessories_dynamics():
+    """API для получения динамики топ-20 популярных аксессуаров по месяцам"""
     try:
         parser = InstagramParser(
             apify_token=os.getenv("APIFY_API_TOKEN"),
@@ -2636,6 +2641,405 @@ def api_analytics_top_items_dynamics():
                 seen_items = set()
                 for obj in image.get('ximilar_objects_structured', []):
                     category = obj.get('top_category', 'Other')
+
+                    # Фильтруем только аксессуары
+                    if category != 'Accessories':
+                        continue
+
+                    subcategory = ''
+
+                    # Извлекаем подкатегорию
+                    if obj.get('properties', {}).get('other_attributes'):
+                        if obj['properties']['other_attributes'].get('Subcategory'):
+                            subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                        elif obj['properties']['other_attributes'].get('Category'):
+                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    # Извлекаем цвет
+                    colors = []
+                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                        for color in obj['properties']['visual_attributes']['Color']:
+                            colors.append(color['name'])
+
+                    # Создаем комбинацию подкатегория + цвет
+                    if subcategory:
+                        if colors:
+                            for color in colors:
+                                item_key = f"{subcategory} ({color})"
+                                if item_key not in seen_items:
+                                    seen_items.add(item_key)
+                                    if item_key not in monthly_data[year_month]:
+                                        monthly_data[year_month][item_key] = 0
+                                    monthly_data[year_month][item_key] += 1
+                        else:
+                            # Если нет цвета, просто используем подкатегорию
+                            if subcategory not in seen_items:
+                                seen_items.add(subcategory)
+                                if subcategory not in monthly_data[year_month]:
+                                    monthly_data[year_month][subcategory] = 0
+                                monthly_data[year_month][subcategory] += 1
+            except Exception:
+                continue
+
+        sorted_months = sorted(monthly_data.keys())
+        if len(sorted_months) < 2:
+            return jsonify({
+                'success': True,
+                'months': [],
+                'series': [],
+                'message': 'Недостаточно данных для анализа динамики'
+            })
+
+        # Определяем топ-20 вещей по общей популярности
+        total_counts = {}
+        for month_data in monthly_data.values():
+            for item, count in month_data.items():
+                if item not in total_counts:
+                    total_counts[item] = 0
+                total_counts[item] += count
+
+        # Сортируем и берем топ-20
+        top_items = sorted(total_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+
+        # Формируем временные ряды для каждой из топ-20 вещей
+        series = []
+        for item, total_count in top_items:
+            values = [monthly_data[month].get(item, 0) for month in sorted_months]
+
+            series.append({
+                'name': item,
+                'data': values,
+                'total_count': total_count
+            })
+
+        return jsonify({
+            'success': True,
+            'months': sorted_months,
+            'series': series
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/analytics/top-clothing-stats', methods=['GET'])
+def api_analytics_top_clothing_stats():
+    """API для получения топ-20 популярной одежды (подкатегория + цвет)"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем все изображения с тегами
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True}
+            },
+            {"ximilar_objects_structured": 1}
+        ))
+
+        # Подсчитываем одежду (подкатегория + цвет)
+        item_counts = {}
+
+        for image in images:
+            seen_items = set()
+
+            for obj in image.get('ximilar_objects_structured', []):
+                category = obj.get('top_category', 'Other')
+
+                # Фильтруем только одежду
+                if category != 'Clothing':
+                    continue
+
+                subcategory = ''
+
+                # Извлекаем подкатегорию
+                if obj.get('properties', {}).get('other_attributes'):
+                    if obj['properties']['other_attributes'].get('Subcategory'):
+                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                    elif obj['properties']['other_attributes'].get('Category'):
+                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                # Извлекаем цвет
+                colors = []
+                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                    for color in obj['properties']['visual_attributes']['Color']:
+                        colors.append(color['name'])
+
+                # Создаем комбинацию подкатегория + цвет
+                if subcategory:
+                    if colors:
+                        for color in colors:
+                            item_key = f"{subcategory} ({color})"
+                            if item_key not in seen_items:
+                                seen_items.add(item_key)
+                                if item_key not in item_counts:
+                                    item_counts[item_key] = 0
+                                item_counts[item_key] += 1
+                    else:
+                        # Если нет цвета, просто используем подкатегорию
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in item_counts:
+                                item_counts[subcategory] = 0
+                            item_counts[subcategory] += 1
+
+        # Сортируем и берем топ-20
+        top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+
+        return jsonify({
+            'success': True,
+            'items': [{'name': k, 'count': v} for k, v in top_items]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/analytics/top-clothing-dynamics', methods=['GET'])
+def api_analytics_top_clothing_dynamics():
+    """API для получения динамики топ-20 популярной одежды по месяцам"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем данные по месяцам
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Группируем по месяцам и вещам
+        monthly_data = {}
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]
+                if year_month not in monthly_data:
+                    monthly_data[year_month] = {}
+
+                seen_items = set()
+                for obj in image.get('ximilar_objects_structured', []):
+                    category = obj.get('top_category', 'Other')
+
+                    # Фильтруем только одежду
+                    if category != 'Clothing':
+                        continue
+
+                    subcategory = ''
+
+                    # Извлекаем подкатегорию
+                    if obj.get('properties', {}).get('other_attributes'):
+                        if obj['properties']['other_attributes'].get('Subcategory'):
+                            subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                        elif obj['properties']['other_attributes'].get('Category'):
+                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    # Извлекаем цвет
+                    colors = []
+                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                        for color in obj['properties']['visual_attributes']['Color']:
+                            colors.append(color['name'])
+
+                    # Создаем комбинацию подкатегория + цвет
+                    if subcategory:
+                        if colors:
+                            for color in colors:
+                                item_key = f"{subcategory} ({color})"
+                                if item_key not in seen_items:
+                                    seen_items.add(item_key)
+                                    if item_key not in monthly_data[year_month]:
+                                        monthly_data[year_month][item_key] = 0
+                                    monthly_data[year_month][item_key] += 1
+                        else:
+                            # Если нет цвета, просто используем подкатегорию
+                            if subcategory not in seen_items:
+                                seen_items.add(subcategory)
+                                if subcategory not in monthly_data[year_month]:
+                                    monthly_data[year_month][subcategory] = 0
+                                monthly_data[year_month][subcategory] += 1
+            except Exception:
+                continue
+
+        sorted_months = sorted(monthly_data.keys())
+        if len(sorted_months) < 2:
+            return jsonify({
+                'success': True,
+                'months': [],
+                'series': [],
+                'message': 'Недостаточно данных для анализа динамики'
+            })
+
+        # Определяем топ-20 вещей по общей популярности
+        total_counts = {}
+        for month_data in monthly_data.values():
+            for item, count in month_data.items():
+                if item not in total_counts:
+                    total_counts[item] = 0
+                total_counts[item] += count
+
+        # Сортируем и берем топ-20
+        top_items = sorted(total_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+
+        # Формируем временные ряды для каждой из топ-20 вещей
+        series = []
+        for item, total_count in top_items:
+            values = [monthly_data[month].get(item, 0) for month in sorted_months]
+
+            series.append({
+                'name': item,
+                'data': values,
+                'total_count': total_count
+            })
+
+        return jsonify({
+            'success': True,
+            'months': sorted_months,
+            'series': series
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/analytics/top-footwear-stats', methods=['GET'])
+def api_analytics_top_footwear_stats():
+    """API для получения топ-20 популярной обуви (подкатегория + цвет)"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем все изображения с тегами
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True}
+            },
+            {"ximilar_objects_structured": 1}
+        ))
+
+        # Подсчитываем обувь (подкатегория + цвет)
+        item_counts = {}
+
+        for image in images:
+            seen_items = set()
+
+            for obj in image.get('ximilar_objects_structured', []):
+                category = obj.get('top_category', 'Other')
+
+                # Фильтруем только обувь
+                if category != 'Footwear':
+                    continue
+
+                subcategory = ''
+
+                # Извлекаем подкатегорию
+                if obj.get('properties', {}).get('other_attributes'):
+                    if obj['properties']['other_attributes'].get('Subcategory'):
+                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                    elif obj['properties']['other_attributes'].get('Category'):
+                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                # Извлекаем цвет
+                colors = []
+                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                    for color in obj['properties']['visual_attributes']['Color']:
+                        colors.append(color['name'])
+
+                # Создаем комбинацию подкатегория + цвет
+                if subcategory:
+                    if colors:
+                        for color in colors:
+                            item_key = f"{subcategory} ({color})"
+                            if item_key not in seen_items:
+                                seen_items.add(item_key)
+                                if item_key not in item_counts:
+                                    item_counts[item_key] = 0
+                                item_counts[item_key] += 1
+                    else:
+                        # Если нет цвета, просто используем подкатегорию
+                        if subcategory not in seen_items:
+                            seen_items.add(subcategory)
+                            if subcategory not in item_counts:
+                                item_counts[subcategory] = 0
+                            item_counts[subcategory] += 1
+
+        # Сортируем и берем топ-20
+        top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+
+        return jsonify({
+            'success': True,
+            'items': [{'name': k, 'count': v} for k, v in top_items]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
+@app.route('/api/analytics/top-footwear-dynamics', methods=['GET'])
+def api_analytics_top_footwear_dynamics():
+    """API для получения динамики топ-20 популярной обуви по месяцам"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем данные по месяцам
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Группируем по месяцам и вещам
+        monthly_data = {}
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]
+                if year_month not in monthly_data:
+                    monthly_data[year_month] = {}
+
+                seen_items = set()
+                for obj in image.get('ximilar_objects_structured', []):
+                    category = obj.get('top_category', 'Other')
+
+                    # Фильтруем только обувь
+                    if category != 'Footwear':
+                        continue
+
                     subcategory = ''
 
                     # Извлекаем подкатегорию

@@ -363,21 +363,57 @@
                     </div>
 
                     <div class="chart-card">
-                        <h3>👔 Топ-20 популярных вещей</h3>
+                        <h3>👓 Топ-20 популярных аксессуаров</h3>
                         <div class="chart-container large">
-                            <canvas id="topItemsChart"></canvas>
+                            <canvas id="topAccessoriesChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>👔 Топ-20 популярной одежды</h3>
+                        <div class="chart-container large">
+                            <canvas id="topClothingChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>👟 Топ-20 популярной обуви</h3>
+                        <div class="chart-container large">
+                            <canvas id="topFootwearChart"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <div class="chart-card">
-                    <h3>📈 Динамика топ-20 вещей</h3>
+                    <h3>📈 Динамика топ-20 аксессуаров</h3>
                     <div class="chart-controls">
-                        <button onclick="hideAllLines('topItemsDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                        <button onclick="showAllLines('topItemsDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        <button onclick="hideAllLines('topAccessoriesDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                        <button onclick="showAllLines('topAccessoriesDynamicsChart')" class="chart-control-btn">Показать все</button>
                     </div>
                     <div class="chart-container large">
-                        <canvas id="topItemsDynamicsChart"></canvas>
+                        <canvas id="topAccessoriesDynamicsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>📈 Динамика топ-20 одежды</h3>
+                    <div class="chart-controls">
+                        <button onclick="hideAllLines('topClothingDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                        <button onclick="showAllLines('topClothingDynamicsChart')" class="chart-control-btn">Показать все</button>
+                    </div>
+                    <div class="chart-container large">
+                        <canvas id="topClothingDynamicsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>📈 Динамика топ-20 обуви</h3>
+                    <div class="chart-controls">
+                        <button onclick="hideAllLines('topFootwearDynamicsChart')" class="chart-control-btn">Скрыть все</button>
+                        <button onclick="showAllLines('topFootwearDynamicsChart')" class="chart-control-btn">Показать все</button>
+                    </div>
+                    <div class="chart-container large">
+                        <canvas id="topFootwearDynamicsChart"></canvas>
                     </div>
                 </div>
 
@@ -436,6 +472,6 @@
         </div>
     </div>
 
-    <script src="/static/analytics.js?v=12"></script>
+    <script src="/static/analytics.js?v=13"></script>
 </body>
 </html>
