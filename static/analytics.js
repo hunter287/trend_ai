@@ -380,9 +380,13 @@ async function loadPredictiveAnalytics() {
     console.log('🔮 Loading predictive analytics...');
     try {
         console.log('📡 Fetching predictive API data...');
-        const [trends, predictions, recommendations] = await Promise.all([
+        const [trends, dynamics, predictions, recommendations] = await Promise.all([
             fetch('/api/analytics/emerging-trends').then(r => {
                 console.log('✅ Emerging trends response:', r.status);
+                return r.json();
+            }),
+            fetch('/api/analytics/emerging-trends-dynamics').then(r => {
+                console.log('✅ Emerging trends dynamics response:', r.status);
                 return r.json();
             }),
             fetch('/api/analytics/trend-predictions').then(r => {
@@ -396,6 +400,7 @@ async function loadPredictiveAnalytics() {
         ]);
 
         console.log('📊 Trends data:', trends);
+        console.log('📊 Dynamics data:', dynamics);
         console.log('📊 Predictions data:', predictions);
         console.log('📊 Recommendations data:', recommendations);
 
@@ -422,8 +427,11 @@ async function loadPredictiveAnalytics() {
         if (trends.success) {
             console.log('📊 Drawing emerging trends (top 10)');
             drawEmergingTrendsTop10Chart(trends.emerging.slice(0, 10));
-            console.log('📊 Drawing declining trends (top 10)');
-            drawDecliningTrendsTop10Chart(trends.declining.slice(0, 10));
+        }
+
+        if (dynamics.success) {
+            console.log('📈 Drawing emerging trends dynamics');
+            drawEmergingTrendsDynamicsChart(dynamics);
         }
 
         if (predictions.success) {
@@ -504,51 +512,72 @@ function drawEmergingTrendsTop10Chart(trends) {
     });
 }
 
-function drawDecliningTrendsTop10Chart(trends) {
-    const ctx = document.getElementById('decliningTrendsTop10Chart').getContext('2d');
+function drawEmergingTrendsDynamicsChart(dynamics) {
+    const ctx = document.getElementById('emergingTrendsDynamicsChart').getContext('2d');
 
-    // Преобразуем отрицательные значения в положительные для визуализации
-    const absData = trends.map(t => Math.abs(t.growth_rate));
+    // Создаём datasets для каждого тренда
+    const datasets = dynamics.series.map((trend, index) => ({
+        label: `${trend.name} (+${trend.growth_rate}%)`,
+        data: trend.data,
+        borderColor: chartColors.palette[index % chartColors.palette.length],
+        backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+        borderWidth: 3,
+        tension: 0.4,
+        fill: false,
+        pointRadius: 4,
+        pointHoverRadius: 6
+    }));
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: trends.map(t => t.name),
-            datasets: [{
-                label: 'Падение (%)',
-                data: absData,
-                backgroundColor: chartColors.danger,
-                borderRadius: 8
-            }]
+            labels: dynamics.months,
+            datasets: datasets
         },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: { size: 11 },
+                        usePointStyle: true
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         title: function(context) {
-                            const index = context[0].dataIndex;
-                            return trends[index].name + ' (' + trends[index].category + ')';
+                            return 'Месяц: ' + context[0].label;
                         },
-                        label: function(context) {
-                            // Показываем со знаком минус
-                            return 'Падение: ' + trends[context.dataIndex].growth_rate.toFixed(1) + '%';
+                        afterLabel: function(context) {
+                            const trend = dynamics.series[context.datasetIndex];
+                            return trend.category;
                         }
                     }
                 }
             },
             scales: {
                 x: {
-                    beginAtZero: true,
+                    grid: { display: false },
                     title: {
                         display: true,
-                        text: 'Падение (%)'
+                        text: 'Месяц'
                     }
                 },
-                y: { grid: { display: false } }
+                y: {
+                    beginAtZero: true,
+                    grid: { display: true },
+                    title: {
+                        display: true,
+                        text: 'Количество упоминаний'
+                    }
+                }
             }
         }
     });

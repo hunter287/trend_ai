@@ -1890,6 +1890,119 @@ def api_analytics_emerging_trends():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/analytics/emerging-trends-dynamics', methods=['GET'])
+def api_analytics_emerging_trends_dynamics():
+    """API для получения динамики растущих трендов по месяцам"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем данные по месяцам
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Группируем по месяцам и подкатегориям
+        monthly_data = {}
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]
+                if year_month not in monthly_data:
+                    monthly_data[year_month] = {}
+
+                seen_subcategories = set()
+                for obj in image.get('ximilar_objects_structured', []):
+                    category = obj.get('top_category', 'Other')
+                    subcategory = ''
+
+                    if obj.get('properties', {}).get('other_attributes'):
+                        if obj['properties']['other_attributes'].get('Subcategory'):
+                            subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                        elif obj['properties']['other_attributes'].get('Category'):
+                            subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    if subcategory:
+                        normalized = normalize_subcategory_name(subcategory, category)
+                        key = f"{category}:{normalized}"
+
+                        if key not in seen_subcategories:
+                            seen_subcategories.add(key)
+                            if key not in monthly_data[year_month]:
+                                monthly_data[year_month][key] = 0
+                            monthly_data[year_month][key] += 1
+            except Exception:
+                continue
+
+        sorted_months = sorted(monthly_data.keys())
+        if len(sorted_months) < 2:
+            return jsonify({
+                'success': True,
+                'months': [],
+                'series': [],
+                'message': 'Недостаточно данных для анализа динамики'
+            })
+
+        # Определяем топ-5 растущих трендов за последние периоды
+        recent_months = sorted_months[-3:] if len(sorted_months) >= 3 else sorted_months
+        trend_changes = {}
+        all_subcategories = set()
+
+        for month in recent_months:
+            all_subcategories.update(monthly_data[month].keys())
+
+        for subcat in all_subcategories:
+            values = [monthly_data[month].get(subcat, 0) for month in recent_months]
+            if len(values) >= 2:
+                first_val = values[0] if values[0] > 0 else 1
+                last_val = values[-1]
+                growth_rate = ((last_val - first_val) / first_val) * 100
+
+                if growth_rate > 20:  # Только растущие тренды
+                    trend_changes[subcat] = {
+                        'growth_rate': growth_rate,
+                        'current': last_val
+                    }
+
+        # Сортируем и берем топ-5 растущих
+        top_emerging = sorted(trend_changes.items(), key=lambda x: x[1]['growth_rate'], reverse=True)[:5]
+
+        # Формируем временные ряды для каждого из топ-5
+        series = []
+        for subcat, data in top_emerging:
+            category, name = subcat.split(':', 1)
+            values = [monthly_data[month].get(subcat, 0) for month in sorted_months]
+
+            series.append({
+                'name': name,
+                'category': category,
+                'data': values,
+                'growth_rate': round(data['growth_rate'], 1)
+            })
+
+        return jsonify({
+            'success': True,
+            'months': sorted_months,
+            'series': series
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/analytics/trend-predictions', methods=['GET'])
 def api_analytics_trend_predictions():
     """API для прогнозирования трендов"""
