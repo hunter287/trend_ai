@@ -911,13 +911,14 @@ function drawTopAccessoriesChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
         console.log('Direct canvas click - X:', x, 'Y:', y);
-        console.log('Y scale left:', dataY.left, 'top:', dataY.top, 'bottom:', dataY.bottom);
+        console.log('X scale left:', dataX.left, 'Y scale top:', dataY.top, 'bottom:', dataY.bottom);
 
-        // Проверяем, попали ли в область labels (слева от графика)
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        // Проверяем, попали ли в область labels (слева от графика, где x < dataX.left)
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             console.log('Clicked in label area!');
 
             // Вычисляем индекс по Y-координате
@@ -941,10 +942,11 @@ function drawTopAccessoriesChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
         // Проверяем, находится ли курсор в области labels
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             canvas.style.cursor = 'pointer';
         } else {
             // Проверяем через Chart.js API, находится ли на столбце
@@ -1092,10 +1094,11 @@ function drawTopClothingChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
-        // Проверяем, попали ли в область labels (слева от графика)
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        // Проверяем, попали ли в область labels (слева от графика, где x < dataX.left)
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             // Вычисляем индекс по Y-координате
             const yRelative = y - dataY.top;
             const itemHeight = (dataY.bottom - dataY.top) / items.length;
@@ -1114,10 +1117,11 @@ function drawTopClothingChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
         // Проверяем, находится ли курсор в области labels
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             canvas.style.cursor = 'pointer';
         } else {
             // Проверяем через Chart.js API, находится ли на столбце
@@ -1265,10 +1269,11 @@ function drawTopFootwearChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
-        // Проверяем, попали ли в область labels (слева от графика)
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        // Проверяем, попали ли в область labels (слева от графика, где x < dataX.left)
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             // Вычисляем индекс по Y-координате
             const yRelative = y - dataY.top;
             const itemHeight = (dataY.bottom - dataY.top) / items.length;
@@ -1287,10 +1292,11 @@ function drawTopFootwearChart(items) {
         const x = evt.clientX - rect.left;
         const y = evt.clientY - rect.top;
 
+        const dataX = chart.scales.x;  // Для горизонтального графика используем X scale
         const dataY = chart.scales.y;
 
         // Проверяем, находится ли курсор в области labels
-        if (x < dataY.left && y >= dataY.top && y <= dataY.bottom) {
+        if (x < dataX.left && y >= dataY.top && y <= dataY.bottom) {
             canvas.style.cursor = 'pointer';
         } else {
             // Проверяем через Chart.js API, находится ли на столбце
