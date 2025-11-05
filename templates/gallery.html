@@ -1011,6 +1011,7 @@
                      {# Дедупликация объектов по названию (как в API) #}
                      {% set unique_categories = [] %}
                      {% set unique_objects = [] %}
+                     {% set unique_original_objects = [] %}
                      {% set unique_colors = [] %}
                      {% set unique_materials = [] %}
                      {% set unique_styles = [] %}
@@ -1040,6 +1041,7 @@
                      
                      {# Собираем структуру: {объект: {colors: [], materials: [], styles: []}} #}
                      {% set objects_attrs = {} %}
+                     {% set original_objects_attrs = {} %}
 
                      {# Теперь собираем уникальные теги только из дедуплицированных объектов #}
                      {% for obj in unique_objects_by_name.values() %}
@@ -1051,18 +1053,27 @@
                         {# Объекты - нормализуем в контексте категории #}
                         {% set obj_category = obj.top_category or 'Other' %}
                         {% set normalized_obj = '' %}
+                        {% set original_obj_name = '' %}
                         {% if obj.properties and obj.properties.other_attributes %}
                             {% if obj.properties.other_attributes.Subcategory %}
                                 {% set obj_name = obj.properties.other_attributes.Subcategory[0].name %}
+                                {% set original_obj_name = obj_name %}
                                 {% set normalized_obj = normalize_subcategory(obj_name, obj_category) %}
                                 {% if normalized_obj not in unique_objects %}
                                     {% set _ = unique_objects.append(normalized_obj) %}
                                 {% endif %}
+                                {% if obj_name not in unique_original_objects %}
+                                    {% set _ = unique_original_objects.append(obj_name) %}
+                                {% endif %}
                             {% elif obj.properties.other_attributes.Category %}
                                 {% set obj_name = obj.properties.other_attributes.Category[0].name %}
+                                {% set original_obj_name = obj_name %}
                                 {% set normalized_obj = normalize_subcategory(obj_name, obj_category) %}
                                 {% if normalized_obj not in unique_objects %}
                                     {% set _ = unique_objects.append(normalized_obj) %}
+                                {% endif %}
+                                {% if obj_name not in unique_original_objects %}
+                                    {% set _ = unique_original_objects.append(obj_name) %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}
@@ -1070,6 +1081,9 @@
                         {# Инициализируем структуру для этого объекта #}
                         {% if normalized_obj and normalized_obj not in objects_attrs %}
                             {% set _ = objects_attrs.update({normalized_obj: {'colors': [], 'materials': [], 'styles': []}}) %}
+                        {% endif %}
+                        {% if original_obj_name and original_obj_name not in original_objects_attrs %}
+                            {% set _ = original_objects_attrs.update({original_obj_name: {'colors': [], 'materials': [], 'styles': []}}) %}
                         {% endif %}
 
                          {# Цвета этого конкретного объекта #}
@@ -1080,6 +1094,9 @@
                                  {% endif %}
                                  {% if color.name not in objects_attrs[normalized_obj]['colors'] %}
                                      {% set _ = objects_attrs[normalized_obj]['colors'].append(color.name) %}
+                                 {% endif %}
+                                 {% if original_obj_name and color.name not in original_objects_attrs[original_obj_name]['colors'] %}
+                                     {% set _ = original_objects_attrs[original_obj_name]['colors'].append(color.name) %}
                                  {% endif %}
                              {% endfor %}
                          {% endif %}
@@ -1093,6 +1110,9 @@
                                  {% if material.name not in objects_attrs[normalized_obj]['materials'] %}
                                      {% set _ = objects_attrs[normalized_obj]['materials'].append(material.name) %}
                                  {% endif %}
+                                 {% if original_obj_name and material.name not in original_objects_attrs[original_obj_name]['materials'] %}
+                                     {% set _ = original_objects_attrs[original_obj_name]['materials'].append(material.name) %}
+                                 {% endif %}
                              {% endfor %}
                          {% endif %}
 
@@ -1105,16 +1125,21 @@
                                  {% if style.name not in objects_attrs[normalized_obj]['styles'] %}
                                      {% set _ = objects_attrs[normalized_obj]['styles'].append(style.name) %}
                                  {% endif %}
+                                 {% if original_obj_name and style.name not in original_objects_attrs[original_obj_name]['styles'] %}
+                                     {% set _ = original_objects_attrs[original_obj_name]['styles'].append(style.name) %}
+                                 {% endif %}
                              {% endfor %}
                          {% endif %}
                      {% endfor %}
 
                      data-categories="{{ unique_categories|join(',') }}"
                      data-objects="{{ unique_objects|join(',') }}"
+                     data-original-objects="{{ unique_original_objects|join(',') }}"
                      data-colors="{{ unique_colors|join(',') }}"
                      data-materials="{{ unique_materials|join(',') }}"
                      data-styles="{{ unique_styles|join(',') }}"
                      data-objects-attrs='{{ objects_attrs|tojson|safe }}'
+                     data-original-objects-attrs='{{ original_objects_attrs|tojson|safe }}'
                      {% endif %}>
                     <div class="image-container">
                         <img src="/images/{{ image.local_filename }}" alt="{{ image.caption or 'Изображение' }}" loading="lazy">
@@ -2076,11 +2101,14 @@
             // Проверяем соответствие изображения выбранным фильтрам
             const cardCategories = card.dataset.categories ? card.dataset.categories.split(',') : [];
             const cardObjects = card.dataset.objects ? card.dataset.objects.split(',') : [];
+            const cardOriginalObjects = card.dataset.originalObjects ? card.dataset.originalObjects.split(',') : [];
 
-            // Парсим JSON структуру с привязкой атрибутов к объектам
+            // Парсим JSON структуры с привязкой атрибутов к объектам
             let objectsAttrs = {};
+            let originalObjectsAttrs = {};
             try {
                 objectsAttrs = JSON.parse(card.dataset.objectsAttrs || '{}');
+                originalObjectsAttrs = JSON.parse(card.dataset.originalObjectsAttrs || '{}');
             } catch (e) {
                 console.error('Ошибка парсинга objectsAttrs:', e);
             }
@@ -2092,10 +2120,11 @@
 
             // Проверяем соответствие выбранной подподкатегории (3-й уровень - оригинальное имя Ximilar)
             if (selectedFilters.subsubcategory) {
-                if (!cardObjects.includes(selectedFilters.subsubcategory)) return false;
+                // Используем оригинальные имена для проверки
+                if (!cardOriginalObjects.includes(selectedFilters.subsubcategory)) return false;
 
                 // Если выбрана подподкатегория, проверяем атрибуты ТОЛЬКО для неё
-                const subsubcategoryAttrs = objectsAttrs[selectedFilters.subsubcategory] || {colors: [], materials: [], styles: []};
+                const subsubcategoryAttrs = originalObjectsAttrs[selectedFilters.subsubcategory] || {colors: [], materials: [], styles: []};
 
                 // Проверяем соответствие цветам ТОЛЬКО для выбранной подподкатегории
                 if (selectedFilters.colors.length > 0) {
