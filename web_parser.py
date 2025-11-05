@@ -2651,28 +2651,31 @@ def api_filtered_images():
 
         if colors:
             # Ищем любой из выбранных цветов
+            # ВАЖНО: используем visual_attributes.Color (НЕ color_attributes - оно пустое!)
             attribute_filters.append({
                 "ximilar_objects_structured": {
                     "$elemMatch": {
-                        "properties.color_attributes": {"$elemMatch": {"name": {"$in": colors}}}
+                        "properties.visual_attributes.Color": {"$elemMatch": {"name": {"$in": colors}}}
                     }
                 }
             })
 
         if materials:
+            # ВАЖНО: используем material_attributes.Material (с указанием подполя Material)
             attribute_filters.append({
                 "ximilar_objects_structured": {
                     "$elemMatch": {
-                        "properties.material_attributes": {"$elemMatch": {"name": {"$in": materials}}}
+                        "properties.material_attributes.Material": {"$elemMatch": {"name": {"$in": materials}}}
                     }
                 }
             })
 
         if styles:
+            # ВАЖНО: используем style_attributes.Style (НЕ visual_attributes!)
             attribute_filters.append({
                 "ximilar_objects_structured": {
                     "$elemMatch": {
-                        "properties.visual_attributes": {"$elemMatch": {"name": {"$in": styles}}}
+                        "properties.style_attributes.Style": {"$elemMatch": {"name": {"$in": styles}}}
                     }
                 }
             })
