@@ -1934,8 +1934,15 @@
         }
 
         function renderFilterDetails(category, subcategory, subsubcategory) {
+            console.log('🔍 renderFilterDetails вызван с:', { category, subcategory, subsubcategory });
+
             // Получаем фильтры для подподкатегории (уровень 3)
             const filters = hierarchicalFilters[category][subcategory].subsubcategories[subsubcategory];
+
+            console.log('📦 filters:', filters);
+            console.log('🎨 filters.colors:', filters.colors);
+            console.log('🧵 filters.materials:', filters.materials);
+            console.log('✨ filters.styles:', filters.styles);
 
             // Рендерим цвета
             renderFilterSection('colorFilters', filters.colors, 'colors');
