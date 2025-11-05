@@ -3058,6 +3058,12 @@
         function appendImageCard(image) {
             const gallery = document.getElementById('gallery');
 
+            // ВАЖНО: Проверяем, нет ли уже такого изображения в галерее (предотвращение дубликатов)
+            if (document.querySelector(`[data-image-id="${image._id}"]`)) {
+                console.warn(`⚠️  Изображение ${image._id} (${image.local_filename}) уже в галерее, пропускаем`);
+                return;
+            }
+
             // Создаем карточку изображения
             const card = document.createElement('div');
             card.className = 'image-card';
