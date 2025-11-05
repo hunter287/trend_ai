@@ -2064,33 +2064,33 @@
                 if (!cardCategories.includes(selectedFilters.category)) return false;
             }
 
-            // Проверяем соответствие выбранной подкатегории
-            if (selectedFilters.subcategory) {
-                if (!cardObjects.includes(selectedFilters.subcategory)) return false;
+            // Проверяем соответствие выбранной подподкатегории (3-й уровень - оригинальное имя Ximilar)
+            if (selectedFilters.subsubcategory) {
+                if (!cardObjects.includes(selectedFilters.subsubcategory)) return false;
 
-                // Если выбрана подкатегория, проверяем атрибуты ТОЛЬКО для этой подкатегории
-                const subcategoryAttrs = objectsAttrs[selectedFilters.subcategory] || {colors: [], materials: [], styles: []};
+                // Если выбрана подподкатегория, проверяем атрибуты ТОЛЬКО для неё
+                const subsubcategoryAttrs = objectsAttrs[selectedFilters.subsubcategory] || {colors: [], materials: [], styles: []};
 
-                // Проверяем соответствие цветам ТОЛЬКО для выбранной подкатегории
+                // Проверяем соответствие цветам ТОЛЬКО для выбранной подподкатегории
                 if (selectedFilters.colors.length > 0) {
                     const hasMatchingColor = selectedFilters.colors.some(color =>
-                        subcategoryAttrs.colors.includes(color)
+                        subsubcategoryAttrs.colors.includes(color)
                     );
                     if (!hasMatchingColor) return false;
                 }
 
-                // Проверяем соответствие материалам ТОЛЬКО для выбранной подкатегории
+                // Проверяем соответствие материалам ТОЛЬКО для выбранной подподкатегории
                 if (selectedFilters.materials.length > 0) {
                     const hasMatchingMaterial = selectedFilters.materials.some(material =>
-                        subcategoryAttrs.materials.includes(material)
+                        subsubcategoryAttrs.materials.includes(material)
                     );
                     if (!hasMatchingMaterial) return false;
                 }
 
-                // Проверяем соответствие стилям ТОЛЬКО для выбранной подкатегории
+                // Проверяем соответствие стилям ТОЛЬКО для выбранной подподкатегории
                 if (selectedFilters.styles.length > 0) {
                     const hasMatchingStyle = selectedFilters.styles.some(style =>
-                        subcategoryAttrs.styles.includes(style)
+                        subsubcategoryAttrs.styles.includes(style)
                     );
                     if (!hasMatchingStyle) return false;
                 }
@@ -2158,6 +2158,7 @@
         function hasActiveFilters() {
             return selectedFilters.category ||
                    selectedFilters.subcategory ||
+                   selectedFilters.subsubcategory ||
                    selectedFilters.colors.length > 0 ||
                    selectedFilters.materials.length > 0 ||
                    selectedFilters.styles.length > 0 ||
@@ -2170,6 +2171,7 @@
             selectedFilters = {
                 category: null,
                 subcategory: null,
+                subsubcategory: null,
                 colors: [],
                 materials: [],
                 styles: [],
@@ -2179,6 +2181,7 @@
 
             currentCategory = null;
             currentSubcategory = null;
+            currentSubsubcategory = null;
 
             // Убираем выделение с кнопок
             document.querySelectorAll('.filter-option.selected').forEach(option => {
