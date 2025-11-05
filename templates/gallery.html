@@ -1924,9 +1924,17 @@
             const subsubcategories = hierarchicalFilters[category][subcategory].subsubcategories || {};
             const subsubcategoryNames = Object.keys(subsubcategories).sort();
 
+            console.log('🔍 DEBUG renderSubsubcategories:');
+            console.log('  category:', category);
+            console.log('  subcategory:', subcategory);
+            console.log('  subsubcategoryNames:', subsubcategoryNames);
+            console.log('  Первая подподкатегория структура:', subsubcategoryNames.length > 0 ? subsubcategories[subsubcategoryNames[0]] : 'нет данных');
+
             subsubcategoryNames.forEach(subsubcategory => {
                 const filters = subsubcategories[subsubcategory];
                 const imageCount = filters._image_count || 0;
+
+                console.log(`  ${subsubcategory}: imageCount=${imageCount}, есть colors=${!!filters.colors}, есть subsubcategories=${!!filters.subsubcategories}`);
 
                 const subsubcategoryElement = document.createElement('div');
                 subsubcategoryElement.className = 'subsubcategory-option';
