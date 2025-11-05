@@ -1074,22 +1074,42 @@ def api_filter_options():
                     if category not in hierarchical_filters:
                         hierarchical_filters[category] = {}
 
-                    # Инициализируем структуру для подкатегории (уровень 2)
-                    if normalized_subcategory not in hierarchical_filters[category]:
-                        hierarchical_filters[category][normalized_subcategory] = {
-                            'subsubcategories': {}  # Уровень 3
-                        }
+                    # Проверяем, нужен ли третий уровень вложенности
+                    # Если нормализация НЕ изменила название, то третий уровень НЕ нужен
+                    needs_third_level = (normalized_subcategory.lower() != original_subcategory.lower())
 
-                    # Инициализируем структуру для подподкатегории (уровень 3 - оригинальное название)
-                    if original_subcategory not in hierarchical_filters[category][normalized_subcategory]['subsubcategories']:
-                        hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory] = {
-                            'colors': {},
-                            'materials': {},
-                            'styles': {}
-                        }
+                    if needs_third_level:
+                        # Создаем 3 уровня: category -> normalized_subcategory -> original_subcategory -> colors/materials/styles
 
-                    # Добавляем атрибуты к подподкатегории (уровень 3)
-                    subsubcat = hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory]
+                        # Инициализируем структуру для подкатегории (уровень 2)
+                        if normalized_subcategory not in hierarchical_filters[category]:
+                            hierarchical_filters[category][normalized_subcategory] = {
+                                'subsubcategories': {}  # Уровень 3
+                            }
+
+                        # Инициализируем структуру для подподкатегории (уровень 3 - оригинальное название)
+                        if original_subcategory not in hierarchical_filters[category][normalized_subcategory]['subsubcategories']:
+                            hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory] = {
+                                'colors': {},
+                                'materials': {},
+                                'styles': {}
+                            }
+
+                        # Добавляем атрибуты к подподкатегории (уровень 3)
+                        subsubcat = hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory]
+                    else:
+                        # Создаем только 2 уровня: category -> original_subcategory -> colors/materials/styles
+
+                        # Инициализируем структуру для подкатегории (уровень 2) БЕЗ subsubcategories
+                        if original_subcategory not in hierarchical_filters[category]:
+                            hierarchical_filters[category][original_subcategory] = {
+                                'colors': {},
+                                'materials': {},
+                                'styles': {}
+                            }
+
+                        # Добавляем атрибуты напрямую к подкатегории (уровень 2)
+                        subsubcat = hierarchical_filters[category][original_subcategory]
 
                     # Цвета
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
@@ -1129,38 +1149,60 @@ def api_filter_options():
             category_image_ids = set()
 
             for subcategory, subcat_data in subcategories.items():
-                # Собираем уникальные image_ids для подкатегории (все подподкатегории)
+                # Собираем уникальные image_ids для подкатегории
                 subcategory_image_ids = set()
 
-                # Инициализируем структуру для подкатегории
-                hierarchical_filters_with_counts[category][subcategory] = {
-                    'subsubcategories': {},
-                    '_meta': {'subsubcategories': {}}
-                }
+                # Проверяем, есть ли третий уровень (subsubcategories) или это двухуровневая структура
+                if 'subsubcategories' in subcat_data and subcat_data['subsubcategories']:
+                    # Трехуровневая структура: category -> subcategory -> subsubcategory -> colors/materials/styles
 
-                # Обрабатываем подподкатегории (уровень 3)
-                for subsubcat_name, subsubcat_filters in subcat_data['subsubcategories'].items():
-                    # Собираем уникальные image_ids для подподкатегории
-                    subsubcat_image_ids = set()
-                    for image_ids_set in subsubcat_filters['colors'].values():
-                        subsubcat_image_ids.update(image_ids_set)
-                    for image_ids_set in subsubcat_filters['materials'].values():
-                        subsubcat_image_ids.update(image_ids_set)
-                    for image_ids_set in subsubcat_filters['styles'].values():
-                        subsubcat_image_ids.update(image_ids_set)
-
-                    subcategory_image_ids.update(subsubcat_image_ids)
-
-                    # Конвертируем sets в counts для подподкатегории
-                    hierarchical_filters_with_counts[category][subcategory]['subsubcategories'][subsubcat_name] = {
-                        'colors': {color: len(image_ids) for color, image_ids in subsubcat_filters['colors'].items()},
-                        'materials': {material: len(image_ids) for material, image_ids in subsubcat_filters['materials'].items()},
-                        'styles': {style: len(image_ids) for style, image_ids in subsubcat_filters['styles'].items()},
-                        '_image_count': len(subsubcat_image_ids)
+                    # Инициализируем структуру для подкатегории
+                    hierarchical_filters_with_counts[category][subcategory] = {
+                        'subsubcategories': {},
+                        '_meta': {'subsubcategories': {}}
                     }
 
-                    # Сохраняем count для подподкатегории в мета-данные
-                    hierarchical_filters_with_counts[category][subcategory]['_meta']['subsubcategories'][subsubcat_name] = len(subsubcat_image_ids)
+                    # Обрабатываем подподкатегории (уровень 3)
+                    for subsubcat_name, subsubcat_filters in subcat_data['subsubcategories'].items():
+                        # Собираем уникальные image_ids для подподкатегории
+                        subsubcat_image_ids = set()
+                        for image_ids_set in subsubcat_filters['colors'].values():
+                            subsubcat_image_ids.update(image_ids_set)
+                        for image_ids_set in subsubcat_filters['materials'].values():
+                            subsubcat_image_ids.update(image_ids_set)
+                        for image_ids_set in subsubcat_filters['styles'].values():
+                            subsubcat_image_ids.update(image_ids_set)
+
+                        subcategory_image_ids.update(subsubcat_image_ids)
+
+                        # Конвертируем sets в counts для подподкатегории
+                        hierarchical_filters_with_counts[category][subcategory]['subsubcategories'][subsubcat_name] = {
+                            'colors': {color: len(image_ids) for color, image_ids in subsubcat_filters['colors'].items()},
+                            'materials': {material: len(image_ids) for material, image_ids in subsubcat_filters['materials'].items()},
+                            'styles': {style: len(image_ids) for style, image_ids in subsubcat_filters['styles'].items()},
+                            '_image_count': len(subsubcat_image_ids)
+                        }
+
+                        # Сохраняем count для подподкатегории в мета-данные
+                        hierarchical_filters_with_counts[category][subcategory]['_meta']['subsubcategories'][subsubcat_name] = len(subsubcat_image_ids)
+                else:
+                    # Двухуровневая структура: category -> subcategory -> colors/materials/styles
+
+                    # Собираем уникальные image_ids для подкатегории напрямую
+                    for image_ids_set in subcat_data['colors'].values():
+                        subcategory_image_ids.update(image_ids_set)
+                    for image_ids_set in subcat_data['materials'].values():
+                        subcategory_image_ids.update(image_ids_set)
+                    for image_ids_set in subcat_data['styles'].values():
+                        subcategory_image_ids.update(image_ids_set)
+
+                    # Конвертируем sets в counts напрямую на уровне подкатегории
+                    hierarchical_filters_with_counts[category][subcategory] = {
+                        'colors': {color: len(image_ids) for color, image_ids in subcat_data['colors'].items()},
+                        'materials': {material: len(image_ids) for material, image_ids in subcat_data['materials'].items()},
+                        'styles': {style: len(image_ids) for style, image_ids in subcat_data['styles'].items()},
+                        '_image_count': len(subcategory_image_ids)
+                    }
 
                 category_image_ids.update(subcategory_image_ids)
 

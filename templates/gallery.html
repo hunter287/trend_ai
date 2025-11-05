@@ -1958,16 +1958,41 @@
             currentSubcategory = subcategory;
             selectedFilters.subcategory = subcategory;
 
-            // Показываем подподкатегории (уровень 3)
-            document.getElementById('filterSubcategories').style.display = 'none';
-            document.getElementById('filterSubsubcategories').style.display = 'block';
-            document.getElementById('filterDetails').style.display = 'none';
+            const subcatData = hierarchicalFilters[category][subcategory];
 
-            // Обновляем заголовок
-            document.getElementById('selectedSubcategoryTitle2').textContent = `${subcategory} - Выберите тип`;
+            // Проверяем, есть ли третий уровень вложенности (subsubcategories)
+            if (subcatData.subsubcategories && Object.keys(subcatData.subsubcategories).length > 0) {
+                // Трехуровневая структура - показываем подподкатегории
+                document.getElementById('filterSubcategories').style.display = 'none';
+                document.getElementById('filterSubsubcategories').style.display = 'block';
+                document.getElementById('filterDetails').style.display = 'none';
 
-            // Рендерим подподкатегории
-            renderSubsubcategories(category, subcategory);
+                // Обновляем заголовок
+                document.getElementById('selectedSubcategoryTitle2').textContent = `${subcategory} - Выберите тип`;
+
+                // Рендерим подподкатегории
+                renderSubsubcategories(category, subcategory);
+            } else {
+                // Двухуровневая структура - сразу показываем colors/materials/styles
+                currentSubsubcategory = subcategory;  // используем subcategory как subsubcategory
+                selectedFilters.subsubcategory = subcategory;
+
+                // Сбрасываем детальные фильтры
+                selectedFilters.colors = [];
+                selectedFilters.materials = [];
+                selectedFilters.styles = [];
+
+                // Показываем детали фильтров
+                document.getElementById('filterSubcategories').style.display = 'none';
+                document.getElementById('filterSubsubcategories').style.display = 'none';
+                document.getElementById('filterDetails').style.display = 'block';
+
+                // Обновляем заголовок
+                document.getElementById('selectedSubcategoryTitle').textContent = `${subcategory} - Выберите атрибуты`;
+
+                // Рендерим фильтры напрямую с уровня subcategory
+                renderFilterDetailsDirectly(category, subcategory);
+            }
         }
 
         function selectSubsubcategory(category, subcategory, subsubcategory) {
@@ -1990,7 +2015,29 @@
             renderFilterDetails(category, subcategory, subsubcategory);
         }
 
+        function renderFilterDetailsDirectly(category, subcategory) {
+            // Для двухуровневой структуры - рендерим напрямую с уровня subcategory
+            console.log('🔍 renderFilterDetailsDirectly вызвана для:', { category, subcategory });
+
+            const filters = hierarchicalFilters[category][subcategory];
+
+            console.log('📦 filters:', filters);
+            console.log('🎨 filters.colors:', filters.colors);
+            console.log('🧵 filters.materials:', filters.materials);
+            console.log('✨ filters.styles:', filters.styles);
+
+            // Рендерим цвета
+            renderFilterSection('colorFilters', filters.colors, 'colors');
+
+            // Рендерим материалы
+            renderFilterSection('materialFilters', filters.materials, 'materials');
+
+            // Рендерим стили
+            renderFilterSection('styleFilters', filters.styles, 'styles');
+        }
+
         function renderFilterDetails(category, subcategory, subsubcategory) {
+            // Для трехуровневой структуры - рендерим с уровня subsubcategory
             console.log('🔍 renderFilterDetails вызван с:', { category, subcategory, subsubcategory });
 
             // Получаем фильтры для подподкатегории (уровень 3)
