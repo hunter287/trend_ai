@@ -2639,43 +2639,85 @@ def api_filtered_images():
             "ximilar_objects_structured": {"$exists": True, "$ne": []}
         }
 
-        # Строим условия фильтрации для $elemMatch
-        elem_match_conditions = {}
+        # Строим условия фильтрации
+        # Важно: category может быть либо top_category (Accessories), либо normalized_subcategory (Bags)
+        # subsubcategory - это всегда оригинальное имя из MongoDB (baguette bags)
 
-        # Фильтр по категории
-        if category:
-            elem_match_conditions["properties.other_attributes.Category"] = {
-                "$elemMatch": {"name": category}
-            }
+        # Базовый фильтр - обязательно должен быть subsubcategory (оригинальное имя объекта)
+        mongo_filter = {}
 
-        # Фильтр по подкатегории (subsubcategory - это оригинальное имя объекта)
         if subsubcategory:
-            # Используем Subcategory из other_attributes
-            elem_match_conditions["properties.other_attributes.Subcategory"] = {
-                "$elemMatch": {"name": subsubcategory}
+            # Ищем объекты с таким Subcategory или Category (в зависимости от типа объекта)
+            mongo_filter["ximilar_objects_structured"] = {
+                "$elemMatch": {
+                    "$or": [
+                        {"properties.other_attributes.Subcategory": {"$elemMatch": {"name": subsubcategory}}},
+                        {"properties.other_attributes.Category": {"$elemMatch": {"name": subsubcategory}}}
+                    ]
+                }
+            }
+        elif category:
+            # Если указана только категория (верхнего уровня или подкатегория)
+            # Ищем по top_category или в атрибутах
+            mongo_filter["ximilar_objects_structured"] = {
+                "$elemMatch": {
+                    "$or": [
+                        {"top_category": category},
+                        {"properties.other_attributes.Category": {"$elemMatch": {"name": category}}}
+                    ]
+                }
             }
 
-        # Фильтры по атрибутам (цвета, материалы, стили)
-        # Эти фильтры применяются к объектам, которые уже прошли фильтр по категории/подкатегории
+        # Объединяем с базовым запросом
+        if mongo_filter:
+            query.update(mongo_filter)
+
+        # Дополнительные фильтры по атрибутам (цвета, материалы, стили)
+        # Если указаны, добавляем их как дополнительные условия через $and
+        attribute_filters = []
+
         if colors:
             # Ищем любой из выбранных цветов
-            elem_match_conditions["properties.color_attributes"] = {
-                "$elemMatch": {"name": {"$in": colors}}
-            }
+            attribute_filters.append({
+                "ximilar_objects_structured": {
+                    "$elemMatch": {
+                        "properties.color_attributes": {"$elemMatch": {"name": {"$in": colors}}}
+                    }
+                }
+            })
 
         if materials:
-            elem_match_conditions["properties.material_attributes"] = {
-                "$elemMatch": {"name": {"$in": materials}}
-            }
+            attribute_filters.append({
+                "ximilar_objects_structured": {
+                    "$elemMatch": {
+                        "properties.material_attributes": {"$elemMatch": {"name": {"$in": materials}}}
+                    }
+                }
+            })
 
         if styles:
-            elem_match_conditions["properties.visual_attributes"] = {
-                "$elemMatch": {"name": {"$in": styles}}
-            }
+            attribute_filters.append({
+                "ximilar_objects_structured": {
+                    "$elemMatch": {
+                        "properties.visual_attributes": {"$elemMatch": {"name": {"$in": styles}}}
+                    }
+                }
+            })
 
-        # Применяем фильтр через $elemMatch только если есть условия
-        if elem_match_conditions:
-            query["ximilar_objects_structured"] = {"$elemMatch": elem_match_conditions}
+        # Если есть фильтры по атрибутам, комбинируем их с основным запросом через $and
+        if attribute_filters:
+            # Если в query уже есть условия, оборачиваем в $and
+            existing_conditions = []
+            for key, value in query.items():
+                if key not in ["local_filename", "hidden", "is_duplicate"]:
+                    existing_conditions.append({key: value})
+
+            # Удаляем ximilar_objects_structured из query, если он там есть
+            if "ximilar_objects_structured" in query:
+                del query["ximilar_objects_structured"]
+
+            # Создаем $and со всеми условиями
+            query["$and"] = existing_conditions + attribute_filters
 
         # Проекция полей
         projection = {

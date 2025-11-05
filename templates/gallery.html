@@ -2177,7 +2177,14 @@
                     }
 
                     // Закрываем панель фильтров
-                    closeAdvancedFilterPanel();
+                    const advancedFilters = document.getElementById('advancedFilters');
+                    const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
+                    const controls = document.querySelector('.controls');
+                    if (advancedFilters && advancedFilters.classList.contains('open')) {
+                        advancedFilters.classList.remove('open');
+                        if (controls) controls.classList.remove('filters-open');
+                        if (toggleAdvancedFiltersBtn) toggleAdvancedFiltersBtn.textContent = '🔍 Расширенные фильтры';
+                    }
                 } else {
                     showNotification(`❌ ${result.message}`, 'error');
                     gallery.innerHTML = '<div class="error-message">Ошибка загрузки изображений</div>';
