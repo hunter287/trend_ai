@@ -2605,6 +2605,123 @@ def api_load_more_images():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/filtered-images', methods=['GET'])
+def api_filtered_images():
+    """API для серверной фильтрации изображений по иерархическим фильтрам"""
+    try:
+        # Получаем параметры фильтрации
+        category = request.args.get('category', '')
+        subcategory = request.args.get('subcategory', '')
+        subsubcategory = request.args.get('subsubcategory', '')
+        colors = request.args.getlist('colors[]')  # Массив цветов
+        materials = request.args.getlist('materials[]')  # Массив материалов
+        styles = request.args.getlist('styles[]')  # Массив стилей
+
+        # Параметры пагинации
+        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get('limit', 50))
+
+        # Создаем экземпляр парсера для доступа к MongoDB
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        # Подключаемся к MongoDB
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Базовый запрос - только оттегированные, не скрытые изображения
+        query = {
+            "local_filename": {"$exists": True},
+            "hidden": {"$ne": True},
+            "is_duplicate": {"$ne": True},
+            "ximilar_objects_structured": {"$exists": True, "$ne": []}
+        }
+
+        # Строим условия фильтрации для $elemMatch
+        elem_match_conditions = {}
+
+        # Фильтр по категории
+        if category:
+            elem_match_conditions["properties.other_attributes.Category"] = {
+                "$elemMatch": {"name": category}
+            }
+
+        # Фильтр по подкатегории (subsubcategory - это оригинальное имя объекта)
+        if subsubcategory:
+            # Используем Subcategory из other_attributes
+            elem_match_conditions["properties.other_attributes.Subcategory"] = {
+                "$elemMatch": {"name": subsubcategory}
+            }
+
+        # Фильтры по атрибутам (цвета, материалы, стили)
+        # Эти фильтры применяются к объектам, которые уже прошли фильтр по категории/подкатегории
+        if colors:
+            # Ищем любой из выбранных цветов
+            elem_match_conditions["properties.color_attributes"] = {
+                "$elemMatch": {"name": {"$in": colors}}
+            }
+
+        if materials:
+            elem_match_conditions["properties.material_attributes"] = {
+                "$elemMatch": {"name": {"$in": materials}}
+            }
+
+        if styles:
+            elem_match_conditions["properties.visual_attributes"] = {
+                "$elemMatch": {"name": {"$in": styles}}
+            }
+
+        # Применяем фильтр через $elemMatch только если есть условия
+        if elem_match_conditions:
+            query["ximilar_objects_structured"] = {"$elemMatch": elem_match_conditions}
+
+        # Проекция полей
+        projection = {
+            "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
+            "comments_count": 1, "caption": 1, "ximilar_tags": 1,
+            "ximilar_objects_structured": 1, "tagged_at": 1, "ximilar_tagged_at": 1,
+            "timestamp": 1
+        }
+
+        # Получаем изображения с пагинацией и сортировкой
+        images = list(parser.collection.find(query, projection).sort("timestamp", -1).skip(offset).limit(limit))
+
+        # Конвертируем ObjectId в строки для JSON
+        from bson import ObjectId
+        for image in images:
+            image['_id'] = str(image['_id'])
+
+        # Получаем общее количество изображений
+        total_count = parser.collection.count_documents(query)
+
+        print(f"🔍 Фильтр: category={category}, subsubcategory={subsubcategory}, colors={colors}, materials={materials}, styles={styles}")
+        print(f"📊 Найдено: {total_count} изображений (загружено {len(images)} с offset={offset})")
+
+        return jsonify({
+            'success': True,
+            'images': images,
+            'offset': offset,
+            'limit': limit,
+            'total_count': total_count,
+            'has_more': (offset + limit) < total_count,
+            'filters': {
+                'category': category,
+                'subcategory': subcategory,
+                'subsubcategory': subsubcategory,
+                'colors': colors,
+                'materials': materials,
+                'styles': styles
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Ошибка фильтрации: {e}")
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/analytics/top-accessories-stats', methods=['GET'])
 def api_analytics_top_accessories_stats():
     """API для получения топ-20 популярных аксессуаров (подкатегория + цвет)"""
