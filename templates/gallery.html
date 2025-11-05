@@ -1434,14 +1434,19 @@
 
                 // Кнопки навигации для иерархических фильтров
                 const backToCategoriesBtn = document.getElementById('backToCategories');
+                const backToSubcategories2Btn = document.getElementById('backToSubcategories2');
                 const backToSubcategoriesBtn = document.getElementById('backToSubcategories');
 
                 if (backToCategoriesBtn) {
                     backToCategoriesBtn.addEventListener('click', backToCategories);
                 }
 
+                if (backToSubcategories2Btn) {
+                    backToSubcategories2Btn.addEventListener('click', backToSubcategories);
+                }
+
                 if (backToSubcategoriesBtn) {
-                    backToSubcategoriesBtn.addEventListener('click', backToSubcategories);
+                    backToSubcategoriesBtn.addEventListener('click', backToSubsubcategories);
                 }
             }
         }
@@ -1901,26 +1906,43 @@
             currentSubcategory = subcategory;
             selectedFilters.subcategory = subcategory;
 
-            // Показываем детали фильтров
+            // Показываем подподкатегории (уровень 3)
             document.getElementById('filterSubcategories').style.display = 'none';
+            document.getElementById('filterSubsubcategories').style.display = 'block';
+            document.getElementById('filterDetails').style.display = 'none';
+
+            // Обновляем заголовок
+            document.getElementById('selectedSubcategoryTitle2').textContent = `${subcategory} - Выберите тип`;
+
+            // Рендерим подподкатегории
+            renderSubsubcategories(category, subcategory);
+        }
+
+        function selectSubsubcategory(category, subcategory, subsubcategory) {
+            currentSubsubcategory = subsubcategory;
+            selectedFilters.subsubcategory = subsubcategory;
+
+            // Показываем детали фильтров
+            document.getElementById('filterSubsubcategories').style.display = 'none';
             document.getElementById('filterDetails').style.display = 'block';
 
             // Обновляем заголовок
-            document.getElementById('selectedSubcategoryTitle').textContent = `${subcategory} - Фильтры`;
+            document.getElementById('selectedSubcategoryTitle').textContent = `${subsubcategory} - Фильтры`;
 
-            // Рендерим фильтры для этой подкатегории
-            renderFilterDetails(category, subcategory);
+            // Рендерим фильтры для этой подподкатегории
+            renderFilterDetails(category, subcategory, subsubcategory);
         }
-        
-        function renderFilterDetails(category, subcategory) {
-            const filters = hierarchicalFilters[category][subcategory];
-            
+
+        function renderFilterDetails(category, subcategory, subsubcategory) {
+            // Получаем фильтры для подподкатегории (уровень 3)
+            const filters = hierarchicalFilters[category][subcategory].subsubcategories[subsubcategory];
+
             // Рендерим цвета
             renderFilterSection('colorFilters', filters.colors, 'colors');
-            
+
             // Рендерим материалы
             renderFilterSection('materialFilters', filters.materials, 'materials');
-            
+
             // Рендерим стили
             renderFilterSection('styleFilters', filters.styles, 'styles');
         }
@@ -1983,26 +2005,44 @@
         }
 
         function backToCategories() {
-            // Сбрасываем выбранную категорию и подкатегорию
+            // Сбрасываем выбранную категорию, подкатегорию и подподкатегорию
             currentCategory = null;
             currentSubcategory = null;
+            currentSubsubcategory = null;
             selectedFilters.category = null;
             selectedFilters.subcategory = null;
+            selectedFilters.subsubcategory = null;
 
             // Показываем категории
             document.getElementById('filterCategories').style.display = 'grid';
             document.getElementById('filterSubcategories').style.display = 'none';
+            document.getElementById('filterSubsubcategories').style.display = 'none';
             document.getElementById('filterDetails').style.display = 'none';
         }
-        
+
         function backToSubcategories() {
-            // Сбрасываем выбранную подкатегорию
+            // Сбрасываем выбранную подкатегорию и подподкатегорию
             currentSubcategory = null;
+            currentSubsubcategory = null;
             selectedFilters.subcategory = null;
+            selectedFilters.subsubcategory = null;
 
             // Показываем подкатегории
             document.getElementById('filterCategories').style.display = 'none';
             document.getElementById('filterSubcategories').style.display = 'block';
+            document.getElementById('filterSubsubcategories').style.display = 'none';
+            document.getElementById('filterDetails').style.display = 'none';
+        }
+
+        function backToSubsubcategories() {
+            // Сбрасываем выбранную подподкатегорию
+            currentSubsubcategory = null;
+            selectedFilters.subsubcategory = null;
+
+            // Показываем подподкатегории
+            document.getElementById('filterCategories').style.display = 'none';
+            document.getElementById('filterSubcategories').style.display = 'none';
+            document.getElementById('filterSubsubcategories').style.display = 'block';
             document.getElementById('filterDetails').style.display = 'none';
         }
         
