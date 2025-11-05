@@ -2146,15 +2146,33 @@
         }
 
         function backToSubsubcategories() {
+            // Проверяем, была ли это двухуровневая структура
+            // Если subsubcategory совпадает с subcategory, значит это была двухуровневая структура
+            const wasTwoLevel = (currentSubsubcategory === currentSubcategory);
+
             // Сбрасываем выбранную подподкатегорию
             currentSubsubcategory = null;
             selectedFilters.subsubcategory = null;
 
-            // Показываем подподкатегории
-            document.getElementById('filterCategories').style.display = 'none';
-            document.getElementById('filterSubcategories').style.display = 'none';
-            document.getElementById('filterSubsubcategories').style.display = 'block';
-            document.getElementById('filterDetails').style.display = 'none';
+            if (wasTwoLevel) {
+                // Для двухуровневой структуры - возвращаемся к списку подкатегорий
+                currentSubcategory = null;
+                selectedFilters.subcategory = null;
+
+                document.getElementById('filterCategories').style.display = 'none';
+                document.getElementById('filterSubcategories').style.display = 'block';
+                document.getElementById('filterSubsubcategories').style.display = 'none';
+                document.getElementById('filterDetails').style.display = 'none';
+
+                // Рендерим подкатегории для текущей категории
+                renderSubcategories(currentCategory);
+            } else {
+                // Для трехуровневой структуры - показываем подподкатегории
+                document.getElementById('filterCategories').style.display = 'none';
+                document.getElementById('filterSubcategories').style.display = 'none';
+                document.getElementById('filterSubsubcategories').style.display = 'block';
+                document.getElementById('filterDetails').style.display = 'none';
+            }
         }
         
         function checkImageMatchesFilters(card) {
