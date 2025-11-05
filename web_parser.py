@@ -1006,134 +1006,100 @@ def api_filter_options():
                 image_materials = set()
                 image_styles = set()
                 
-                # Сначала дедуплицируем объекты по их основному названию
-                # Это поможет избежать подсчета одинаковых объектов с разными атрибутами
-                unique_objects_by_name = {}
-                
+                # Важно: Subcategory может содержать НЕСКОЛЬКО вариантов (например ["long strap bags", "baguette bags"])
+                # Нужно обработать ВСЕ варианты, а не только первый, чтобы подсчет совпадал с фильтрацией
+                # Но для дедупликации: если в одном изображении один объект встречается несколько раз, считаем только 1 раз
+
+                # Собираем все уникальные subcategory для этого изображения
+                processed_subcategories_in_image = set()
+
                 for obj in image['ximilar_objects_structured']:
-                    # Получаем основное название объекта (точно как в шаблоне)
-                    obj_name = ''
-                    if obj.get('properties'):
-                        if obj['properties'].get('other_attributes'):
-                            if obj['properties']['other_attributes'].get('Subcategory'):
-                                obj_name = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                            elif obj['properties']['other_attributes'].get('Category'):
-                                obj_name = obj['properties']['other_attributes']['Category'][0]['name']
-                    
-                    # Если объект с таким названием уже есть, пропускаем
-                    if obj_name and obj_name in unique_objects_by_name:
-                        continue
-                    
-                    # Сохраняем первый объект с этим названием
-                    if obj_name:
-                        unique_objects_by_name[obj_name] = obj
-                
-                # Сначала определяем, к каким категориям/подкатегориям относится это изображение
-                image_subcategories = {}  # {category: [subcategories]}
-                
-                for obj in unique_objects_by_name.values():
-                    category = obj.get('top_category', 'Other')
-                    
-                    subcategory = ''
-                    if obj.get('properties'):
-                        if obj['properties'].get('other_attributes'):
-                            if obj['properties']['other_attributes'].get('Subcategory'):
-                                subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                            elif obj['properties']['other_attributes'].get('Category'):
-                                subcategory = obj['properties']['other_attributes']['Category'][0]['name']
-                    
-                    if subcategory:
-                        # Нормализуем название в контексте категории
-                        # Например: Accessories+Handbags -> Bags, но Clothing+Tops остаётся Tops
-                        normalized_subcategory = normalize_subcategory_name(subcategory, category)
-                        
-                        if category not in image_subcategories:
-                            image_subcategories[category] = set()
-                        image_subcategories[category].add(normalized_subcategory)
-                
-                # Теперь добавляем атрибуты каждого объекта только к ЕГО подкатегории
-                for obj in unique_objects_by_name.values():
                     category = obj.get('top_category', 'Other')
 
-                    # Получаем подкатегорию этого объекта (оригинальное название)
-                    original_subcategory = ''
-                    if obj.get('properties'):
-                        if obj['properties'].get('other_attributes'):
-                            if obj['properties']['other_attributes'].get('Subcategory'):
-                                original_subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                            elif obj['properties']['other_attributes'].get('Category'):
-                                original_subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+                    if obj.get('properties') and obj['properties'].get('other_attributes'):
+                        other_attrs = obj['properties']['other_attributes']
 
-                    if not original_subcategory:
-                        continue
+                        # Обрабатываем ВСЕ варианты в Subcategory (не только первый!)
+                        if other_attrs.get('Subcategory'):
+                            for subcat_variant in other_attrs['Subcategory']:
+                                original_subcategory = subcat_variant.get('name', '')
+                                if not original_subcategory:
+                                    continue
 
-                    # Нормализуем название подкатегории (уровень 2)
-                    normalized_subcategory = normalize_subcategory_name(original_subcategory, category)
+                                # Создаем уникальный ключ для дедупликации внутри изображения
+                                dedup_key = f"{category}:{original_subcategory}"
+                                if dedup_key in processed_subcategories_in_image:
+                                    continue
 
-                    # Инициализируем структуру для категории
-                    if category not in hierarchical_filters:
-                        hierarchical_filters[category] = {}
+                                processed_subcategories_in_image.add(dedup_key)
 
-                    # Проверяем, нужен ли третий уровень вложенности
-                    # Если нормализация НЕ изменила название, то третий уровень НЕ нужен
-                    needs_third_level = (normalized_subcategory.lower() != original_subcategory.lower())
+                                # Нормализуем название подкатегории (уровень 2)
+                                normalized_subcategory = normalize_subcategory_name(original_subcategory, category)
 
-                    if needs_third_level:
-                        # Создаем 3 уровня: category -> normalized_subcategory -> original_subcategory -> colors/materials/styles
+                                # Инициализируем структуру для категории
+                                if category not in hierarchical_filters:
+                                    hierarchical_filters[category] = {}
 
-                        # Инициализируем структуру для подкатегории (уровень 2)
-                        if normalized_subcategory not in hierarchical_filters[category]:
-                            hierarchical_filters[category][normalized_subcategory] = {
-                                'subsubcategories': {}  # Уровень 3
-                            }
+                                # Проверяем, нужен ли третий уровень вложенности
+                                # Если нормализация НЕ изменила название, то третий уровень НЕ нужен
+                                needs_third_level = (normalized_subcategory.lower() != original_subcategory.lower())
 
-                        # Инициализируем структуру для подподкатегории (уровень 3 - оригинальное название)
-                        if original_subcategory not in hierarchical_filters[category][normalized_subcategory]['subsubcategories']:
-                            hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory] = {
-                                'colors': {},
-                                'materials': {},
-                                'styles': {}
-                            }
+                                if needs_third_level:
+                                    # Создаем 3 уровня: category -> normalized_subcategory -> original_subcategory -> colors/materials/styles
 
-                        # Добавляем атрибуты к подподкатегории (уровень 3)
-                        subsubcat = hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory]
-                    else:
-                        # Создаем только 2 уровня: category -> original_subcategory -> colors/materials/styles
+                                    # Инициализируем структуру для подкатегории (уровень 2)
+                                    if normalized_subcategory not in hierarchical_filters[category]:
+                                        hierarchical_filters[category][normalized_subcategory] = {
+                                            'subsubcategories': {}  # Уровень 3
+                                        }
 
-                        # Инициализируем структуру для подкатегории (уровень 2) БЕЗ subsubcategories
-                        if original_subcategory not in hierarchical_filters[category]:
-                            hierarchical_filters[category][original_subcategory] = {
-                                'colors': {},
-                                'materials': {},
-                                'styles': {}
-                            }
+                                    # Инициализируем структуру для подподкатегории (уровень 3 - оригинальное название)
+                                    if original_subcategory not in hierarchical_filters[category][normalized_subcategory]['subsubcategories']:
+                                        hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory] = {
+                                            'colors': {},
+                                            'materials': {},
+                                            'styles': {}
+                                        }
 
-                        # Добавляем атрибуты напрямую к подкатегории (уровень 2)
-                        subsubcat = hierarchical_filters[category][original_subcategory]
+                                    # Добавляем атрибуты к подподкатегории (уровень 3)
+                                    subsubcat = hierarchical_filters[category][normalized_subcategory]['subsubcategories'][original_subcategory]
+                                else:
+                                    # Создаем только 2 уровня: category -> original_subcategory -> colors/materials/styles
 
-                    # Цвета
-                    if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                        for color in obj['properties']['visual_attributes']['Color']:
-                            color_name = color['name']
-                            if color_name not in subsubcat['colors']:
-                                subsubcat['colors'][color_name] = set()
-                            subsubcat['colors'][color_name].add(image['_id'])
+                                    # Инициализируем структуру для подкатегории (уровень 2) БЕЗ subsubcategories
+                                    if original_subcategory not in hierarchical_filters[category]:
+                                        hierarchical_filters[category][original_subcategory] = {
+                                            'colors': {},
+                                            'materials': {},
+                                            'styles': {}
+                                        }
 
-                    # Материалы
-                    if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
-                        for material in obj['properties']['material_attributes']['Material']:
-                            material_name = material['name']
-                            if material_name not in subsubcat['materials']:
-                                subsubcat['materials'][material_name] = set()
-                            subsubcat['materials'][material_name].add(image['_id'])
+                                    # Добавляем атрибуты напрямую к подкатегории (уровень 2)
+                                    subsubcat = hierarchical_filters[category][original_subcategory]
 
-                    # Стили
-                    if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
-                        for style in obj['properties']['style_attributes']['Style']:
-                            style_name = style['name']
-                            if style_name not in subsubcat['styles']:
-                                subsubcat['styles'][style_name] = set()
-                            subsubcat['styles'][style_name].add(image['_id'])
+                                # Цвета (добавляем image_id в set - дубликаты автоматически убираются)
+                                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
+                                    for color in obj['properties']['visual_attributes']['Color']:
+                                        color_name = color['name']
+                                        if color_name not in subsubcat['colors']:
+                                            subsubcat['colors'][color_name] = set()
+                                        subsubcat['colors'][color_name].add(image['_id'])
+
+                                # Материалы
+                                if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
+                                    for material in obj['properties']['material_attributes']['Material']:
+                                        material_name = material['name']
+                                        if material_name not in subsubcat['materials']:
+                                            subsubcat['materials'][material_name] = set()
+                                        subsubcat['materials'][material_name].add(image['_id'])
+
+                                # Стили
+                                if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
+                                    for style in obj['properties']['style_attributes']['Style']:
+                                        style_name = style['name']
+                                        if style_name not in subsubcat['styles']:
+                                            subsubcat['styles'][style_name] = set()
+                                        subsubcat['styles'][style_name].add(image['_id'])
                 
                 # Подсчет уже происходит в иерархической структуре выше
         
