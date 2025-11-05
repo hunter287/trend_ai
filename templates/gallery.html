@@ -446,7 +446,7 @@
             font-weight: bold;
         }
         
-        .subcategory-header, .filter-details-header {
+        .subcategory-header, .subsubcategory-header, .filter-details-header {
             display: flex;
             align-items: center;
             gap: 15px;
@@ -454,7 +454,54 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #dee2e6;
         }
-        
+
+        .subsubcategory-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .subsubcategory-option {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .subsubcategory-option:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .subsubcategory-info {
+            flex: 1;
+        }
+
+        .subsubcategory-info h5 {
+            margin: 0 0 5px 0;
+            color: #495057;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .subsubcategory-count {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .subsubcategory-arrow {
+            font-size: 18px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
         .btn-back {
             background: #6c757d;
             color: white;
@@ -465,7 +512,7 @@
             font-size: 12px;
             transition: all 0.2s ease;
         }
-        
+
         .btn-back:hover {
             background: #5a6268;
         }
@@ -906,6 +953,16 @@
                     </div>
                     <div class="subcategory-list" id="subcategoryList">
                         <!-- Подкатегории будут загружены динамически -->
+                    </div>
+                </div>
+
+                <div class="filter-subsubcategories" id="filterSubsubcategories" style="display: none;">
+                    <div class="subsubcategory-header">
+                        <button class="btn btn-back" id="backToSubcategories2">← Назад к подкатегориям</button>
+                        <h4 id="selectedSubcategoryTitle2">Выберите тип</h4>
+                    </div>
+                    <div class="subsubcategory-list" id="subsubcategoryList">
+                        <!-- Подподкатегории будут загружены динамически -->
                     </div>
                 </div>
 
@@ -1704,9 +1761,11 @@
         let hierarchicalFilters = {};
         let currentCategory = null;
         let currentSubcategory = null;
+        let currentSubsubcategory = null;
         let selectedFilters = {
             category: null,
             subcategory: null,
+            subsubcategory: null,
             colors: [],
             materials: [],
             styles: [],
@@ -1780,15 +1839,15 @@
         function renderSubcategories(category) {
             const container = document.getElementById('subcategoryList');
             if (!container) return;
-            
+
             container.innerHTML = '';
-            
+
             const subcategories = Object.keys(hierarchicalFilters[category]).filter(k => k !== '_meta').sort();
-            
+
             subcategories.forEach(subcategory => {
                 const filters = hierarchicalFilters[category][subcategory];
                 const imageCount = filters._image_count || 0;
-                
+
                 const subcategoryElement = document.createElement('div');
                 subcategoryElement.className = 'subcategory-option';
                 subcategoryElement.innerHTML = `
@@ -1798,15 +1857,46 @@
                     </div>
                     <div class="subcategory-arrow">→</div>
                 `;
-                
+
                 subcategoryElement.addEventListener('click', () => {
                     selectSubcategory(category, subcategory);
                 });
-                
+
                 container.appendChild(subcategoryElement);
             });
         }
-        
+
+        function renderSubsubcategories(category, subcategory) {
+            const container = document.getElementById('subsubcategoryList');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const subsubcategories = hierarchicalFilters[category][subcategory].subsubcategories || {};
+            const subsubcategoryNames = Object.keys(subsubcategories).sort();
+
+            subsubcategoryNames.forEach(subsubcategory => {
+                const filters = subsubcategories[subsubcategory];
+                const imageCount = filters._image_count || 0;
+
+                const subsubcategoryElement = document.createElement('div');
+                subsubcategoryElement.className = 'subsubcategory-option';
+                subsubcategoryElement.innerHTML = `
+                    <div class="subsubcategory-info">
+                        <h5>${subsubcategory}</h5>
+                        <span class="subsubcategory-count">(${imageCount} ${imageCount === 1 ? 'изображение' : 'изображений'})</span>
+                    </div>
+                    <div class="subsubcategory-arrow">→</div>
+                `;
+
+                subsubcategoryElement.addEventListener('click', () => {
+                    selectSubsubcategory(category, subcategory, subsubcategory);
+                });
+
+                container.appendChild(subsubcategoryElement);
+            });
+        }
+
         function selectSubcategory(category, subcategory) {
             currentSubcategory = subcategory;
             selectedFilters.subcategory = subcategory;
