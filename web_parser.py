@@ -2695,6 +2695,13 @@ def api_filtered_images():
             # Создаем $and со всеми условиями
             query["$and"] = existing_conditions + attribute_filters
 
+        # Отладочный вывод финального запроса
+        import json
+        print("=" * 70)
+        print("🔍 DEBUG: Финальный MongoDB запрос:")
+        print(json.dumps(query, indent=2, default=str, ensure_ascii=False))
+        print("=" * 70)
+
         # Проекция полей
         projection = {
             "_id": 1, "local_filename": 1, "username": 1, "likes_count": 1,
