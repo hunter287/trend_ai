@@ -1180,11 +1180,23 @@ def api_filter_options():
             # Исключаем _meta из подсчёта
             real_subcategories = {k: v for k, v in subcategories.items() if k != '_meta'}
             total_subcategories = len(real_subcategories)
-            total_colors = sum(len(filters['colors']) for filters in real_subcategories.values())
-            total_materials = sum(len(filters['materials']) for filters in real_subcategories.values())
-            total_styles = sum(len(filters['styles']) for filters in real_subcategories.values())
+
+            # Теперь нужно подсчитывать через 3 уровня: category -> subcategory -> subsubcategory -> colors/materials/styles
+            total_colors = 0
+            total_materials = 0
+            total_styles = 0
+            total_subsubcategories = 0
+
+            for subcat_name, subcat_data in real_subcategories.items():
+                if 'subsubcategories' in subcat_data:
+                    for subsubcat_name, subsubcat_filters in subcat_data['subsubcategories'].items():
+                        total_subsubcategories += 1
+                        total_colors += len(subsubcat_filters.get('colors', {}))
+                        total_materials += len(subsubcat_filters.get('materials', {}))
+                        total_styles += len(subsubcat_filters.get('styles', {}))
+
             image_count = subcategories.get('_meta', {}).get('image_count', 0)
-            print(f"  📂 {category}: {image_count} изображений, {total_subcategories} подкатегорий, {total_colors} цветов, {total_materials} материалов, {total_styles} стилей")
+            print(f"  📂 {category}: {image_count} изображений, {total_subcategories} подкатегорий, {total_subsubcategories} подподкатегорий, {total_colors} цветов, {total_materials} материалов, {total_styles} стилей")
         
         return jsonify({
             'success': True,
