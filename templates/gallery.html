@@ -1779,34 +1779,51 @@
         };
         
         async function loadFilterOptions() {
+            console.log('🔄 Загрузка фильтров...');
             try {
                 const response = await fetch('/api/filter-options');
+                console.log('📡 Ответ получен, status:', response.status);
+
                 const result = await response.json();
-                
+                console.log('📦 Данные получены:', result);
+
                 if (result.success) {
                     hierarchicalFilters = result.hierarchical_filters;
+                    console.log('✅ hierarchicalFilters установлен:', hierarchicalFilters);
+                    console.log('📊 Количество категорий:', Object.keys(hierarchicalFilters).length);
                     renderCategories();
                 } else {
+                    console.error('❌ API вернул ошибку:', result.message);
                     showNotification(`❌ ${result.message}`, 'error');
                 }
             } catch (error) {
+                console.error('❌ Ошибка при загрузке:', error);
                 showNotification(`❌ Ошибка загрузки фильтров: ${error.message}`, 'error');
             }
         }
         
         function renderCategories() {
+            console.log('🎨 renderCategories вызвана');
             const container = document.getElementById('filterCategories');
-            if (!container) return;
-            
+            console.log('📦 Контейнер найден:', container);
+
+            if (!container) {
+                console.error('❌ Контейнер filterCategories не найден!');
+                return;
+            }
+
             container.innerHTML = '';
-            
+
             const categories = Object.keys(hierarchicalFilters).filter(k => k !== '_meta').sort();
-            
+            console.log('📋 Категории для отображения:', categories);
+
             categories.forEach(category => {
                 const categoryData = hierarchicalFilters[category];
                 const imageCount = categoryData._meta?.image_count || 0;
                 const subcategoryCount = Object.keys(categoryData).filter(k => k !== '_meta').length;
-                
+
+                console.log(`  • ${category}: ${imageCount} изображений, ${subcategoryCount} подкатегорий`);
+
                 const categoryElement = document.createElement('div');
                 categoryElement.className = 'category-option';
                 categoryElement.innerHTML = `
@@ -1816,13 +1833,15 @@
                     </div>
                     <div class="category-arrow">→</div>
                 `;
-                
+
                 categoryElement.addEventListener('click', () => {
                     selectCategory(category);
                 });
-                
+
                 container.appendChild(categoryElement);
             });
+
+            console.log('✅ renderCategories завершена, добавлено элементов:', categories.length);
         }
         
         function selectCategory(category) {
