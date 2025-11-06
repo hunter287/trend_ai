@@ -1974,7 +1974,7 @@
                     hierarchicalFilters = result.hierarchical_filters;
                     console.log('✅ hierarchicalFilters установлен:', hierarchicalFilters);
                     console.log('📊 Количество категорий:', Object.keys(hierarchicalFilters).length);
-                    renderCategories();
+                    refreshCurrentView();
                 } else {
                     console.error('❌ API вернул ошибку:', result.message);
                     showNotification(`❌ ${result.message}`, 'error');
@@ -1982,6 +1982,32 @@
             } catch (error) {
                 console.error('❌ Ошибка при загрузке:', error);
                 showNotification(`❌ Ошибка загрузки фильтров: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshCurrentView() {
+            // Перерисовываем текущий открытый уровень иерархии
+            if (currentSubsubcategory && currentSubcategory && currentCategory) {
+                // Находимся на уровне фильтров (цвета/материалы/стили)
+                renderFilterDetails(currentCategory, currentSubcategory, currentSubsubcategory);
+            } else if (currentSubcategory && currentCategory) {
+                // Находимся на уровне подподкатегорий или фильтров (двухуровневая структура)
+                const categoryData = hierarchicalFilters[currentCategory];
+                const subcategoryData = categoryData?.[currentSubcategory];
+
+                if (subcategoryData?.subsubcategories) {
+                    // Трехуровневая структура - показываем подподкатегории
+                    renderSubsubcategories(currentCategory, currentSubcategory);
+                } else {
+                    // Двухуровневая структура - показываем фильтры напрямую
+                    renderFilterDetailsDirectly(currentCategory, currentSubcategory);
+                }
+            } else if (currentCategory) {
+                // Находимся на уровне подкатегорий
+                renderSubcategories(currentCategory);
+            } else {
+                // Находимся на уровне категорий
+                renderCategories();
             }
         }
         
