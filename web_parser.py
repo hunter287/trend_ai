@@ -1040,14 +1040,24 @@ def api_filter_options():
 
                     # Получаем подкатегорию этого объекта (ТОЛЬКО ПЕРВЫЙ вариант)
                     original_subcategory = ''
+                    subcategory_prob = 1.0  # По умолчанию максимальный confidence
+
                     if obj.get('properties'):
                         if obj['properties'].get('other_attributes'):
                             if obj['properties']['other_attributes'].get('Subcategory'):
-                                original_subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                                subcategory_data = obj['properties']['other_attributes']['Subcategory'][0]
+                                original_subcategory = subcategory_data['name']
+                                subcategory_prob = subcategory_data.get('prob', 1.0)
                             elif obj['properties']['other_attributes'].get('Category'):
-                                original_subcategory = obj['properties']['other_attributes']['Category'][0]['name']
+                                category_data = obj['properties']['other_attributes']['Category'][0]
+                                original_subcategory = category_data['name']
+                                subcategory_prob = category_data.get('prob', 1.0)
 
                     if not original_subcategory:
+                        continue
+
+                    # Проверяем confidence подкатегории/категории если включен фильтр
+                    if use_confidence and subcategory_prob <= confidence_threshold:
                         continue
 
                     # Нормализуем название подкатегории (уровень 2)
