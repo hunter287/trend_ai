@@ -344,25 +344,43 @@
             background: #f8f9fa;
         }
 
-        .loading {
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 300px;
-            color: #6c757d;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
             font-size: 1.2em;
-        }
-
-        .loading:after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
+            color: #667eea;
+            font-weight: 600;
         }
 
         .stats-overview {
@@ -461,6 +479,12 @@
                 <a href="/gallery_hidden" class="nav-btn">🙈 Скрытые</a>
                 <a href="/analytics" class="nav-btn active">📊 Аналитика</a>
             </div>
+        </div>
+
+        <!-- Индикатор загрузки -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div class="loading-text">Загрузка данных...</div>
         </div>
 
         <div class="content">
@@ -827,10 +851,15 @@
                     initializeTimelineCharts('Footwear');
                 }
 
+                // Скрываем индикатор загрузки
+                document.getElementById('loadingOverlay').classList.add('hidden');
+
             } catch (error) {
                 console.error('Ошибка загрузки аналитики:', error);
                 document.querySelector('.content').insertAdjacentHTML('afterbegin',
                     '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
+                // Скрываем индикатор загрузки даже при ошибке
+                document.getElementById('loadingOverlay').classList.add('hidden');
             }
         }
 
