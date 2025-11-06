@@ -1838,6 +1838,135 @@ def api_analytics_trends_timeline():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/analytics/subsubcategory-timeline', methods=['GET'])
+def api_analytics_subsubcategory_timeline():
+    """API для получения временных трендов по подподкатегориям с топ-20 для каждой категории"""
+    try:
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем все изображения с тегами и датами
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Собираем данные: {category: {subsubcategory: {year_month: count}}}
+        timeline_by_category = {}
+        subsubcategory_totals = {}  # Для подсчета общего количества {category: {subsubcategory: total}}
+
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]  # YYYY-MM
+
+                # Дедупликация объектов по имени подподкатегории
+                seen_subsubcategories = set()
+
+                for obj in image.get('ximilar_objects_structured', []):
+                    category = obj.get('top_category', 'Other')
+
+                    # Получаем subsubcategory (оригинальное имя из Subcategory или Category)
+                    subsubcategory = None
+                    if obj.get('properties', {}).get('other_attributes', {}).get('Subcategory'):
+                        subsubcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                    elif obj.get('properties', {}).get('other_attributes', {}).get('Category'):
+                        subsubcategory = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    if not subsubcategory:
+                        continue
+
+                    # Дедупликация в рамках одного изображения
+                    dedup_key = f"{category}:{subsubcategory}"
+                    if dedup_key in seen_subsubcategories:
+                        continue
+                    seen_subsubcategories.add(dedup_key)
+
+                    # Инициализация структур
+                    if category not in timeline_by_category:
+                        timeline_by_category[category] = {}
+                        subsubcategory_totals[category] = {}
+
+                    if subsubcategory not in timeline_by_category[category]:
+                        timeline_by_category[category][subsubcategory] = {}
+                        subsubcategory_totals[category][subsubcategory] = 0
+
+                    if year_month not in timeline_by_category[category][subsubcategory]:
+                        timeline_by_category[category][subsubcategory][year_month] = 0
+
+                    timeline_by_category[category][subsubcategory][year_month] += 1
+                    subsubcategory_totals[category][subsubcategory] += 1
+
+            except Exception as e:
+                continue
+
+        # Получаем все уникальные месяцы (отсортированные)
+        all_months = set()
+        for category_data in timeline_by_category.values():
+            for subsubcat_data in category_data.values():
+                all_months.update(subsubcat_data.keys())
+        sorted_months = sorted(all_months)
+
+        # Формируем результат для каждой категории
+        result = {}
+        for category in ['Clothing', 'Accessories', 'Footwear']:
+            if category not in timeline_by_category:
+                result[category] = {
+                    'months': sorted_months,
+                    'top20': [],
+                    'all_subsubcategories': []
+                }
+                continue
+
+            # Получаем топ-20 по общему количеству
+            sorted_subsubcats = sorted(
+                subsubcategory_totals[category].items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
+            top20_names = [name for name, _ in sorted_subsubcats[:20]]
+            all_names = sorted([name for name, _ in sorted_subsubcats])
+
+            # Формируем данные для топ-20
+            top20_data = []
+            for subsubcat_name in top20_names:
+                series_data = [
+                    timeline_by_category[category][subsubcat_name].get(month, 0)
+                    for month in sorted_months
+                ]
+                top20_data.append({
+                    'name': subsubcat_name,
+                    'data': series_data,
+                    'total': subsubcategory_totals[category][subsubcat_name]
+                })
+
+            result[category] = {
+                'months': sorted_months,
+                'top20': top20_data,
+                'all_subsubcategories': all_names
+            }
+
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/analytics/emerging-trends', methods=['GET'])
 def api_analytics_emerging_trends():
     """API для получения растущих и угасающих трендов"""
