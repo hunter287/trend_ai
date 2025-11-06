@@ -199,6 +199,49 @@
             font-weight: bold;
             color: #333;
         }
+
+        /* Стили для табов */
+        .tabs-container {
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            position: relative;
+            top: 2px;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -256,27 +299,84 @@
                     </div>
                 </div>
 
-                <!-- Популярные цвета -->
+                <!-- Популярные цвета по категориям -->
                 <div class="chart-card">
-                    <h3>🎨 Популярные цвета</h3>
-                    <div class="chart-container">
-                        <canvas id="colorsChart"></canvas>
+                    <h3>🎨 Популярные цвета по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('colors', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('colors', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('colors', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="colors-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="colorsChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="colors-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="colorsChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="colors-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="colorsChartAccessories"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Популярные материалы -->
+                <!-- Популярные материалы по категориям -->
                 <div class="chart-card">
-                    <h3>🧵 Популярные материалы</h3>
-                    <div class="chart-container">
-                        <canvas id="materialsChart"></canvas>
+                    <h3>🧵 Популярные материалы по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('materials', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('materials', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('materials', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="materials-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="materialsChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="materials-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="materialsChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="materials-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="materialsChartAccessories"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Популярные стили -->
+                <!-- Популярные стили по категориям -->
                 <div class="chart-card">
-                    <h3>✨ Популярные стили</h3>
-                    <div class="chart-container">
-                        <canvas id="stylesChart"></canvas>
+                    <h3>✨ Популярные стили по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('styles', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('styles', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('styles', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="styles-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="stylesChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="styles-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="stylesChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="styles-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="stylesChartAccessories"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,18 +428,48 @@
             'Silver': '#C0C0C0'
         };
 
+        // Глобальное хранилище данных
+        let analyticsData = {
+            colorsByCategory: null,
+            materialsByCategory: null,
+            stylesByCategory: null
+        };
+
+        // Функция переключения табов
+        function switchTab(section, category) {
+            // Убираем активный класс со всех кнопок в этой секции
+            const parentCard = document.querySelector(`#${section}-${category}`).closest('.chart-card');
+            const tabs = parentCard.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Добавляем активный класс на выбранную кнопку
+            event.target.classList.add('active');
+
+            // Скрываем все табы в этой секции
+            const allTabs = parentCard.querySelectorAll('.tab-content');
+            allTabs.forEach(tab => tab.classList.remove('active'));
+
+            // Показываем выбранный таб
+            document.getElementById(`${section}-${category}`).classList.add('active');
+        }
+
         // Загрузка данных
         async function loadAnalytics() {
             try {
                 // Загружаем все данные параллельно
-                const [categories, subcategories, colors, materials, styles, timeline] = await Promise.all([
+                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, timeline] = await Promise.all([
                     fetch('/api/analytics/categories-stats').then(r => r.json()),
                     fetch('/api/analytics/subcategories-stats').then(r => r.json()),
-                    fetch('/api/analytics/colors-stats').then(r => r.json()),
-                    fetch('/api/analytics/materials-stats').then(r => r.json()),
-                    fetch('/api/analytics/styles-stats').then(r => r.json()),
+                    fetch('/api/analytics/colors-by-category').then(r => r.json()),
+                    fetch('/api/analytics/materials-by-category').then(r => r.json()),
+                    fetch('/api/analytics/styles-by-category').then(r => r.json()),
                     fetch('/api/analytics/trends-timeline').then(r => r.json())
                 ]);
+
+                // Сохраняем данные
+                analyticsData.colorsByCategory = colorsByCategory;
+                analyticsData.materialsByCategory = materialsByCategory;
+                analyticsData.stylesByCategory = stylesByCategory;
 
                 // Обновляем статистику
                 if (categories.success) {
@@ -348,20 +478,46 @@
                     document.getElementById('totalCategories').textContent = categories.categories.length;
                 }
 
-                if (colors.success) {
-                    document.getElementById('totalColors').textContent = colors.colors.length;
+                // Подсчитываем общее количество уникальных цветов и материалов
+                if (colorsByCategory.success) {
+                    const allColors = new Set();
+                    Object.values(colorsByCategory.data).forEach(colors => {
+                        colors.forEach(c => allColors.add(c.name));
+                    });
+                    document.getElementById('totalColors').textContent = allColors.size;
                 }
 
-                if (materials.success) {
-                    document.getElementById('totalMaterials').textContent = materials.materials.length;
+                if (materialsByCategory.success) {
+                    const allMaterials = new Set();
+                    Object.values(materialsByCategory.data).forEach(materials => {
+                        materials.forEach(m => allMaterials.add(m.name));
+                    });
+                    document.getElementById('totalMaterials').textContent = allMaterials.size;
                 }
 
                 // Рисуем графики
                 if (categories.success) drawCategoriesChart(categories.categories);
                 if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
-                if (colors.success) drawColorsChart(colors.colors);
-                if (materials.success) drawMaterialsChart(materials.materials);
-                if (styles.success) drawStylesChart(styles.styles);
+
+                // Рисуем графики по категориям
+                if (colorsByCategory.success) {
+                    drawColorsByCategoryChart('Clothing', colorsByCategory.data.Clothing);
+                    drawColorsByCategoryChart('Footwear', colorsByCategory.data.Footwear);
+                    drawColorsByCategoryChart('Accessories', colorsByCategory.data.Accessories);
+                }
+
+                if (materialsByCategory.success) {
+                    drawMaterialsByCategoryChart('Clothing', materialsByCategory.data.Clothing);
+                    drawMaterialsByCategoryChart('Footwear', materialsByCategory.data.Footwear);
+                    drawMaterialsByCategoryChart('Accessories', materialsByCategory.data.Accessories);
+                }
+
+                if (stylesByCategory.success) {
+                    drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
+                    drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
+                    drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
+                }
+
                 if (timeline.success) drawTimelineChart(timeline.timeline);
 
             } catch (error) {
@@ -459,9 +615,9 @@
             });
         }
 
-        // График цветов (горизонтальная гистограмма с цветами)
-        function drawColorsChart(data) {
-            const ctx = document.getElementById('colorsChart').getContext('2d');
+        // График цветов по категории (горизонтальная гистограмма с цветами)
+        function drawColorsByCategoryChart(category, data) {
+            const ctx = document.getElementById(`colorsChart${category}`).getContext('2d');
 
             // Создаем цвета для баров на основе названий
             const backgroundColors = data.map(d => {
@@ -508,9 +664,9 @@
             });
         }
 
-        // График материалов (круговая диаграмма)
-        function drawMaterialsChart(data) {
-            const ctx = document.getElementById('materialsChart').getContext('2d');
+        // График материалов по категории (круговая диаграмма)
+        function drawMaterialsByCategoryChart(category, data) {
+            const ctx = document.getElementById(`materialsChart${category}`).getContext('2d');
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -549,9 +705,9 @@
             });
         }
 
-        // График стилей (круговая диаграмма)
-        function drawStylesChart(data) {
-            const ctx = document.getElementById('stylesChart').getContext('2d');
+        // График стилей по категории (круговая диаграмма)
+        function drawStylesByCategoryChart(category, data) {
+            const ctx = document.getElementById(`stylesChart${category}`).getContext('2d');
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
