@@ -372,6 +372,44 @@
             flex-shrink: 0;
         }
 
+        /* Стили для ползунка confidence */
+        #confidenceSlider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: linear-gradient(to right, #e9ecef 0%, #667eea 100%);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        #confidenceSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #confidenceSlider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #confidenceSlider:disabled,
+        #confidenceInput:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .hierarchical-filters::-webkit-scrollbar {
             width: 8px;
         }
@@ -968,14 +1006,26 @@
 
             <!-- Фильтр по confidence -->
             <div class="confidence-filter-section" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #dee2e6;">
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                     <input type="checkbox" id="useConfidenceFilter" checked style="width: 18px; height: 18px; cursor: pointer;">
                     <label for="useConfidenceFilter" style="margin: 0; color: #495057; font-size: 14px; font-weight: 600; cursor: pointer;">
-                        Учитывать Confidence > 60% при фильтрации тегов
+                        Учитывать Confidence при фильтрации тегов
                     </label>
                 </div>
-                <p style="margin: 8px 0 0 28px; color: #6c757d; font-size: 12px; line-height: 1.4;">
-                    Если включено, в фильтрации участвуют только теги с уверенностью выше 60%
+
+                <div id="confidenceControls" style="margin-left: 28px; display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; color: #495057; white-space: nowrap;">Порог:</label>
+                        <input type="range" id="confidenceSlider" min="0" max="100" value="60"
+                               style="flex: 1; cursor: pointer;">
+                        <span id="confidenceValue" style="font-size: 14px; font-weight: 600; color: #495057; min-width: 40px;">60%</span>
+                    </div>
+                    <input type="number" id="confidenceInput" min="0" max="100" value="60"
+                           style="width: 70px; padding: 6px 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 14px; text-align: center;">
+                </div>
+
+                <p style="margin: 10px 0 0 28px; color: #6c757d; font-size: 12px; line-height: 1.4;">
+                    Если включено, в фильтрации участвуют только теги с уверенностью выше указанного порога
                 </p>
             </div>
 
@@ -1506,13 +1556,61 @@
 
                 // Обработчик для галочки confidence filter
                 const confidenceFilterCheckbox = document.getElementById('useConfidenceFilter');
+                const confidenceSlider = document.getElementById('confidenceSlider');
+                const confidenceInput = document.getElementById('confidenceInput');
+                const confidenceValue = document.getElementById('confidenceValue');
+                const confidenceControls = document.getElementById('confidenceControls');
+
+                // Функция обновления контролов
+                function updateConfidenceControls() {
+                    const isEnabled = confidenceFilterCheckbox?.checked ?? false;
+                    if (confidenceSlider) confidenceSlider.disabled = !isEnabled;
+                    if (confidenceInput) confidenceInput.disabled = !isEnabled;
+                    if (confidenceControls) confidenceControls.style.opacity = isEnabled ? '1' : '0.5';
+                }
+
+                // Синхронизация slider и input
+                function syncConfidenceValue(value) {
+                    const numValue = Math.max(0, Math.min(100, parseInt(value) || 60));
+                    if (confidenceSlider) confidenceSlider.value = numValue;
+                    if (confidenceInput) confidenceInput.value = numValue;
+                    if (confidenceValue) confidenceValue.textContent = numValue + '%';
+                    return numValue;
+                }
+
                 if (confidenceFilterCheckbox) {
                     confidenceFilterCheckbox.addEventListener('change', async (e) => {
                         console.log('🔄 Confidence filter изменен:', e.target.checked);
+                        updateConfidenceControls();
                         // Перезагружаем опции фильтра с учетом нового значения confidence
                         await loadFilterOptions();
                     });
                 }
+
+                // Обработчик для ползунка
+                if (confidenceSlider) {
+                    confidenceSlider.addEventListener('input', (e) => {
+                        syncConfidenceValue(e.target.value);
+                    });
+                    confidenceSlider.addEventListener('change', async (e) => {
+                        console.log('🔄 Confidence threshold изменен:', e.target.value);
+                        await loadFilterOptions();
+                    });
+                }
+
+                // Обработчик для поля ввода
+                if (confidenceInput) {
+                    confidenceInput.addEventListener('input', (e) => {
+                        syncConfidenceValue(e.target.value);
+                    });
+                    confidenceInput.addEventListener('change', async (e) => {
+                        console.log('🔄 Confidence threshold изменен:', e.target.value);
+                        await loadFilterOptions();
+                    });
+                }
+
+                // Инициализация состояния контролов
+                updateConfidenceControls();
 
                 // Кнопки навигации для иерархических фильтров
                 const backToCategoriesBtn = document.getElementById('backToCategories');
@@ -1865,7 +1963,8 @@
             try {
                 // Получаем состояние галочки confidence filter
                 const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
-                const response = await fetch(`/api/filter-options?use_confidence=${useConfidence}`);
+                const confidenceThreshold = parseInt(document.getElementById('confidenceSlider')?.value ?? 60);
+                const response = await fetch(`/api/filter-options?use_confidence=${useConfidence}&confidence_threshold=${confidenceThreshold}`);
                 console.log('📡 Ответ получен, status:', response.status);
 
                 const result = await response.json();
@@ -2174,9 +2273,10 @@
             try {
                 // Получаем состояние галочки confidence filter
                 const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
+                const confidenceThreshold = parseInt(document.getElementById('confidenceSlider')?.value ?? 60);
 
                 // Формируем URL с параметрами фильтрации
-                let url = `/api/filtered-images?offset=0&limit=${BATCH_SIZE}&use_confidence=${useConfidence}`;
+                let url = `/api/filtered-images?offset=0&limit=${BATCH_SIZE}&use_confidence=${useConfidence}&confidence_threshold=${confidenceThreshold}`;
 
                 if (selectedFilters.category) {
                     url += `&category=${encodeURIComponent(selectedFilters.category)}`;
@@ -3040,7 +3140,8 @@
                 if (isFilteredMode) {
                     // Получаем состояние галочки confidence filter
                     const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
-                    url = `/api/filtered-images?offset=${currentOffset}&limit=${BATCH_SIZE}&use_confidence=${useConfidence}`;
+                    const confidenceThreshold = parseInt(document.getElementById('confidenceSlider')?.value ?? 60);
+                    url = `/api/filtered-images?offset=${currentOffset}&limit=${BATCH_SIZE}&use_confidence=${useConfidence}&confidence_threshold=${confidenceThreshold}`;
 
                     // Добавляем параметры фильтрации
                     if (selectedFilters.category) {

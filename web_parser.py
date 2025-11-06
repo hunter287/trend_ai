@@ -969,7 +969,8 @@ def api_filter_options():
     try:
         # Получаем параметр use_confidence (по умолчанию True)
         use_confidence = request.args.get('use_confidence', 'true').lower() == 'true'
-        confidence_threshold = 0.60  # Порог для фильтрации
+        # Получаем порог confidence из параметров (по умолчанию 60)
+        confidence_threshold = float(request.args.get('confidence_threshold', 60)) / 100.0
 
         # Проверяем инициализацию парсера
         success, message = web_parser.init_parser()
@@ -2612,7 +2613,7 @@ def api_filtered_images():
 
         # Параметр confidence фильтра (по умолчанию True)
         use_confidence = request.args.get('use_confidence', 'true').lower() == 'true'
-        confidence_threshold = 0.60  # Порог для фильтрации
+        confidence_threshold = float(request.args.get('confidence_threshold', 60)) / 100.0
 
         # Параметры пагинации
         offset = int(request.args.get('offset', 0))
