@@ -428,20 +428,8 @@
             background: #555;
         }
         
-        .filter-categories, .filter-subcategories {
+        .filter-categories, .filter-subcategories, .filter-details {
             transition: all 0.3s ease;
-        }
-
-        .filter-details {
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .filter-details-header {
-            flex-shrink: 0;
         }
 
         .filter-categories {
@@ -579,28 +567,6 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            flex: 1;
-            overflow-y: auto;
-            max-height: 400px;
-            padding-right: 10px;
-        }
-
-        .filter-details-content::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .filter-details-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .filter-details-content::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .filter-details-content::-webkit-scrollbar-thumb:hover {
-            background: #555;
         }
         
         .filter-section h5 {
