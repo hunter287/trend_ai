@@ -1987,24 +1987,74 @@
 
         function refreshCurrentView() {
             // Перерисовываем текущий открытый уровень иерархии
+            // ВАЖНО: После изменения confidence данные могут измениться, нужно проверять существование
+
             if (currentSubsubcategory && currentSubcategory && currentCategory) {
                 // Находимся на уровне фильтров (цвета/материалы/стили)
-                renderFilterDetails(currentCategory, currentSubcategory, currentSubsubcategory);
+                const categoryData = hierarchicalFilters[currentCategory];
+                const subcategoryData = categoryData?.[currentSubcategory];
+                const subsubcategoryData = subcategoryData?.subsubcategories?.[currentSubsubcategory];
+
+                if (subsubcategoryData) {
+                    // Данные существуют - рендерим
+                    renderFilterDetails(currentCategory, currentSubcategory, currentSubsubcategory);
+                } else if (subcategoryData) {
+                    // Subsubcategory исчезла, возвращаемся к подкатегориям
+                    console.log('⚠️ Subsubcategory исчезла после изменения confidence, возвращаемся назад');
+                    currentSubsubcategory = null;
+                    if (subcategoryData.subsubcategories) {
+                        renderSubsubcategories(currentCategory, currentSubcategory);
+                    } else {
+                        renderFilterDetailsDirectly(currentCategory, currentSubcategory);
+                    }
+                } else {
+                    // Даже subcategory исчезла, возвращаемся к категориям
+                    console.log('⚠️ Subcategory исчезла после изменения confidence, возвращаемся к категориям');
+                    currentSubcategory = null;
+                    currentSubsubcategory = null;
+                    if (categoryData) {
+                        renderSubcategories(currentCategory);
+                    } else {
+                        currentCategory = null;
+                        renderCategories();
+                    }
+                }
             } else if (currentSubcategory && currentCategory) {
                 // Находимся на уровне подподкатегорий или фильтров (двухуровневая структура)
                 const categoryData = hierarchicalFilters[currentCategory];
                 const subcategoryData = categoryData?.[currentSubcategory];
 
-                if (subcategoryData?.subsubcategories) {
-                    // Трехуровневая структура - показываем подподкатегории
-                    renderSubsubcategories(currentCategory, currentSubcategory);
+                if (subcategoryData) {
+                    if (subcategoryData.subsubcategories) {
+                        // Трехуровневая структура - показываем подподкатегории
+                        renderSubsubcategories(currentCategory, currentSubcategory);
+                    } else {
+                        // Двухуровневая структура - показываем фильтры напрямую
+                        renderFilterDetailsDirectly(currentCategory, currentSubcategory);
+                    }
                 } else {
-                    // Двухуровневая структура - показываем фильтры напрямую
-                    renderFilterDetailsDirectly(currentCategory, currentSubcategory);
+                    // Subcategory исчезла, возвращаемся к категориям
+                    console.log('⚠️ Subcategory исчезла после изменения confidence, возвращаемся к категориям');
+                    currentSubcategory = null;
+                    if (categoryData) {
+                        renderSubcategories(currentCategory);
+                    } else {
+                        currentCategory = null;
+                        renderCategories();
+                    }
                 }
             } else if (currentCategory) {
                 // Находимся на уровне подкатегорий
-                renderSubcategories(currentCategory);
+                const categoryData = hierarchicalFilters[currentCategory];
+
+                if (categoryData) {
+                    renderSubcategories(currentCategory);
+                } else {
+                    // Category исчезла, возвращаемся к списку категорий
+                    console.log('⚠️ Category исчезла после изменения confidence, возвращаемся к началу');
+                    currentCategory = null;
+                    renderCategories();
+                }
             } else {
                 // Находимся на уровне категорий
                 renderCategories();
