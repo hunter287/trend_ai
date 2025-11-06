@@ -533,33 +533,24 @@ function drawMaterialsByCategoryChart(category, data) {
     }
     const ctx = canvas.getContext('2d');
     new Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
             labels: data.map(d => d.name),
             datasets: [{
+                label: 'Количество',
                 data: data.map(d => d.count),
-                backgroundColor: chartColors.palette,
-                borderWidth: 2,
-                borderColor: '#fff'
+                backgroundColor: chartColors.palette[0],
+                borderRadius: 8
             }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                        }
-                    }
-                }
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, grid: { display: true } },
+                y: { grid: { display: false } }
             }
         }
     });
@@ -573,33 +564,24 @@ function drawStylesByCategoryChart(category, data) {
     }
     const ctx = canvas.getContext('2d');
     new Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
             labels: data.map(d => d.name),
             datasets: [{
+                label: 'Количество',
                 data: data.map(d => d.count),
-                backgroundColor: chartColors.palette,
-                borderWidth: 2,
-                borderColor: '#fff'
+                backgroundColor: chartColors.palette[1],
+                borderRadius: 8
             }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                        }
-                    }
-                }
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, grid: { display: true } },
+                y: { grid: { display: false } }
             }
         }
     });
