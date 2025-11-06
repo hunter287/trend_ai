@@ -1056,15 +1056,6 @@ def api_filter_options():
                     if not original_subcategory:
                         continue
 
-                    # DEBUG: Выводим первые 5 объектов для отладки
-                    if processed_images <= 5 and use_confidence:
-                        print(f"🔍 DEBUG: subcategory='{original_subcategory}', prob={subcategory_prob}, threshold={confidence_threshold}, will_skip={subcategory_prob <= confidence_threshold}")
-                        # Выводим структуру данных подкатегории
-                        if obj.get('properties', {}).get('other_attributes', {}).get('Subcategory'):
-                            print(f"   Subcategory raw data: {obj['properties']['other_attributes']['Subcategory'][0]}")
-                        elif obj.get('properties', {}).get('other_attributes', {}).get('Category'):
-                            print(f"   Category raw data: {obj['properties']['other_attributes']['Category'][0]}")
-
                     # Проверяем confidence подкатегории/категории если включен фильтр
                     if use_confidence and subcategory_prob <= confidence_threshold:
                         continue
