@@ -1047,11 +1047,11 @@ def api_filter_options():
                             if obj['properties']['other_attributes'].get('Subcategory'):
                                 subcategory_data = obj['properties']['other_attributes']['Subcategory'][0]
                                 original_subcategory = subcategory_data['name']
-                                subcategory_prob = subcategory_data.get('prob', 1.0)
+                                subcategory_prob = subcategory_data.get('confidence', 1.0)
                             elif obj['properties']['other_attributes'].get('Category'):
                                 category_data = obj['properties']['other_attributes']['Category'][0]
                                 original_subcategory = category_data['name']
-                                subcategory_prob = category_data.get('prob', 1.0)
+                                subcategory_prob = category_data.get('confidence', 1.0)
 
                     if not original_subcategory:
                         continue
@@ -1109,7 +1109,7 @@ def api_filter_options():
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
                         for color in obj['properties']['visual_attributes']['Color']:
                             # Проверяем confidence если включен фильтр
-                            if use_confidence and color.get('prob', 0) <= confidence_threshold:
+                            if use_confidence and color.get('confidence', 0) <= confidence_threshold:
                                 continue
                             color_name = color['name']
                             if color_name not in subsubcat['colors']:
@@ -1120,7 +1120,7 @@ def api_filter_options():
                     if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
                         for material in obj['properties']['material_attributes']['Material']:
                             # Проверяем confidence если включен фильтр
-                            if use_confidence and material.get('prob', 0) <= confidence_threshold:
+                            if use_confidence and material.get('confidence', 0) <= confidence_threshold:
                                 continue
                             material_name = material['name']
                             if material_name not in subsubcat['materials']:
@@ -1131,7 +1131,7 @@ def api_filter_options():
                     if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
                         for style in obj['properties']['style_attributes']['Style']:
                             # Проверяем confidence если включен фильтр
-                            if use_confidence and style.get('prob', 0) <= confidence_threshold:
+                            if use_confidence and style.get('confidence', 0) <= confidence_threshold:
                                 continue
                             style_name = style['name']
                             if style_name not in subsubcat['styles']:
@@ -2669,7 +2669,7 @@ def api_filtered_images():
             if colors:
                 color_condition = {"name": {"$in": colors}}
                 if use_confidence:
-                    color_condition["prob"] = {"$gt": confidence_threshold}
+                    color_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.visual_attributes.Color": {"$elemMatch": color_condition}
                 })
@@ -2677,7 +2677,7 @@ def api_filtered_images():
             if materials:
                 material_condition = {"name": {"$in": materials}}
                 if use_confidence:
-                    material_condition["prob"] = {"$gt": confidence_threshold}
+                    material_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.material_attributes.Material": {"$elemMatch": material_condition}
                 })
@@ -2685,7 +2685,7 @@ def api_filtered_images():
             if styles:
                 style_condition = {"name": {"$in": styles}}
                 if use_confidence:
-                    style_condition["prob"] = {"$gt": confidence_threshold}
+                    style_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.style_attributes.Style": {"$elemMatch": style_condition}
                 })
@@ -2713,7 +2713,7 @@ def api_filtered_images():
             if colors:
                 color_condition = {"name": {"$in": colors}}
                 if use_confidence:
-                    color_condition["prob"] = {"$gt": confidence_threshold}
+                    color_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.visual_attributes.Color": {"$elemMatch": color_condition}
                 })
@@ -2721,7 +2721,7 @@ def api_filtered_images():
             if materials:
                 material_condition = {"name": {"$in": materials}}
                 if use_confidence:
-                    material_condition["prob"] = {"$gt": confidence_threshold}
+                    material_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.material_attributes.Material": {"$elemMatch": material_condition}
                 })
@@ -2729,7 +2729,7 @@ def api_filtered_images():
             if styles:
                 style_condition = {"name": {"$in": styles}}
                 if use_confidence:
-                    style_condition["prob"] = {"$gt": confidence_threshold}
+                    style_condition["confidence"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
                     "properties.style_attributes.Style": {"$elemMatch": style_condition}
                 })
