@@ -2650,12 +2650,36 @@ def api_filtered_images():
             elemMatch_conditions = []
 
             # 1. Условие по subsubcategory (обязательное)
-            elemMatch_conditions.append({
-                "$or": [
-                    {"properties.other_attributes.Subcategory.0.name": subsubcategory},
-                    {"properties.other_attributes.Category.0.name": subsubcategory}
-                ]
-            })
+            if use_confidence:
+                # Если включен confidence фильтр, проверяем и имя, и confidence
+                elemMatch_conditions.append({
+                    "$or": [
+                        {
+                            "properties.other_attributes.Subcategory": {
+                                "$elemMatch": {
+                                    "name": subsubcategory,
+                                    "confidence": {"$gt": confidence_threshold}
+                                }
+                            }
+                        },
+                        {
+                            "properties.other_attributes.Category": {
+                                "$elemMatch": {
+                                    "name": subsubcategory,
+                                    "confidence": {"$gt": confidence_threshold}
+                                }
+                            }
+                        }
+                    ]
+                })
+            else:
+                # Если confidence фильтр выключен, проверяем только имя
+                elemMatch_conditions.append({
+                    "$or": [
+                        {"properties.other_attributes.Subcategory.0.name": subsubcategory},
+                        {"properties.other_attributes.Category.0.name": subsubcategory}
+                    ]
+                })
 
             # 2. Условия по атрибутам (если указаны) - добавляем в тот же $elemMatch
             if colors:
@@ -2694,12 +2718,29 @@ def api_filtered_images():
             elemMatch_conditions = []
 
             # 1. Условие по категории
-            elemMatch_conditions.append({
-                "$or": [
-                    {"top_category": category},
-                    {"properties.other_attributes.Category": {"$elemMatch": {"name": category}}}
-                ]
-            })
+            if use_confidence:
+                # Если включен confidence фильтр, проверяем и имя, и confidence
+                elemMatch_conditions.append({
+                    "$or": [
+                        {"top_category": category},  # top_category не имеет confidence
+                        {
+                            "properties.other_attributes.Category": {
+                                "$elemMatch": {
+                                    "name": category,
+                                    "confidence": {"$gt": confidence_threshold}
+                                }
+                            }
+                        }
+                    ]
+                })
+            else:
+                # Если confidence фильтр выключен, проверяем только имя
+                elemMatch_conditions.append({
+                    "$or": [
+                        {"top_category": category},
+                        {"properties.other_attributes.Category": {"$elemMatch": {"name": category}}}
+                    ]
+                })
 
             # 2. Условия по атрибутам
             if colors:
