@@ -34,6 +34,26 @@ const colorMapping = {
     'Silver': '#C0C0C0'
 };
 
+// Глобальное хранилище данных по категориям
+let analyticsData = {
+    colorsByCategory: null,
+    materialsByCategory: null,
+    stylesByCategory: null
+};
+
+// Функция переключения табов
+function switchTab(section, category) {
+    const parentCard = document.querySelector(`#${section}-${category}`).closest('.chart-card');
+    const tabs = parentCard.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const allTabs = parentCard.querySelectorAll('.tab-content');
+    allTabs.forEach(tab => tab.classList.remove('active'));
+
+    document.getElementById(`${section}-${category}`).classList.add('active');
+}
+
 // Глобальное хранилище для Chart instances
 const chartInstances = {};
 
@@ -285,16 +305,16 @@ async function loadAllAnalytics() {
 
     try {
         console.log('📡 Fetching all API data...');
-        const [categories, subcategories, colors, materials, styles, timeline,
+        const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, timeline,
                trends, dynamics, colorDynamics, materialDynamics,
                topAccessories, topAccessoriesDynamics,
                topClothing, topClothingDynamics,
                topFootwear, topFootwearDynamics] = await Promise.all([
             fetch('/api/analytics/categories-stats').then(r => r.json()),
             fetch('/api/analytics/subcategories-stats').then(r => r.json()),
-            fetch('/api/analytics/colors-stats').then(r => r.json()),
-            fetch('/api/analytics/materials-stats').then(r => r.json()),
-            fetch('/api/analytics/styles-stats').then(r => r.json()),
+            fetch('/api/analytics/colors-by-category').then(r => r.json()),
+            fetch('/api/analytics/materials-by-category').then(r => r.json()),
+            fetch('/api/analytics/styles-by-category').then(r => r.json()),
             fetch('/api/analytics/trends-timeline').then(r => r.json()),
             fetch('/api/analytics/emerging-trends').then(r => r.json()),
             fetch('/api/analytics/emerging-trends-dynamics').then(r => r.json()),
@@ -310,6 +330,11 @@ async function loadAllAnalytics() {
 
         console.log('✅ All data fetched successfully');
 
+        // Сохраняем данные
+        analyticsData.colorsByCategory = colorsByCategory;
+        analyticsData.materialsByCategory = materialsByCategory;
+        analyticsData.stylesByCategory = stylesByCategory;
+
         // Обновляем статистику трендов
         if (categories.success) {
             const totalImages = categories.categories.reduce((sum, c) => sum + c.count, 0);
@@ -317,21 +342,47 @@ async function loadAllAnalytics() {
             document.getElementById('totalCategories').textContent = categories.categories.length;
         }
 
-        if (colors.success) {
-            document.getElementById('totalColors').textContent = colors.colors.length;
+        // Подсчитываем общее количество уникальных цветов и материалов
+        if (colorsByCategory.success) {
+            const allColors = new Set();
+            Object.values(colorsByCategory.data).forEach(colors => {
+                colors.forEach(c => allColors.add(c.name));
+            });
+            document.getElementById('totalColors').textContent = allColors.size;
         }
 
-        if (materials.success) {
-            document.getElementById('totalMaterials').textContent = materials.materials.length;
+        if (materialsByCategory.success) {
+            const allMaterials = new Set();
+            Object.values(materialsByCategory.data).forEach(materials => {
+                materials.forEach(m => allMaterials.add(m.name));
+            });
+            document.getElementById('totalMaterials').textContent = allMaterials.size;
         }
 
         // Рисуем графики трендов
         console.log('🎨 Drawing trends charts...');
         if (categories.success) drawCategoriesChart(categories.categories);
         if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
-        if (colors.success) drawColorsChart(colors.colors);
-        if (materials.success) drawMaterialsChart(materials.materials);
-        if (styles.success) drawStylesChart(styles.styles);
+
+        // Рисуем графики по категориям
+        if (colorsByCategory.success) {
+            drawColorsByCategoryChart('Clothing', colorsByCategory.data.Clothing);
+            drawColorsByCategoryChart('Footwear', colorsByCategory.data.Footwear);
+            drawColorsByCategoryChart('Accessories', colorsByCategory.data.Accessories);
+        }
+
+        if (materialsByCategory.success) {
+            drawMaterialsByCategoryChart('Clothing', materialsByCategory.data.Clothing);
+            drawMaterialsByCategoryChart('Footwear', materialsByCategory.data.Footwear);
+            drawMaterialsByCategoryChart('Accessories', materialsByCategory.data.Accessories);
+        }
+
+        if (stylesByCategory.success) {
+            drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
+            drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
+            drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
+        }
+
         if (timeline.success) drawTimelineChart(timeline.timeline);
 
         // Рисуем графики прогнозов
@@ -436,8 +487,8 @@ function drawSubcategoriesChart(data) {
     });
 }
 
-function drawColorsChart(data) {
-    const ctx = document.getElementById('colorsChart').getContext('2d');
+function drawColorsByCategoryChart(category, data) {
+    const ctx = document.getElementById(`colorsChart${category}`).getContext('2d');
     const backgroundColors = data.map(d => colorMapping[d.name] || chartColors.palette[0]);
 
     new Chart(ctx, {
@@ -466,8 +517,8 @@ function drawColorsChart(data) {
     });
 }
 
-function drawMaterialsChart(data) {
-    const ctx = document.getElementById('materialsChart').getContext('2d');
+function drawMaterialsByCategoryChart(category, data) {
+    const ctx = document.getElementById(`materialsChart${category}`).getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -501,8 +552,8 @@ function drawMaterialsChart(data) {
     });
 }
 
-function drawStylesChart(data) {
-    const ctx = document.getElementById('stylesChart').getContext('2d');
+function drawStylesByCategoryChart(category, data) {
+    const ctx = document.getElementById(`stylesChart${category}`).getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {

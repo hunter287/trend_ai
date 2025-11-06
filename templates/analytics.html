@@ -411,6 +411,52 @@
             align-items: center;
             gap: 5px;
         }
+
+        /* Стили для табов */
+        .tabs-container {
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            color: #6c757d;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -475,23 +521,80 @@
                     </div>
 
                     <div class="chart-card">
-                        <h3>🎨 Популярные цвета</h3>
-                        <div class="chart-container">
-                            <canvas id="colorsChart"></canvas>
+                        <h3>🎨 Популярные цвета по категориям</h3>
+                        <div class="tabs-container">
+                            <div class="tabs">
+                                <button class="tab-btn active" onclick="switchTab('colors', 'Clothing')">👗 Одежда</button>
+                                <button class="tab-btn" onclick="switchTab('colors', 'Footwear')">👟 Обувь</button>
+                                <button class="tab-btn" onclick="switchTab('colors', 'Accessories')">👜 Аксессуары</button>
+                            </div>
+                            <div id="colors-Clothing" class="tab-content active">
+                                <div class="chart-container">
+                                    <canvas id="colorsChartClothing"></canvas>
+                                </div>
+                            </div>
+                            <div id="colors-Footwear" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="colorsChartFootwear"></canvas>
+                                </div>
+                            </div>
+                            <div id="colors-Accessories" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="colorsChartAccessories"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="chart-card">
-                        <h3>🧵 Популярные материалы</h3>
-                        <div class="chart-container">
-                            <canvas id="materialsChart"></canvas>
+                        <h3>🧵 Популярные материалы по категориям</h3>
+                        <div class="tabs-container">
+                            <div class="tabs">
+                                <button class="tab-btn active" onclick="switchTab('materials', 'Clothing')">👗 Одежда</button>
+                                <button class="tab-btn" onclick="switchTab('materials', 'Footwear')">👟 Обувь</button>
+                                <button class="tab-btn" onclick="switchTab('materials', 'Accessories')">👜 Аксессуары</button>
+                            </div>
+                            <div id="materials-Clothing" class="tab-content active">
+                                <div class="chart-container">
+                                    <canvas id="materialsChartClothing"></canvas>
+                                </div>
+                            </div>
+                            <div id="materials-Footwear" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="materialsChartFootwear"></canvas>
+                                </div>
+                            </div>
+                            <div id="materials-Accessories" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="materialsChartAccessories"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="chart-card">
-                        <h3>✨ Популярные стили</h3>
-                        <div class="chart-container">
-                            <canvas id="stylesChart"></canvas>
+                        <h3>✨ Популярные стили по категориям</h3>
+                        <div class="tabs-container">
+                            <div class="tabs">
+                                <button class="tab-btn active" onclick="switchTab('styles', 'Clothing')">👗 Одежда</button>
+                                <button class="tab-btn" onclick="switchTab('styles', 'Footwear')">👟 Обувь</button>
+                                <button class="tab-btn" onclick="switchTab('styles', 'Accessories')">👜 Аксессуары</button>
+                            </div>
+                            <div id="styles-Clothing" class="tab-content active">
+                                <div class="chart-container">
+                                    <canvas id="stylesChartClothing"></canvas>
+                                </div>
+                            </div>
+                            <div id="styles-Footwear" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="stylesChartFootwear"></canvas>
+                                </div>
+                            </div>
+                            <div id="styles-Accessories" class="tab-content">
+                                <div class="chart-container">
+                                    <canvas id="stylesChartAccessories"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
