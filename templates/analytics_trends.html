@@ -717,17 +717,45 @@
         }
 
         // Загрузка данных
+        // Глобальное хранилище для данных подподкатегорий
+        const timelineData = {
+            Clothing: null,
+            Accessories: null,
+            Footwear: null
+        };
+
+        // Глобальное хранилище для кастомных подтипов (макс 10 на категорию)
+        const customSubsubcategories = {
+            Clothing: [],
+            Accessories: [],
+            Footwear: []
+        };
+
+        // Глобальное хранилище для Chart.js инстансов
+        const timelineCharts = {
+            Clothing: null,
+            Accessories: null,
+            Footwear: null
+        };
+
         async function loadAnalytics() {
             try {
-                // Загружаем все данные параллельно
-                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, timeline] = await Promise.all([
+                // Загружаем все данные параллельно (включая новый subsubcategory-timeline)
+                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, subsubcategoryTimeline] = await Promise.all([
                     fetch('/api/analytics/categories-stats').then(r => r.json()),
                     fetch('/api/analytics/subcategories-stats').then(r => r.json()),
                     fetch('/api/analytics/colors-by-category').then(r => r.json()),
                     fetch('/api/analytics/materials-by-category').then(r => r.json()),
                     fetch('/api/analytics/styles-by-category').then(r => r.json()),
-                    fetch('/api/analytics/trends-timeline').then(r => r.json())
+                    fetch('/api/analytics/subsubcategory-timeline').then(r => r.json())
                 ]);
+
+                // Сохраняем данные timeline
+                if (subsubcategoryTimeline.success) {
+                    timelineData.Clothing = subsubcategoryTimeline.data.Clothing;
+                    timelineData.Accessories = subsubcategoryTimeline.data.Accessories;
+                    timelineData.Footwear = subsubcategoryTimeline.data.Footwear;
+                }
 
                 // Сохраняем данные
                 analyticsData.colorsByCategory = colorsByCategory;
@@ -781,7 +809,12 @@
                     drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
                 }
 
-                if (timeline.success) drawTimelineChart(timeline.timeline);
+                // Рисуем временные графики с галочками
+                if (subsubcategoryTimeline.success) {
+                    initializeTimelineCharts('Clothing');
+                    initializeTimelineCharts('Accessories');
+                    initializeTimelineCharts('Footwear');
+                }
 
             } catch (error) {
                 console.error('Ошибка загрузки аналитики:', error);
@@ -1009,24 +1042,113 @@
             });
         }
 
-        // График трендов по времени (линейный график)
-        function drawTimelineChart(timeline) {
-            const ctx = document.getElementById('timelineChart').getContext('2d');
+        // Инициализация временного графика для категории
+        function initializeTimelineCharts(category) {
+            const data = timelineData[category];
+            if (!data) return;
 
-            const datasets = Object.keys(timeline.series).map((category, index) => ({
-                label: category,
-                data: timeline.series[category],
-                borderColor: chartColors.palette[index % chartColors.palette.length],
-                backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true
-            }));
+            // Рендерим список галочек с топ-20
+            renderSubsubcategoryList(category, data.top20);
 
-            new Chart(ctx, {
+            // Рисуем график
+            drawTimelineChartForCategory(category);
+        }
+
+        // Рендеринг списка подподкатегорий с галочками
+        function renderSubsubcategoryList(category, top20) {
+            const listId = category.toLowerCase() + 'SubsubcategoryList';
+            const listElement = document.getElementById(listId);
+            if (!listElement) return;
+
+            listElement.innerHTML = '';
+
+            // Добавляем топ-20
+            top20.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'subsubcat-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="${category}_${index}"
+                           data-category="${category}"
+                           data-name="${item.name}"
+                           checked
+                           onchange="toggleSubsubcategoryLine('${category}', '${item.name}', this.checked)">
+                    <label for="${category}_${index}">${item.name}</label>
+                `;
+                listElement.appendChild(div);
+            });
+
+            // Добавляем кастомные подтипы
+            customSubsubcategories[category].forEach((customName, index) => {
+                const div = document.createElement('div');
+                div.className = 'subsubcat-item custom';
+                div.innerHTML = `
+                    <input type="checkbox" id="${category}_custom_${index}"
+                           data-category="${category}"
+                           data-name="${customName}"
+                           checked
+                           onchange="toggleSubsubcategoryLine('${category}', '${customName}', this.checked)">
+                    <label for="${category}_custom_${index}">${customName}</label>
+                    <span class="custom-icon" title="Добавлено вручную">✋</span>
+                    <button class="remove-btn" onclick="removeCustomSubsubcategory('${category}', '${customName}')" title="Удалить">×</button>
+                `;
+                listElement.appendChild(div);
+            });
+        }
+
+        // Рисуем временной график для категории
+        function drawTimelineChartForCategory(category) {
+            const canvasId = 'timelineChart' + category;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const data = timelineData[category];
+            if (!data) return;
+
+            // Удаляем старый график если есть
+            if (timelineCharts[category]) {
+                timelineCharts[category].destroy();
+            }
+
+            // Собираем datasets для топ-20 + кастомных
+            const datasets = [];
+
+            // Топ-20
+            data.top20.forEach((item, index) => {
+                datasets.push({
+                    label: item.name,
+                    data: item.data,
+                    borderColor: chartColors.palette[index % chartColors.palette.length],
+                    backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            });
+
+            // Кастомные подтипы (если есть)
+            customSubsubcategories[category].forEach((customName, index) => {
+                // Найти данные для этого custom подтипа в all_subsubcategories
+                const customData = getDataForCustomSubsubcategory(category, customName, data.months);
+                const colorIndex = (data.top20.length + index) % chartColors.palette.length;
+
+                datasets.push({
+                    label: customName,
+                    data: customData,
+                    borderColor: chartColors.palette[colorIndex],
+                    backgroundColor: chartColors.palette[colorIndex] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            });
+
+            // Создаем график
+            timelineCharts[category] = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: timeline.months,
+                    labels: data.months,
                     datasets: datasets
                 },
                 options: {
@@ -1038,13 +1160,7 @@
                     },
                     plugins: {
                         legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                font: {
-                                    size: 12
-                                }
-                            }
+                            display: false  // Скрываем легенду, т.к. у нас есть галочки
                         },
                         tooltip: {
                             callbacks: {
@@ -1069,6 +1185,133 @@
                     }
                 }
             });
+        }
+
+        // Получить данные для кастомного подтипа (нужно сделать отдельный запрос к API)
+        function getDataForCustomSubsubcategory(category, name, months) {
+            // Временная заглушка - вернуть нули
+            // TODO: реализовать API endpoint для получения данных конкретного subsubcategory
+            return months.map(() => 0);
+        }
+
+        // Toggle видимости линии на графике
+        function toggleSubsubcategoryLine(category, name, visible) {
+            const chart = timelineCharts[category];
+            if (!chart) return;
+
+            const dataset = chart.data.datasets.find(ds => ds.label === name);
+            if (dataset) {
+                dataset.hidden = !visible;
+                chart.update();
+            }
+        }
+
+        // Открыть модальное окно для добавления кастомного подтипа
+        let currentModalCategory = null;
+
+        function showAddCustomModal(category) {
+            // Проверяем лимит
+            if (customSubsubcategories[category].length >= 10) {
+                alert('Достигнут лимит: максимум 10 дополнительных подтипов');
+                return;
+            }
+
+            currentModalCategory = category;
+            document.getElementById('modalCategoryName').textContent = category;
+            document.getElementById('customSearchInput').value = '';
+            document.getElementById('customSearchResults').innerHTML = '';
+            document.getElementById('addCustomModal').style.display = 'flex';
+        }
+
+        function closeAddCustomModal() {
+            document.getElementById('addCustomModal').style.display = 'none';
+            currentModalCategory = null;
+        }
+
+        // Поиск подтипов
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('customSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (!query || !currentModalCategory) {
+                        document.getElementById('customSearchResults').innerHTML = '';
+                        return;
+                    }
+
+                    const data = timelineData[currentModalCategory];
+                    if (!data) return;
+
+                    // Фильтруем: только те, которых НЕТ в топ-20 и НЕТ в кастомных
+                    const top20Names = data.top20.map(item => item.name);
+                    const customNames = customSubsubcategories[currentModalCategory];
+                    const allNames = data.all_subsubcategories;
+
+                    const available = allNames.filter(name =>
+                        !top20Names.includes(name) &&
+                        !customNames.includes(name) &&
+                        name.toLowerCase().includes(query)
+                    );
+
+                    // Рендерим результаты
+                    const resultsDiv = document.getElementById('customSearchResults');
+                    resultsDiv.innerHTML = '';
+
+                    if (available.length === 0) {
+                        resultsDiv.innerHTML = '<div class="search-result-item disabled">Ничего не найдено</div>';
+                        return;
+                    }
+
+                    available.slice(0, 20).forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item';
+                        div.textContent = name;
+                        div.onclick = () => addCustomSubsubcategory(currentModalCategory, name);
+                        resultsDiv.appendChild(div);
+                    });
+                });
+            }
+        });
+
+        // Добавить кастомный подтип
+        function addCustomSubsubcategory(category, name) {
+            if (customSubsubcategories[category].length >= 10) {
+                alert('Достигнут лимит: максимум 10 дополнительных подтипов');
+                return;
+            }
+
+            if (customSubsubcategories[category].includes(name)) {
+                return;  // Уже добавлен
+            }
+
+            customSubsubcategories[category].push(name);
+            closeAddCustomModal();
+
+            // Перерисовываем список и график
+            const data = timelineData[category];
+            renderSubsubcategoryList(category, data.top20);
+            drawTimelineChartForCategory(category);
+        }
+
+        // Удалить кастомный подтип
+        function removeCustomSubsubcategory(category, name) {
+            const index = customSubsubcategories[category].indexOf(name);
+            if (index > -1) {
+                customSubsubcategories[category].splice(index, 1);
+
+                // Перерисовываем список и график
+                const data = timelineData[category];
+                renderSubsubcategoryList(category, data.top20);
+                drawTimelineChartForCategory(category);
+            }
+        }
+
+        // Закрытие модалки по клику вне её
+        window.onclick = function(event) {
+            const modal = document.getElementById('addCustomModal');
+            if (event.target == modal) {
+                closeAddCustomModal();
+            }
         }
 
         // Загрузка данных при загрузке страницы
