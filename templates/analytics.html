@@ -232,6 +232,11 @@
             opacity: 1;
         }
 
+        .add-custom-btn-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
         .add-custom-btn {
             padding: 10px 20px;
             background: #667eea;
@@ -255,83 +260,85 @@
             transform: none;
         }
 
-        /* Модальное окно */
-        .modal {
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
+        /* Dropdown для добавления подтипа */
+        .custom-dropdown {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: 0;
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 350px;
+            max-height: 400px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
         }
 
-        .modal-close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            color: #aaa;
-            cursor: pointer;
+        .custom-dropdown.active {
+            display: flex;
         }
 
-        .modal-close:hover {
-            color: #000;
+        .dropdown-header {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .modal-content h4 {
-            margin: 0 0 20px 0;
+        .dropdown-header h4 {
+            margin: 0 0 10px 0;
             color: #333;
+            font-size: 15px;
         }
 
-        #customSearchInput {
+        .dropdown-search {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 2px solid #dee2e6;
             border-radius: 8px;
             font-size: 14px;
-            margin-bottom: 15px;
         }
 
-        #customSearchInput:focus {
+        .dropdown-search:focus {
             outline: none;
             border-color: #667eea;
         }
 
-        .search-results {
-            max-height: 300px;
+        .dropdown-results {
+            flex: 1;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            max-height: 300px;
         }
 
-        .search-result-item {
-            padding: 12px;
+        .dropdown-results::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-results::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .dropdown-results::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
             cursor: pointer;
             transition: background 0.2s;
             border-bottom: 1px solid #f1f1f1;
+            font-size: 14px;
         }
 
-        .search-result-item:last-child {
+        .dropdown-item:last-child {
             border-bottom: none;
         }
 
-        .search-result-item:hover {
+        .dropdown-item:hover {
             background: #f8f9fa;
         }
 
-        .search-result-item.disabled {
+        .dropdown-item.disabled {
             color: #999;
             cursor: not-allowed;
             background: #f8f9fa;
@@ -584,7 +591,18 @@
                     <div class="legend-controls">
                         <button class="legend-btn" onclick="hideAllLines('Accessories')">Скрыть все</button>
                         <button class="legend-btn" onclick="showAllLines('Accessories')">Показать все</button>
-                        <button class="add-custom-btn" onclick="showAddCustomModal('Accessories')">➕ Добавить подтип</button>
+                        <div class="add-custom-btn-wrapper">
+                            <button class="add-custom-btn" onclick="toggleDropdown('Accessories')">➕ Добавить подтип</button>
+                            <div class="custom-dropdown" id="dropdownAccessories">
+                                <div class="dropdown-header">
+                                    <h4>Добавить подтип для Accessories</h4>
+                                    <input type="text" class="dropdown-search" placeholder="Начните вводить название..." autocomplete="off" oninput="searchSubtypes('Accessories', this.value)">
+                                </div>
+                                <div class="dropdown-results" id="dropdownResultsAccessories">
+                                    <!-- Результаты поиска -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </h3>
                 <div class="timeline-chart-container">
@@ -602,7 +620,18 @@
                     <div class="legend-controls">
                         <button class="legend-btn" onclick="hideAllLines('Clothing')">Скрыть все</button>
                         <button class="legend-btn" onclick="showAllLines('Clothing')">Показать все</button>
-                        <button class="add-custom-btn" onclick="showAddCustomModal('Clothing')">➕ Добавить подтип</button>
+                        <div class="add-custom-btn-wrapper">
+                            <button class="add-custom-btn" onclick="toggleDropdown('Clothing')">➕ Добавить подтип</button>
+                            <div class="custom-dropdown" id="dropdownClothing">
+                                <div class="dropdown-header">
+                                    <h4>Добавить подтип для Clothing</h4>
+                                    <input type="text" class="dropdown-search" placeholder="Начните вводить название..." autocomplete="off" oninput="searchSubtypes('Clothing', this.value)">
+                                </div>
+                                <div class="dropdown-results" id="dropdownResultsClothing">
+                                    <!-- Результаты поиска -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </h3>
                 <div class="timeline-chart-container">
@@ -620,7 +649,18 @@
                     <div class="legend-controls">
                         <button class="legend-btn" onclick="hideAllLines('Footwear')">Скрыть все</button>
                         <button class="legend-btn" onclick="showAllLines('Footwear')">Показать все</button>
-                        <button class="add-custom-btn" onclick="showAddCustomModal('Footwear')">➕ Добавить подтип</button>
+                        <div class="add-custom-btn-wrapper">
+                            <button class="add-custom-btn" onclick="toggleDropdown('Footwear')">➕ Добавить подтип</button>
+                            <div class="custom-dropdown" id="dropdownFootwear">
+                                <div class="dropdown-header">
+                                    <h4>Добавить подтип для Footwear</h4>
+                                    <input type="text" class="dropdown-search" placeholder="Начните вводить название..." autocomplete="off" oninput="searchSubtypes('Footwear', this.value)">
+                                </div>
+                                <div class="dropdown-results" id="dropdownResultsFootwear">
+                                    <!-- Результаты поиска -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </h3>
                 <div class="timeline-chart-container">
@@ -628,16 +668,6 @@
                 </div>
                 <div class="timeline-legend" id="legendFootwear">
                     <!-- Легенда будет добавлена динамически -->
-                </div>
-            </div>
-
-            <!-- Модальное окно для добавления кастомного подтипа -->
-            <div id="addCustomModal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <span class="modal-close" onclick="closeAddCustomModal()">&times;</span>
-                    <h4>Добавить подтип для <span id="modalCategoryName"></span></h4>
-                    <input type="text" id="customSearchInput" placeholder="Начните вводить название..." autocomplete="off">
-                    <div id="customSearchResults" class="search-results"></div>
                 </div>
             </div>
         </div>
@@ -1237,69 +1267,69 @@
             }
         }
 
-        // Модальное окно
-        let currentModalCategory = null;
-
-        function showAddCustomModal(category) {
+        // Dropdown для добавления подтипов
+        function toggleDropdown(category) {
             if (customSubsubcategories[category].length >= 10) {
                 alert('Достигнут лимит: максимум 10 дополнительных подтипов');
                 return;
             }
 
-            currentModalCategory = category;
-            document.getElementById('modalCategoryName').textContent = category;
-            document.getElementById('customSearchInput').value = '';
-            document.getElementById('customSearchResults').innerHTML = '';
-            document.getElementById('addCustomModal').style.display = 'flex';
-        }
+            const dropdown = document.getElementById('dropdown' + category);
+            const isActive = dropdown.classList.contains('active');
 
-        function closeAddCustomModal() {
-            document.getElementById('addCustomModal').style.display = 'none';
-            currentModalCategory = null;
-        }
+            // Закрыть все dropdown
+            document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
 
-        // Поиск подтипов
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('customSearchInput');
-            if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
-                    const query = e.target.value.toLowerCase().trim();
-                    if (!query || !currentModalCategory) {
-                        document.getElementById('customSearchResults').innerHTML = '';
-                        return;
-                    }
-
-                    const data = timelineData[currentModalCategory];
-                    if (!data) return;
-
-                    const top20Names = data.top20.map(item => item.name);
-                    const customNames = customSubsubcategories[currentModalCategory];
-                    const allNames = data.all_subsubcategories;
-
-                    const available = allNames.filter(name =>
-                        !top20Names.includes(name) &&
-                        !customNames.includes(name) &&
-                        name.toLowerCase().includes(query)
-                    );
-
-                    const resultsDiv = document.getElementById('customSearchResults');
-                    resultsDiv.innerHTML = '';
-
-                    if (available.length === 0) {
-                        resultsDiv.innerHTML = '<div class="search-result-item disabled">Ничего не найдено</div>';
-                        return;
-                    }
-
-                    available.slice(0, 20).forEach(name => {
-                        const div = document.createElement('div');
-                        div.className = 'search-result-item';
-                        div.textContent = name;
-                        div.onclick = () => addCustomSubsubcategory(currentModalCategory, name);
-                        resultsDiv.appendChild(div);
-                    });
-                });
+            // Открыть текущий если был закрыт
+            if (!isActive) {
+                dropdown.classList.add('active');
+                const input = dropdown.querySelector('.dropdown-search');
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                    // Показать все доступные подтипы при открытии
+                    searchSubtypes(category, '');
+                }
             }
-        });
+        }
+
+        function searchSubtypes(category, query) {
+            const resultsDiv = document.getElementById('dropdownResults' + category);
+            if (!resultsDiv) return;
+
+            const data = timelineData[category];
+            if (!data) return;
+
+            const top20Names = data.top20.map(item => item.name);
+            const customNames = customSubsubcategories[category];
+            const allNames = data.all_subsubcategories;
+
+            let available = allNames.filter(name =>
+                !top20Names.includes(name) &&
+                !customNames.includes(name)
+            );
+
+            // Фильтрация по запросу
+            if (query) {
+                const queryLower = query.toLowerCase().trim();
+                available = available.filter(name => name.toLowerCase().includes(queryLower));
+            }
+
+            resultsDiv.innerHTML = '';
+
+            if (available.length === 0) {
+                resultsDiv.innerHTML = '<div class="dropdown-item disabled">Ничего не найдено</div>';
+                return;
+            }
+
+            available.slice(0, 20).forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.textContent = name;
+                div.onclick = () => addCustomSubsubcategory(category, name);
+                resultsDiv.appendChild(div);
+            });
+        }
 
         // Добавить кастомный подтип
         async function addCustomSubsubcategory(category, name) {
@@ -1313,7 +1343,9 @@
             }
 
             customSubsubcategories[category].push(name);
-            closeAddCustomModal();
+
+            // Закрыть dropdown
+            document.getElementById('dropdown' + category).classList.remove('active');
 
             await drawTimelineChartForCategoryAsync(category);
             renderLegend(category);
@@ -1329,13 +1361,12 @@
             }
         }
 
-        // Закрытие модалки по клику вне её
-        window.onclick = function(event) {
-            const modal = document.getElementById('addCustomModal');
-            if (event.target == modal) {
-                closeAddCustomModal();
+        // Закрытие dropdown при клике вне его
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.add-custom-btn-wrapper')) {
+                document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
             }
-        }
+        });
 
         // Загрузка данных при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
