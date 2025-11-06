@@ -1488,9 +1488,8 @@ def analytics():
 
 @app.route('/analytics/trends')
 def analytics_trends():
-    """Редирект на общую страницу аналитики"""
-    from flask import redirect
-    return redirect('/analytics')
+    """Страница аналитики модных трендов с разбивкой по категориям"""
+    return render_template('analytics_trends.html')
 
 @app.route('/api/analytics/categories-stats', methods=['GET'])
 def api_analytics_categories_stats():
