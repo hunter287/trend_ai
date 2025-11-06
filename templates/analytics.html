@@ -79,11 +79,6 @@
             padding: 40px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -105,6 +100,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            justify-content: space-between;
         }
 
         .chart-container {
@@ -116,6 +112,231 @@
             height: 450px;
         }
 
+        /* Стили для временных графиков с легендой под графиком */
+        .timeline-card {
+            width: 100%;
+        }
+
+        .timeline-chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .legend-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .legend-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .legend-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .timeline-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timeline-legend::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .timeline-legend::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .timeline-legend::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .legend-item:hover {
+            background: #e9ecef;
+        }
+
+        .legend-item.custom {
+            background: #fff3cd;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+
+        .legend-checkbox {
+            cursor: pointer;
+        }
+
+        .legend-label {
+            cursor: pointer;
+            user-select: none;
+            flex: 1;
+        }
+
+        .legend-item .custom-icon {
+            margin-left: 4px;
+            font-size: 12px;
+        }
+
+        .legend-item .remove-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .legend-item .remove-btn:hover {
+            opacity: 1;
+        }
+
+        .add-custom-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .add-custom-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .add-custom-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Модальное окно */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-content h4 {
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+
+        #customSearchInput {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        #customSearchInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+
+        .search-result-item {
+            padding: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-result-item.disabled {
+            color: #999;
+            cursor: not-allowed;
+            background: #f8f9fa;
+        }
+
         .loading {
             display: flex;
             justify-content: center;
@@ -123,6 +344,18 @@
             height: 300px;
             color: #6c757d;
             font-size: 1.2em;
+        }
+
+        .loading:after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
         }
 
         .stats-overview {
@@ -151,54 +384,6 @@
             opacity: 0.9;
         }
 
-        .insight-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-
-        .insight-card h4 {
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .insight-card p {
-            font-size: 1em;
-            opacity: 0.95;
-            line-height: 1.6;
-        }
-
-        .trend-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 600;
-            margin-left: 10px;
-        }
-
-        .trend-indicator.up {
-            background: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-        }
-
-        .trend-indicator.down {
-            background: rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-        }
-
-        .trend-indicator.stable {
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-        }
-
         .error-message {
             background: #f8d7da;
             color: #721c24;
@@ -206,210 +391,6 @@
             border-radius: 10px;
             margin: 20px 0;
             border-left: 4px solid #dc3545;
-        }
-
-        /* Loader Spinner */
-        .loader-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 400px;
-            gap: 20px;
-        }
-
-        .loader-container.hidden {
-            display: none;
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loader-text {
-            color: #667eea;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-
-        .content-wrapper {
-            display: none;
-        }
-
-        .content-wrapper.loaded {
-            display: block;
-        }
-
-        .chart-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            justify-content: flex-end;
-        }
-
-        .chart-control-btn {
-            padding: 8px 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .chart-control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .chart-control-btn:active {
-            transform: translateY(0);
-        }
-
-        /* Модальное окно для галереи изображений */
-        .item-gallery-modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.8);
-            animation: fadeIn 0.3s;
-        }
-
-        .item-gallery-modal-content {
-            background-color: white;
-            margin: 2% auto;
-            width: 90%;
-            max-width: 1400px;
-            border-radius: 20px;
-            overflow: hidden;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            animation: slideIn 0.3s;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .item-gallery-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .item-gallery-header h2 {
-            margin: 0;
-            font-size: 1.8em;
-        }
-
-        .item-gallery-close {
-            font-size: 35px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .item-gallery-close:hover {
-            transform: scale(1.2);
-        }
-
-        .item-gallery-body {
-            padding: 30px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .item-gallery-loader {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 300px;
-            gap: 20px;
-        }
-
-        .item-gallery-loader.hidden {
-            display: none;
-        }
-
-        .item-gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
-
-        .item-gallery-item {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            overflow: hidden;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .item-gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
-        }
-
-        .item-gallery-item img {
-            width: 100%;
-            height: 280px;
-            object-fit: contain;
-            display: block;
-            background: #f5f5f5;
-        }
-
-        .item-gallery-item-info {
-            padding: 15px;
-        }
-
-        .item-gallery-item-username {
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 8px;
-            font-size: 0.95em;
-        }
-
-        .item-gallery-item-stats {
-            display: flex;
-            gap: 15px;
-            color: #666;
-            font-size: 0.85em;
-        }
-
-        .item-gallery-item-stat {
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
 
         /* Стили для табов */
@@ -462,8 +443,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Аналитика модных трендов</h1>
-            <p>Комплексный анализ и прогнозирование модных трендов</p>
+            <h1>📊 Модные тренды</h1>
+            <p>Аналитика модных трендов на основе данных Instagram</p>
 
             <div class="navigation">
                 <a href="/" class="nav-btn">🔍 Парсер</a>
@@ -476,262 +457,890 @@
         </div>
 
         <div class="content">
-            <!-- Loader -->
-            <div class="loader-container" id="analyticsLoader">
-                <div class="spinner"></div>
-                <div class="loader-text">Загрузка аналитики...</div>
+            <!-- Обзорная статистика -->
+            <div class="stats-overview" id="statsOverview">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalImages">-</div>
+                    <div class="stat-label">Изображений проанализировано</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCategories">-</div>
+                    <div class="stat-label">Категорий обнаружено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalColors">-</div>
+                    <div class="stat-label">Уникальных цветов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalMaterials">-</div>
+                    <div class="stat-label">Типов материалов</div>
+                </div>
             </div>
 
-            <!-- Content -->
-            <div class="content-wrapper" id="analyticsContentWrapper">
-                    <!-- Обзорная статистика -->
-                    <div class="stats-overview" id="statsOverview">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalImages">-</div>
-                        <div class="stat-label">Изображений проанализировано</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalCategories">-</div>
-                        <div class="stat-label">Категорий обнаружено</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalColors">-</div>
-                        <div class="stat-label">Уникальных цветов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalMaterials">-</div>
-                        <div class="stat-label">Типов материалов</div>
-                    </div>
-                </div>
-
-                <!-- Дашборды -->
-                <div class="dashboard-grid">
-                    <div class="chart-card">
-                        <h3>👗 Популярные категории</h3>
-                        <div class="chart-container">
-                            <canvas id="categoriesChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🔥 Топ-10 подкатегорий</h3>
-                        <div class="chart-container">
-                            <canvas id="subcategoriesChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🎨 Популярные цвета по категориям</h3>
-                        <div class="tabs-container">
-                            <div class="tabs">
-                                <button class="tab-btn active" onclick="switchTab('colors', 'Clothing')">👗 Одежда</button>
-                                <button class="tab-btn" onclick="switchTab('colors', 'Footwear')">👟 Обувь</button>
-                                <button class="tab-btn" onclick="switchTab('colors', 'Accessories')">👜 Аксессуары</button>
-                            </div>
-                            <div id="colors-Clothing" class="tab-content active">
-                                <div class="chart-container">
-                                    <canvas id="colorsChartClothing"></canvas>
-                                </div>
-                            </div>
-                            <div id="colors-Footwear" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="colorsChartFootwear"></canvas>
-                                </div>
-                            </div>
-                            <div id="colors-Accessories" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="colorsChartAccessories"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🧵 Популярные материалы по категориям</h3>
-                        <div class="tabs-container">
-                            <div class="tabs">
-                                <button class="tab-btn active" onclick="switchTab('materials', 'Clothing')">👗 Одежда</button>
-                                <button class="tab-btn" onclick="switchTab('materials', 'Footwear')">👟 Обувь</button>
-                                <button class="tab-btn" onclick="switchTab('materials', 'Accessories')">👜 Аксессуары</button>
-                            </div>
-                            <div id="materials-Clothing" class="tab-content active">
-                                <div class="chart-container">
-                                    <canvas id="materialsChartClothing"></canvas>
-                                </div>
-                            </div>
-                            <div id="materials-Footwear" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="materialsChartFootwear"></canvas>
-                                </div>
-                            </div>
-                            <div id="materials-Accessories" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="materialsChartAccessories"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>✨ Популярные стили по категориям</h3>
-                        <div class="tabs-container">
-                            <div class="tabs">
-                                <button class="tab-btn active" onclick="switchTab('styles', 'Clothing')">👗 Одежда</button>
-                                <button class="tab-btn" onclick="switchTab('styles', 'Footwear')">👟 Обувь</button>
-                                <button class="tab-btn" onclick="switchTab('styles', 'Accessories')">👜 Аксессуары</button>
-                            </div>
-                            <div id="styles-Clothing" class="tab-content active">
-                                <div class="chart-container">
-                                    <canvas id="stylesChartClothing"></canvas>
-                                </div>
-                            </div>
-                            <div id="styles-Footwear" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="stylesChartFootwear"></canvas>
-                                </div>
-                            </div>
-                            <div id="styles-Accessories" class="tab-content">
-                                <div class="chart-container">
-                                    <canvas id="stylesChartAccessories"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>👓 Топ-20 популярных аксессуаров</h3>
-                        <div class="chart-container large">
-                            <canvas id="topAccessoriesChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>👔 Топ-20 популярной одежды</h3>
-                        <div class="chart-container large">
-                            <canvas id="topClothingChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>👟 Топ-20 популярной обуви</h3>
-                        <div class="chart-container large">
-                            <canvas id="topFootwearChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
+            <!-- Дашборды -->
+            <div class="dashboard-grid">
+                <!-- Популярные категории -->
                 <div class="chart-card">
-                    <h3>📈 Динамика топ-20 аксессуаров</h3>
-                    <div class="chart-controls">
-                        <button onclick="hideAllLines('topAccessoriesDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                        <button onclick="showAllLines('topAccessoriesDynamicsChart')" class="chart-control-btn">Показать все</button>
+                    <h3>👗 Популярные категории</h3>
+                    <div class="chart-container">
+                        <canvas id="categoriesChart"></canvas>
                     </div>
-                    <div class="chart-container large">
-                        <canvas id="topAccessoriesDynamicsChart"></canvas>
-                    </div>
-                    <div id="topAccessoriesDynamicsLegend" class="chart-legend"></div>
                 </div>
 
+                <!-- Топ-10 подкатегорий -->
                 <div class="chart-card">
-                    <h3>📈 Динамика топ-20 одежды</h3>
-                    <div class="chart-controls">
-                        <button onclick="hideAllLines('topClothingDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                        <button onclick="showAllLines('topClothingDynamicsChart')" class="chart-control-btn">Показать все</button>
+                    <h3>🔥 Топ-10 подкатегорий</h3>
+                    <div class="chart-container">
+                        <canvas id="subcategoriesChart"></canvas>
                     </div>
-                    <div class="chart-container large">
-                        <canvas id="topClothingDynamicsChart"></canvas>
-                    </div>
-                    <div id="topClothingDynamicsLegend" class="chart-legend"></div>
                 </div>
 
+                <!-- Популярные цвета по категориям -->
                 <div class="chart-card">
-                    <h3>📈 Динамика топ-20 обуви</h3>
-                    <div class="chart-controls">
-                        <button onclick="hideAllLines('topFootwearDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                        <button onclick="showAllLines('topFootwearDynamicsChart')" class="chart-control-btn">Показать все</button>
-                    </div>
-                    <div class="chart-container large">
-                        <canvas id="topFootwearDynamicsChart"></canvas>
-                    </div>
-                    <div id="topFootwearDynamicsLegend" class="chart-legend"></div>
-                </div>
-
-                    <div class="chart-card">
-                        <h3>🚀 Топ-10 растущих трендов</h3>
-                        <div class="chart-container">
-                            <canvas id="emergingTrendsTop10Chart"></canvas>
+                    <h3>🎨 Популярные цвета по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('colors', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('colors', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('colors', 'Accessories')">👜 Аксессуары</button>
                         </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>📈 Динамика растущих трендов</h3>
-                        <div class="chart-controls">
-                            <button onclick="hideAllLines('emergingTrendsDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                            <button onclick="showAllLines('emergingTrendsDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        <div id="colors-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="colorsChartClothing"></canvas>
+                            </div>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="emergingTrendsDynamicsChart"></canvas>
+                        <div id="colors-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="colorsChartFootwear"></canvas>
+                            </div>
                         </div>
-                        <div id="emergingTrendsDynamicsLegend" class="chart-legend"></div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🎨 Динамика растущих цветов</h3>
-                        <div class="chart-controls">
-                            <button onclick="hideAllLines('colorDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                            <button onclick="showAllLines('colorDynamicsChart')" class="chart-control-btn">Показать все</button>
+                        <div id="colors-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="colorsChartAccessories"></canvas>
+                            </div>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="colorDynamicsChart"></canvas>
-                        </div>
-                        <div id="colorDynamicsLegend" class="chart-legend"></div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>🧵 Динамика растущих материалов</h3>
-                        <div class="chart-controls">
-                            <button onclick="hideAllLines('materialDynamicsChart')" class="chart-control-btn">Скрыть все</button>
-                            <button onclick="showAllLines('materialDynamicsChart')" class="chart-control-btn">Показать все</button>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="materialDynamicsChart"></canvas>
-                        </div>
-                        <div id="materialDynamicsLegend" class="chart-legend"></div>
                     </div>
                 </div>
 
+                <!-- Популярные материалы по категориям -->
                 <div class="chart-card">
-                    <h3>📈 Тренды по времени</h3>
-                    <div class="chart-controls">
-                        <button onclick="hideAllLines('timelineChart')" class="chart-control-btn">Скрыть все</button>
-                        <button onclick="showAllLines('timelineChart')" class="chart-control-btn">Показать все</button>
+                    <h3>🧵 Популярные материалы по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('materials', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('materials', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('materials', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="materials-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="materialsChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="materials-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="materialsChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="materials-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="materialsChartAccessories"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div class="chart-container large">
-                        <canvas id="timelineChart"></canvas>
+                </div>
+
+                <!-- Популярные стили по категориям -->
+                <div class="chart-card">
+                    <h3>✨ Популярные стили по категориям</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('styles', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('styles', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('styles', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="styles-Clothing" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="stylesChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="styles-Footwear" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="stylesChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="styles-Accessories" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="stylesChartAccessories"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div id="timelineLegend" class="chart-legend"></div>
+                </div>
+            </div>
+
+            <!-- Тренды по времени для Accessories -->
+            <div class="chart-card timeline-card">
+                <h3>
+                    <span>📈 Динамика топ-20 аксессуаров</span>
+                    <div class="legend-controls">
+                        <button class="legend-btn" onclick="hideAllLines('Accessories')">Скрыть все</button>
+                        <button class="legend-btn" onclick="showAllLines('Accessories')">Показать все</button>
+                        <button class="add-custom-btn" onclick="showAddCustomModal('Accessories')">➕ Добавить подтип</button>
+                    </div>
+                </h3>
+                <div class="timeline-chart-container">
+                    <canvas id="timelineChartAccessories"></canvas>
+                </div>
+                <div class="timeline-legend" id="legendAccessories">
+                    <!-- Легенда будет добавлена динамически -->
+                </div>
+            </div>
+
+            <!-- Тренды по времени для Clothing -->
+            <div class="chart-card timeline-card">
+                <h3>
+                    <span>📈 Динамика топ-20 одежды</span>
+                    <div class="legend-controls">
+                        <button class="legend-btn" onclick="hideAllLines('Clothing')">Скрыть все</button>
+                        <button class="legend-btn" onclick="showAllLines('Clothing')">Показать все</button>
+                        <button class="add-custom-btn" onclick="showAddCustomModal('Clothing')">➕ Добавить подтип</button>
+                    </div>
+                </h3>
+                <div class="timeline-chart-container">
+                    <canvas id="timelineChartClothing"></canvas>
+                </div>
+                <div class="timeline-legend" id="legendClothing">
+                    <!-- Легенда будет добавлена динамически -->
+                </div>
+            </div>
+
+            <!-- Тренды по времени для Footwear -->
+            <div class="chart-card timeline-card">
+                <h3>
+                    <span>📈 Динамика топ-20 обуви</span>
+                    <div class="legend-controls">
+                        <button class="legend-btn" onclick="hideAllLines('Footwear')">Скрыть все</button>
+                        <button class="legend-btn" onclick="showAllLines('Footwear')">Показать все</button>
+                        <button class="add-custom-btn" onclick="showAddCustomModal('Footwear')">➕ Добавить подтип</button>
+                    </div>
+                </h3>
+                <div class="timeline-chart-container">
+                    <canvas id="timelineChartFootwear"></canvas>
+                </div>
+                <div class="timeline-legend" id="legendFootwear">
+                    <!-- Легенда будет добавлена динамически -->
+                </div>
+            </div>
+
+            <!-- Модальное окно для добавления кастомного подтипа -->
+            <div id="addCustomModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeAddCustomModal()">&times;</span>
+                    <h4>Добавить подтип для <span id="modalCategoryName"></span></h4>
+                    <input type="text" id="customSearchInput" placeholder="Начните вводить название..." autocomplete="off">
+                    <div id="customSearchResults" class="search-results"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно для галереи изображений вещи -->
-    <div id="itemGalleryModal" class="item-gallery-modal">
-        <div class="item-gallery-modal-content">
-            <div class="item-gallery-header">
-                <h2 id="itemGalleryTitle">Галерея изображений</h2>
-                <span class="item-gallery-close">&times;</span>
-            </div>
-            <div class="item-gallery-body">
-                <div id="itemGalleryLoader" class="item-gallery-loader">
-                    <div class="spinner"></div>
-                    <div class="loader-text">Загрузка изображений...</div>
-                </div>
-                <div id="itemGalleryGrid" class="item-gallery-grid"></div>
-            </div>
-        </div>
-    </div>
+    <script>
+        // Конфигурация цветов для графиков
+        const chartColors = {
+            primary: '#667eea',
+            secondary: '#764ba2',
+            success: '#28a745',
+            danger: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8',
+            palette: [
+                '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+                '#a8edea', '#fed6e3', '#c471ed', '#12c2e9',
+                '#ff9a9e', '#fbc2eb', '#a18cd1', '#fad0c4',
+                '#ffecd2', '#fcb69f', '#ff6e7f', '#bfe9ff'
+            ]
+        };
 
-    <script src="/static/analytics.js?v=26"></script>
+        // Маппинг цветов на CSS цвета
+        const colorMapping = {
+            'Black': '#000000',
+            'White': '#FFFFFF',
+            'Red': '#FF0000',
+            'Blue': '#0000FF',
+            'Green': '#00FF00',
+            'Yellow': '#FFFF00',
+            'Pink': '#FFC0CB',
+            'Purple': '#800080',
+            'Orange': '#FFA500',
+            'Brown': '#8B4513',
+            'Gray': '#808080',
+            'Grey': '#808080',
+            'Beige': '#F5F5DC',
+            'Navy': '#000080',
+            'Turquoise': '#40E0D0',
+            'Gold': '#FFD700',
+            'Silver': '#C0C0C0'
+        };
+
+        // Глобальное хранилище данных
+        let analyticsData = {
+            colorsByCategory: null,
+            materialsByCategory: null,
+            stylesByCategory: null
+        };
+
+        // Глобальное хранилище для данных подподкатегорий
+        const timelineData = {
+            Clothing: null,
+            Accessories: null,
+            Footwear: null
+        };
+
+        // Глобальное хранилище для кастомных подтипов (макс 10 на категорию)
+        const customSubsubcategories = {
+            Clothing: [],
+            Accessories: [],
+            Footwear: []
+        };
+
+        // Глобальное хранилище для Chart.js инстансов
+        const timelineCharts = {
+            Clothing: null,
+            Accessories: null,
+            Footwear: null
+        };
+
+        // Функция переключения табов
+        function switchTab(section, category) {
+            const parentCard = document.querySelector(`#${section}-${category}`).closest('.chart-card');
+            const tabs = parentCard.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            const allTabs = parentCard.querySelectorAll('.tab-content');
+            allTabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`${section}-${category}`).classList.add('active');
+        }
+
+        // Загрузка данных
+        async function loadAnalytics() {
+            try {
+                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, subsubcategoryTimeline] = await Promise.all([
+                    fetch('/api/analytics/categories-stats').then(r => r.json()),
+                    fetch('/api/analytics/subcategories-stats').then(r => r.json()),
+                    fetch('/api/analytics/colors-by-category').then(r => r.json()),
+                    fetch('/api/analytics/materials-by-category').then(r => r.json()),
+                    fetch('/api/analytics/styles-by-category').then(r => r.json()),
+                    fetch('/api/analytics/subsubcategory-timeline').then(r => r.json())
+                ]);
+
+                // Сохраняем данные timeline
+                if (subsubcategoryTimeline.success) {
+                    timelineData.Clothing = subsubcategoryTimeline.data.Clothing;
+                    timelineData.Accessories = subsubcategoryTimeline.data.Accessories;
+                    timelineData.Footwear = subsubcategoryTimeline.data.Footwear;
+                }
+
+                // Сохраняем данные
+                analyticsData.colorsByCategory = colorsByCategory;
+                analyticsData.materialsByCategory = materialsByCategory;
+                analyticsData.stylesByCategory = stylesByCategory;
+
+                // Обновляем статистику
+                if (categories.success) {
+                    const totalImages = categories.categories.reduce((sum, c) => sum + c.count, 0);
+                    document.getElementById('totalImages').textContent = totalImages.toLocaleString();
+                    document.getElementById('totalCategories').textContent = categories.categories.length;
+                }
+
+                if (colorsByCategory.success) {
+                    const allColors = new Set();
+                    Object.values(colorsByCategory.data).forEach(colors => {
+                        colors.forEach(c => allColors.add(c.name));
+                    });
+                    document.getElementById('totalColors').textContent = allColors.size;
+                }
+
+                if (materialsByCategory.success) {
+                    const allMaterials = new Set();
+                    Object.values(materialsByCategory.data).forEach(materials => {
+                        materials.forEach(m => allMaterials.add(m.name));
+                    });
+                    document.getElementById('totalMaterials').textContent = allMaterials.size;
+                }
+
+                // Рисуем графики
+                if (categories.success) drawCategoriesChart(categories.categories);
+                if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
+
+                if (colorsByCategory.success) {
+                    drawColorsByCategoryChart('Clothing', colorsByCategory.data.Clothing);
+                    drawColorsByCategoryChart('Footwear', colorsByCategory.data.Footwear);
+                    drawColorsByCategoryChart('Accessories', colorsByCategory.data.Accessories);
+                }
+
+                if (materialsByCategory.success) {
+                    drawMaterialsByCategoryChart('Clothing', materialsByCategory.data.Clothing);
+                    drawMaterialsByCategoryChart('Footwear', materialsByCategory.data.Footwear);
+                    drawMaterialsByCategoryChart('Accessories', materialsByCategory.data.Accessories);
+                }
+
+                if (stylesByCategory.success) {
+                    drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
+                    drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
+                    drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
+                }
+
+                // Рисуем временные графики
+                if (subsubcategoryTimeline.success) {
+                    initializeTimelineCharts('Accessories');
+                    initializeTimelineCharts('Clothing');
+                    initializeTimelineCharts('Footwear');
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки аналитики:', error);
+                document.querySelector('.content').insertAdjacentHTML('afterbegin',
+                    '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
+            }
+        }
+
+        // График категорий
+        function drawCategoriesChart(data) {
+            const ctx = document.getElementById('categoriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График подкатегорий
+        function drawSubcategoriesChart(data) {
+            const ctx = document.getElementById('subcategoriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        label: 'Количество',
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette[0],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return data[context[0].dataIndex].name + ' (' + data[context[0].dataIndex].category + ')';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, grid: { display: true } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // График цветов по категории
+        function drawColorsByCategoryChart(category, data) {
+            const ctx = document.getElementById(`colorsChart${category}`).getContext('2d');
+            const backgroundColors = data.map(d => colorMapping[d.name] || chartColors.palette[0]);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        label: 'Количество',
+                        data: data.map(d => d.count),
+                        backgroundColor: backgroundColors,
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, grid: { display: true } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // График материалов по категории
+        function drawMaterialsByCategoryChart(category, data) {
+            const ctx = document.getElementById(`materialsChart${category}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График стилей по категории
+        function drawStylesByCategoryChart(category, data) {
+            const ctx = document.getElementById(`stylesChart${category}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: chartColors.palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Инициализация временного графика для категории
+        function initializeTimelineCharts(category) {
+            const data = timelineData[category];
+            if (!data) return;
+
+            drawTimelineChartForCategory(category);
+            renderLegend(category);
+        }
+
+        // Рендеринг легенды под графиком
+        function renderLegend(category) {
+            const legendId = 'legend' + category;
+            const legendElement = document.getElementById(legendId);
+            if (!legendElement) return;
+
+            legendElement.innerHTML = '';
+            const data = timelineData[category];
+
+            // Добавляем топ-20
+            data.top20.forEach((item, index) => {
+                const color = chartColors.palette[index % chartColors.palette.length];
+                const div = document.createElement('div');
+                div.className = 'legend-item';
+                div.innerHTML = `
+                    <span class="legend-color" style="background-color: ${color}"></span>
+                    <input type="checkbox" class="legend-checkbox" id="${category}_legend_${index}"
+                           data-category="${category}"
+                           data-name="${item.name}"
+                           checked
+                           onchange="toggleSubsubcategoryLine('${category}', '${item.name}', this.checked)">
+                    <label class="legend-label" for="${category}_legend_${index}">${item.name}</label>
+                `;
+                legendElement.appendChild(div);
+            });
+
+            // Добавляем кастомные подтипы
+            customSubsubcategories[category].forEach((customName, index) => {
+                const colorIndex = (data.top20.length + index) % chartColors.palette.length;
+                const color = chartColors.palette[colorIndex];
+                const div = document.createElement('div');
+                div.className = 'legend-item custom';
+                div.innerHTML = `
+                    <span class="legend-color" style="background-color: ${color}"></span>
+                    <input type="checkbox" class="legend-checkbox" id="${category}_legend_custom_${index}"
+                           data-category="${category}"
+                           data-name="${customName}"
+                           checked
+                           onchange="toggleSubsubcategoryLine('${category}', '${customName}', this.checked)">
+                    <label class="legend-label" for="${category}_legend_custom_${index}">${customName}</label>
+                    <span class="custom-icon" title="Добавлено вручную">✋</span>
+                    <button class="remove-btn" onclick="removeCustomSubsubcategory('${category}', '${customName}')" title="Удалить">×</button>
+                `;
+                legendElement.appendChild(div);
+            });
+        }
+
+        // Рисуем временной график для категории
+        function drawTimelineChartForCategory(category) {
+            const canvasId = 'timelineChart' + category;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const data = timelineData[category];
+            if (!data) return;
+
+            if (timelineCharts[category]) {
+                timelineCharts[category].destroy();
+            }
+
+            const datasets = [];
+
+            // Топ-20
+            data.top20.forEach((item, index) => {
+                datasets.push({
+                    label: item.name,
+                    data: item.data,
+                    borderColor: chartColors.palette[index % chartColors.palette.length],
+                    backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            });
+
+            timelineCharts[category] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Месяц: ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { display: true } }
+                    }
+                }
+            });
+        }
+
+        // Асинхронная версия для кастомных подтипов
+        async function drawTimelineChartForCategoryAsync(category) {
+            const canvasId = 'timelineChart' + category;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const data = timelineData[category];
+            if (!data) return;
+
+            if (timelineCharts[category]) {
+                timelineCharts[category].destroy();
+            }
+
+            const datasets = [];
+
+            // Топ-20
+            data.top20.forEach((item, index) => {
+                datasets.push({
+                    label: item.name,
+                    data: item.data,
+                    borderColor: chartColors.palette[index % chartColors.palette.length],
+                    backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            });
+
+            // Кастомные подтипы
+            for (let index = 0; index < customSubsubcategories[category].length; index++) {
+                const customName = customSubsubcategories[category][index];
+                const customData = await getDataForCustomSubsubcategory(category, customName, data.months);
+                const colorIndex = (data.top20.length + index) % chartColors.palette.length;
+
+                datasets.push({
+                    label: customName,
+                    data: customData,
+                    borderColor: chartColors.palette[colorIndex],
+                    backgroundColor: chartColors.palette[colorIndex] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            }
+
+            timelineCharts[category] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Месяц: ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { display: true } }
+                    }
+                }
+            });
+        }
+
+        // Получить данные для кастомного подтипа
+        async function getDataForCustomSubsubcategory(category, name, months) {
+            try {
+                const response = await fetch(`/api/analytics/subsubcategory-single?category=${encodeURIComponent(category)}&name=${encodeURIComponent(name)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const dataMap = {};
+                    result.months.forEach((month, index) => {
+                        dataMap[month] = result.data[index];
+                    });
+                    return months.map(month => dataMap[month] || 0);
+                } else {
+                    console.error('Ошибка загрузки данных для', name, ':', result.message);
+                    return months.map(() => 0);
+                }
+            } catch (error) {
+                console.error('Ошибка запроса данных для', name, ':', error);
+                return months.map(() => 0);
+            }
+        }
+
+        // Toggle видимости линии
+        function toggleSubsubcategoryLine(category, name, visible) {
+            const chart = timelineCharts[category];
+            if (!chart) return;
+
+            const dataset = chart.data.datasets.find(ds => ds.label === name);
+            if (dataset) {
+                dataset.hidden = !visible;
+                chart.update();
+            }
+        }
+
+        // Скрыть все линии
+        function hideAllLines(category) {
+            const chart = timelineCharts[category];
+            if (!chart) return;
+
+            chart.data.datasets.forEach(ds => ds.hidden = true);
+            chart.update();
+
+            // Обновляем чекбоксы
+            const legendElement = document.getElementById('legend' + category);
+            if (legendElement) {
+                legendElement.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+        }
+
+        // Показать все линии
+        function showAllLines(category) {
+            const chart = timelineCharts[category];
+            if (!chart) return;
+
+            chart.data.datasets.forEach(ds => ds.hidden = false);
+            chart.update();
+
+            // Обновляем чекбоксы
+            const legendElement = document.getElementById('legend' + category);
+            if (legendElement) {
+                legendElement.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            }
+        }
+
+        // Модальное окно
+        let currentModalCategory = null;
+
+        function showAddCustomModal(category) {
+            if (customSubsubcategories[category].length >= 10) {
+                alert('Достигнут лимит: максимум 10 дополнительных подтипов');
+                return;
+            }
+
+            currentModalCategory = category;
+            document.getElementById('modalCategoryName').textContent = category;
+            document.getElementById('customSearchInput').value = '';
+            document.getElementById('customSearchResults').innerHTML = '';
+            document.getElementById('addCustomModal').style.display = 'flex';
+        }
+
+        function closeAddCustomModal() {
+            document.getElementById('addCustomModal').style.display = 'none';
+            currentModalCategory = null;
+        }
+
+        // Поиск подтипов
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('customSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (!query || !currentModalCategory) {
+                        document.getElementById('customSearchResults').innerHTML = '';
+                        return;
+                    }
+
+                    const data = timelineData[currentModalCategory];
+                    if (!data) return;
+
+                    const top20Names = data.top20.map(item => item.name);
+                    const customNames = customSubsubcategories[currentModalCategory];
+                    const allNames = data.all_subsubcategories;
+
+                    const available = allNames.filter(name =>
+                        !top20Names.includes(name) &&
+                        !customNames.includes(name) &&
+                        name.toLowerCase().includes(query)
+                    );
+
+                    const resultsDiv = document.getElementById('customSearchResults');
+                    resultsDiv.innerHTML = '';
+
+                    if (available.length === 0) {
+                        resultsDiv.innerHTML = '<div class="search-result-item disabled">Ничего не найдено</div>';
+                        return;
+                    }
+
+                    available.slice(0, 20).forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item';
+                        div.textContent = name;
+                        div.onclick = () => addCustomSubsubcategory(currentModalCategory, name);
+                        resultsDiv.appendChild(div);
+                    });
+                });
+            }
+        });
+
+        // Добавить кастомный подтип
+        async function addCustomSubsubcategory(category, name) {
+            if (customSubsubcategories[category].length >= 10) {
+                alert('Достигнут лимит: максимум 10 дополнительных подтипов');
+                return;
+            }
+
+            if (customSubsubcategories[category].includes(name)) {
+                return;
+            }
+
+            customSubsubcategories[category].push(name);
+            closeAddCustomModal();
+
+            await drawTimelineChartForCategoryAsync(category);
+            renderLegend(category);
+        }
+
+        // Удалить кастомный подтип
+        function removeCustomSubsubcategory(category, name) {
+            const index = customSubsubcategories[category].indexOf(name);
+            if (index > -1) {
+                customSubsubcategories[category].splice(index, 1);
+                drawTimelineChartForCategory(category);
+                renderLegend(category);
+            }
+        }
+
+        // Закрытие модалки по клику вне её
+        window.onclick = function(event) {
+            const modal = document.getElementById('addCustomModal');
+            if (event.target == modal) {
+                closeAddCustomModal();
+            }
+        }
+
+        // Загрузка данных при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalytics();
+        });
+    </script>
 </body>
 </html>
