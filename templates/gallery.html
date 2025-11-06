@@ -956,6 +956,19 @@
                 </div>
             </div>
 
+            <!-- Фильтр по confidence -->
+            <div class="confidence-filter-section" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #dee2e6;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="useConfidenceFilter" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="useConfidenceFilter" style="margin: 0; color: #495057; font-size: 14px; font-weight: 600; cursor: pointer;">
+                        Учитывать Confidence > 60% при фильтрации тегов
+                    </label>
+                </div>
+                <p style="margin: 8px 0 0 28px; color: #6c757d; font-size: 12px; line-height: 1.4;">
+                    Если включено, в фильтрации участвуют только теги с уверенностью выше 60%
+                </p>
+            </div>
+
             <div class="hierarchical-filters">
                 <div class="filter-categories" id="filterCategories">
                     <!-- Категории будут загружены динамически -->
@@ -1481,6 +1494,16 @@
                     });
                 }
 
+                // Обработчик для галочки confidence filter
+                const confidenceFilterCheckbox = document.getElementById('useConfidenceFilter');
+                if (confidenceFilterCheckbox) {
+                    confidenceFilterCheckbox.addEventListener('change', async (e) => {
+                        console.log('🔄 Confidence filter изменен:', e.target.checked);
+                        // Перезагружаем опции фильтра с учетом нового значения confidence
+                        await loadFilterOptions();
+                    });
+                }
+
                 // Кнопки навигации для иерархических фильтров
                 const backToCategoriesBtn = document.getElementById('backToCategories');
                 const backToSubcategories2Btn = document.getElementById('backToSubcategories2');
@@ -1830,7 +1853,9 @@
         async function loadFilterOptions() {
             console.log('🔄 Загрузка фильтров...');
             try {
-                const response = await fetch('/api/filter-options');
+                // Получаем состояние галочки confidence filter
+                const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
+                const response = await fetch(`/api/filter-options?use_confidence=${useConfidence}`);
                 console.log('📡 Ответ получен, status:', response.status);
 
                 const result = await response.json();
@@ -2137,8 +2162,11 @@
             gallery.innerHTML = '<div class="loading-indicator">⏳ Загрузка отфильтрованных изображений...</div>';
 
             try {
+                // Получаем состояние галочки confidence filter
+                const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
+
                 // Формируем URL с параметрами фильтрации
-                let url = `/api/filtered-images?offset=0&limit=${BATCH_SIZE}`;
+                let url = `/api/filtered-images?offset=0&limit=${BATCH_SIZE}&use_confidence=${useConfidence}`;
 
                 if (selectedFilters.category) {
                     url += `&category=${encodeURIComponent(selectedFilters.category)}`;
@@ -3000,7 +3028,9 @@
 
                 // Если мы в режиме фильтрации, используем endpoint для фильтрации
                 if (isFilteredMode) {
-                    url = `/api/filtered-images?offset=${currentOffset}&limit=${BATCH_SIZE}`;
+                    // Получаем состояние галочки confidence filter
+                    const useConfidence = document.getElementById('useConfidenceFilter')?.checked ?? true;
+                    url = `/api/filtered-images?offset=${currentOffset}&limit=${BATCH_SIZE}&use_confidence=${useConfidence}`;
 
                     // Добавляем параметры фильтрации
                     if (selectedFilters.category) {

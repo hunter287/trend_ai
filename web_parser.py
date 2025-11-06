@@ -967,11 +967,15 @@ def api_unhide_images():
 def api_filter_options():
     """API для получения доступных опций фильтрации"""
     try:
+        # Получаем параметр use_confidence (по умолчанию True)
+        use_confidence = request.args.get('use_confidence', 'true').lower() == 'true'
+        confidence_threshold = 0.60  # Порог для фильтрации
+
         # Проверяем инициализацию парсера
         success, message = web_parser.init_parser()
         if not success:
             return jsonify({'success': False, 'message': message})
-        
+
         # Подключаемся к MongoDB
         if not web_parser.parser.connect_mongodb():
             return jsonify({'success': False, 'message': 'Ошибка подключения к MongoDB'})
@@ -1085,6 +1089,9 @@ def api_filter_options():
                     # Цвета
                     if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
                         for color in obj['properties']['visual_attributes']['Color']:
+                            # Проверяем confidence если включен фильтр
+                            if use_confidence and color.get('prob', 0) <= confidence_threshold:
+                                continue
                             color_name = color['name']
                             if color_name not in subsubcat['colors']:
                                 subsubcat['colors'][color_name] = set()
@@ -1093,6 +1100,9 @@ def api_filter_options():
                     # Материалы
                     if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
                         for material in obj['properties']['material_attributes']['Material']:
+                            # Проверяем confidence если включен фильтр
+                            if use_confidence and material.get('prob', 0) <= confidence_threshold:
+                                continue
                             material_name = material['name']
                             if material_name not in subsubcat['materials']:
                                 subsubcat['materials'][material_name] = set()
@@ -1101,6 +1111,9 @@ def api_filter_options():
                     # Стили
                     if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
                         for style in obj['properties']['style_attributes']['Style']:
+                            # Проверяем confidence если включен фильтр
+                            if use_confidence and style.get('prob', 0) <= confidence_threshold:
+                                continue
                             style_name = style['name']
                             if style_name not in subsubcat['styles']:
                                 subsubcat['styles'][style_name] = set()
@@ -2587,6 +2600,10 @@ def api_filtered_images():
         materials = request.args.getlist('materials[]')  # Массив материалов
         styles = request.args.getlist('styles[]')  # Массив стилей
 
+        # Параметр confidence фильтра (по умолчанию True)
+        use_confidence = request.args.get('use_confidence', 'true').lower() == 'true'
+        confidence_threshold = 0.60  # Порог для фильтрации
+
         # Параметры пагинации
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', 50))
@@ -2631,18 +2648,27 @@ def api_filtered_images():
 
             # 2. Условия по атрибутам (если указаны) - добавляем в тот же $elemMatch
             if colors:
+                color_condition = {"name": {"$in": colors}}
+                if use_confidence:
+                    color_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.visual_attributes.Color": {"$elemMatch": {"name": {"$in": colors}}}
+                    "properties.visual_attributes.Color": {"$elemMatch": color_condition}
                 })
 
             if materials:
+                material_condition = {"name": {"$in": materials}}
+                if use_confidence:
+                    material_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.material_attributes.Material": {"$elemMatch": {"name": {"$in": materials}}}
+                    "properties.material_attributes.Material": {"$elemMatch": material_condition}
                 })
 
             if styles:
+                style_condition = {"name": {"$in": styles}}
+                if use_confidence:
+                    style_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.style_attributes.Style": {"$elemMatch": {"name": {"$in": styles}}}
+                    "properties.style_attributes.Style": {"$elemMatch": style_condition}
                 })
 
             # Создаем ОДИН $elemMatch со всеми условиями через $and
@@ -2666,18 +2692,27 @@ def api_filtered_images():
 
             # 2. Условия по атрибутам
             if colors:
+                color_condition = {"name": {"$in": colors}}
+                if use_confidence:
+                    color_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.visual_attributes.Color": {"$elemMatch": {"name": {"$in": colors}}}
+                    "properties.visual_attributes.Color": {"$elemMatch": color_condition}
                 })
 
             if materials:
+                material_condition = {"name": {"$in": materials}}
+                if use_confidence:
+                    material_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.material_attributes.Material": {"$elemMatch": {"name": {"$in": materials}}}
+                    "properties.material_attributes.Material": {"$elemMatch": material_condition}
                 })
 
             if styles:
+                style_condition = {"name": {"$in": styles}}
+                if use_confidence:
+                    style_condition["prob"] = {"$gt": confidence_threshold}
                 elemMatch_conditions.append({
-                    "properties.style_attributes.Style": {"$elemMatch": {"name": {"$in": styles}}}
+                    "properties.style_attributes.Style": {"$elemMatch": style_condition}
                 })
 
             # Создаем ОДИН $elemMatch
