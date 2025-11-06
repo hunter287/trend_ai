@@ -1967,6 +1967,84 @@ def api_analytics_subsubcategory_timeline():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
+@app.route('/api/analytics/subsubcategory-single', methods=['GET'])
+def api_analytics_subsubcategory_single():
+    """API для получения timeline данных для конкретного subsubcategory"""
+    try:
+        category = request.args.get('category')
+        subsubcategory_name = request.args.get('name')
+
+        if not category or not subsubcategory_name:
+            return jsonify({'success': False, 'message': 'Требуются параметры category и name'})
+
+        parser = InstagramParser(
+            apify_token=os.getenv("APIFY_API_TOKEN"),
+            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+        )
+
+        if not parser.connect_mongodb():
+            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
+
+        # Получаем все изображения с тегами и датами для данной категории
+        images = list(parser.collection.find(
+            {
+                "ximilar_objects_structured": {"$exists": True, "$ne": []},
+                "hidden": {"$ne": True},
+                "is_duplicate": {"$ne": True},
+                "timestamp": {"$exists": True, "$ne": "N/A"}
+            },
+            {"ximilar_objects_structured": 1, "timestamp": 1}
+        ))
+
+        # Собираем данные: {year_month: count}
+        timeline_data = {}
+
+        for image in images:
+            try:
+                timestamp = image.get('timestamp', '')
+                if not timestamp or timestamp == 'N/A':
+                    continue
+
+                year_month = timestamp[:7]  # YYYY-MM
+
+                # Проверяем есть ли нужный subsubcategory в этом изображении
+                found = False
+                for obj in image.get('ximilar_objects_structured', []):
+                    if obj.get('top_category') != category:
+                        continue
+
+                    # Проверяем subsubcategory
+                    obj_subsubcat = None
+                    if obj.get('properties', {}).get('other_attributes', {}).get('Subcategory'):
+                        obj_subsubcat = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                    elif obj.get('properties', {}).get('other_attributes', {}).get('Category'):
+                        obj_subsubcat = obj['properties']['other_attributes']['Category'][0]['name']
+
+                    if obj_subsubcat == subsubcategory_name:
+                        found = True
+                        break
+
+                if found:
+                    if year_month not in timeline_data:
+                        timeline_data[year_month] = 0
+                    timeline_data[year_month] += 1
+
+            except Exception as e:
+                continue
+
+        # Преобразуем в массив для фронтенда
+        sorted_months = sorted(timeline_data.keys())
+        data_array = [timeline_data.get(month, 0) for month in sorted_months]
+
+        return jsonify({
+            'success': True,
+            'months': sorted_months,
+            'data': data_array
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
+
 @app.route('/api/analytics/emerging-trends', methods=['GET'])
 def api_analytics_emerging_trends():
     """API для получения растущих и угасающих трендов"""

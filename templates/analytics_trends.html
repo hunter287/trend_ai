@@ -1095,7 +1095,7 @@
             });
         }
 
-        // Рисуем временной график для категории
+        // Рисуем временной график для категории (синхронная версия без кастомных)
         function drawTimelineChartForCategory(category) {
             const canvasId = 'timelineChart' + category;
             const ctx = document.getElementById(canvasId);
@@ -1109,7 +1109,7 @@
                 timelineCharts[category].destroy();
             }
 
-            // Собираем datasets для топ-20 + кастомных
+            // Собираем datasets для топ-20 (без кастомных при первой загрузке)
             const datasets = [];
 
             // Топ-20
@@ -1119,24 +1119,6 @@
                     data: item.data,
                     borderColor: chartColors.palette[index % chartColors.palette.length],
                     backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: false,
-                    hidden: false
-                });
-            });
-
-            // Кастомные подтипы (если есть)
-            customSubsubcategories[category].forEach((customName, index) => {
-                // Найти данные для этого custom подтипа в all_subsubcategories
-                const customData = getDataForCustomSubsubcategory(category, customName, data.months);
-                const colorIndex = (data.top20.length + index) % chartColors.palette.length;
-
-                datasets.push({
-                    label: customName,
-                    data: customData,
-                    borderColor: chartColors.palette[colorIndex],
-                    backgroundColor: chartColors.palette[colorIndex] + '20',
                     borderWidth: 2,
                     tension: 0.4,
                     fill: false,
@@ -1187,11 +1169,122 @@
             });
         }
 
-        // Получить данные для кастомного подтипа (нужно сделать отдельный запрос к API)
-        function getDataForCustomSubsubcategory(category, name, months) {
-            // Временная заглушка - вернуть нули
-            // TODO: реализовать API endpoint для получения данных конкретного subsubcategory
-            return months.map(() => 0);
+        // Асинхронная версия для отрисовки с кастомными подтипами
+        async function drawTimelineChartForCategoryAsync(category) {
+            const canvasId = 'timelineChart' + category;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const data = timelineData[category];
+            if (!data) return;
+
+            // Удаляем старый график если есть
+            if (timelineCharts[category]) {
+                timelineCharts[category].destroy();
+            }
+
+            // Собираем datasets для топ-20 + кастомных
+            const datasets = [];
+
+            // Топ-20
+            data.top20.forEach((item, index) => {
+                datasets.push({
+                    label: item.name,
+                    data: item.data,
+                    borderColor: chartColors.palette[index % chartColors.palette.length],
+                    backgroundColor: chartColors.palette[index % chartColors.palette.length] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            });
+
+            // Кастомные подтипы (загружаем данные асинхронно)
+            for (let index = 0; index < customSubsubcategories[category].length; index++) {
+                const customName = customSubsubcategories[category][index];
+                const customData = await getDataForCustomSubsubcategory(category, customName, data.months);
+                const colorIndex = (data.top20.length + index) % chartColors.palette.length;
+
+                datasets.push({
+                    label: customName,
+                    data: customData,
+                    borderColor: chartColors.palette[colorIndex],
+                    backgroundColor: chartColors.palette[colorIndex] + '20',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    hidden: false
+                });
+            }
+
+            // Создаем график
+            timelineCharts[category] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false  // Скрываем легенду, т.к. у нас есть галочки
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Месяц: ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Получить данные для кастомного подтипа
+        async function getDataForCustomSubsubcategory(category, name, months) {
+            try {
+                const response = await fetch(`/api/analytics/subsubcategory-single?category=${encodeURIComponent(category)}&name=${encodeURIComponent(name)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // API возвращает data_array для своих months
+                    // Нужно сопоставить с months из основных данных
+                    const dataMap = {};
+                    result.months.forEach((month, index) => {
+                        dataMap[month] = result.data[index];
+                    });
+
+                    // Возвращаем массив данных для months из основных данных
+                    return months.map(month => dataMap[month] || 0);
+                } else {
+                    console.error('Ошибка загрузки данных для', name, ':', result.message);
+                    return months.map(() => 0);
+                }
+            } catch (error) {
+                console.error('Ошибка запроса данных для', name, ':', error);
+                return months.map(() => 0);
+            }
         }
 
         // Toggle видимости линии на графике
@@ -1274,7 +1367,7 @@
         });
 
         // Добавить кастомный подтип
-        function addCustomSubsubcategory(category, name) {
+        async function addCustomSubsubcategory(category, name) {
             if (customSubsubcategories[category].length >= 10) {
                 alert('Достигнут лимит: максимум 10 дополнительных подтипов');
                 return;
@@ -1290,7 +1383,7 @@
             // Перерисовываем список и график
             const data = timelineData[category];
             renderSubsubcategoryList(category, data.top20);
-            drawTimelineChartForCategory(category);
+            await drawTimelineChartForCategoryAsync(category);
         }
 
         // Удалить кастомный подтип
