@@ -783,6 +783,25 @@
                 margin: 0 15px 15px 15px;
             }
         }
+
+        /* Счетчик отображаемых изображений */
+        .images-counter {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 10px;
+            margin: 20px 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .images-counter .count {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 0 5px;
+        }
     </style>
 </head>
 <body>
@@ -995,6 +1014,12 @@
                 <button class="btn btn-primary" id="applyFiltersBtn">Применить фильтры</button>
                 <button class="btn btn-secondary" id="clearFiltersBtn">Сбросить</button>
             </div>
+        </div>
+        {% endif %}
+
+        {% if current_page == 'gallery_tagged' %}
+        <div class="images-counter" id="imagesCounter">
+            Показано изображений: <span class="count" id="displayedCount">{{ images|length }}</span> из <span class="count" id="totalCount">{{ images|length }}</span>
         </div>
         {% endif %}
 
@@ -2174,6 +2199,9 @@
                         hasMore = result.has_more;
 
                         console.log(`📊 Показано: ${result.images.length} изображений, всего: ${result.total_count}, есть еще: ${hasMore}`);
+
+                        // Обновляем счетчик изображений
+                        updateImagesCounter(result.images.length, result.total_count);
                     }
 
                     // Закрываем панель фильтров
@@ -2646,6 +2674,20 @@
             }, 3000);
         }
 
+        // Функция обновления счетчика изображений
+        function updateImagesCounter(displayedCount, totalCount) {
+            const counter = document.getElementById('imagesCounter');
+            if (!counter) return;
+
+            const displayedElement = document.getElementById('displayedCount');
+            const totalElement = document.getElementById('totalCount');
+
+            if (displayedElement && totalElement) {
+                displayedElement.textContent = displayedCount;
+                totalElement.textContent = totalCount;
+            }
+        }
+
         // ==================== ФИЛЬТР ПО БЛОГЕРАМ ====================
 
         let selectedBloggers = new Set();
@@ -2835,9 +2877,14 @@
                         result.images.forEach(image => {
                             appendImageCard(image);
                         });
-                        
+
                         currentOffset = result.images.length;
                         hasMore = result.has_more;
+
+                        // Обновляем счетчик изображений
+                        if (result.total_count !== undefined) {
+                            updateImagesCounter(result.images.length, result.total_count);
+                        }
                     }
 
                     showNotification(`✅ Применён фильтр: ${selectedBloggers.size} блогеров, ${result.images.length} изображений`, 'success');
