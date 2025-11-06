@@ -365,22 +365,25 @@ async function loadAllAnalytics() {
         if (subcategories.success) drawSubcategoriesChart(subcategories.subcategories);
 
         // Рисуем графики по категориям
-        if (colorsByCategory.success) {
-            drawColorsByCategoryChart('Clothing', colorsByCategory.data.Clothing);
-            drawColorsByCategoryChart('Footwear', colorsByCategory.data.Footwear);
-            drawColorsByCategoryChart('Accessories', colorsByCategory.data.Accessories);
+        if (colorsByCategory.success && colorsByCategory.data) {
+            console.log('🎨 Drawing colors by category charts...');
+            if (colorsByCategory.data.Clothing) drawColorsByCategoryChart('Clothing', colorsByCategory.data.Clothing);
+            if (colorsByCategory.data.Footwear) drawColorsByCategoryChart('Footwear', colorsByCategory.data.Footwear);
+            if (colorsByCategory.data.Accessories) drawColorsByCategoryChart('Accessories', colorsByCategory.data.Accessories);
         }
 
-        if (materialsByCategory.success) {
-            drawMaterialsByCategoryChart('Clothing', materialsByCategory.data.Clothing);
-            drawMaterialsByCategoryChart('Footwear', materialsByCategory.data.Footwear);
-            drawMaterialsByCategoryChart('Accessories', materialsByCategory.data.Accessories);
+        if (materialsByCategory.success && materialsByCategory.data) {
+            console.log('🧵 Drawing materials by category charts...');
+            if (materialsByCategory.data.Clothing) drawMaterialsByCategoryChart('Clothing', materialsByCategory.data.Clothing);
+            if (materialsByCategory.data.Footwear) drawMaterialsByCategoryChart('Footwear', materialsByCategory.data.Footwear);
+            if (materialsByCategory.data.Accessories) drawMaterialsByCategoryChart('Accessories', materialsByCategory.data.Accessories);
         }
 
-        if (stylesByCategory.success) {
-            drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
-            drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
-            drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
+        if (stylesByCategory.success && stylesByCategory.data) {
+            console.log('✨ Drawing styles by category charts...');
+            if (stylesByCategory.data.Clothing) drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
+            if (stylesByCategory.data.Footwear) drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
+            if (stylesByCategory.data.Accessories) drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
         }
 
         if (timeline.success) drawTimelineChart(timeline.timeline);
@@ -488,7 +491,12 @@ function drawSubcategoriesChart(data) {
 }
 
 function drawColorsByCategoryChart(category, data) {
-    const ctx = document.getElementById(`colorsChart${category}`).getContext('2d');
+    const canvas = document.getElementById(`colorsChart${category}`);
+    if (!canvas) {
+        console.warn(`Canvas not found: colorsChart${category}`);
+        return;
+    }
+    const ctx = canvas.getContext('2d');
     const backgroundColors = data.map(d => colorMapping[d.name] || chartColors.palette[0]);
 
     new Chart(ctx, {
@@ -518,7 +526,12 @@ function drawColorsByCategoryChart(category, data) {
 }
 
 function drawMaterialsByCategoryChart(category, data) {
-    const ctx = document.getElementById(`materialsChart${category}`).getContext('2d');
+    const canvas = document.getElementById(`materialsChart${category}`);
+    if (!canvas) {
+        console.warn(`Canvas not found: materialsChart${category}`);
+        return;
+    }
+    const ctx = canvas.getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -553,7 +566,12 @@ function drawMaterialsByCategoryChart(category, data) {
 }
 
 function drawStylesByCategoryChart(category, data) {
-    const ctx = document.getElementById(`stylesChart${category}`).getContext('2d');
+    const canvas = document.getElementById(`stylesChart${category}`);
+    if (!canvas) {
+        console.warn(`Canvas not found: stylesChart${category}`);
+        return;
+    }
+    const ctx = canvas.getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
