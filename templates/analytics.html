@@ -753,6 +753,33 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Топ-20 популярных вещей -->
+                <div class="chart-card">
+                    <h3>🏆 Топ-20 популярных вещей</h3>
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="switchTab('top20', 'Clothing')">👗 Одежда</button>
+                            <button class="tab-btn" onclick="switchTab('top20', 'Footwear')">👟 Обувь</button>
+                            <button class="tab-btn" onclick="switchTab('top20', 'Accessories')">👜 Аксессуары</button>
+                        </div>
+                        <div id="top20-Clothing" class="tab-content active">
+                            <div class="chart-container" style="height: 600px;">
+                                <canvas id="top20ChartClothing"></canvas>
+                            </div>
+                        </div>
+                        <div id="top20-Footwear" class="tab-content">
+                            <div class="chart-container" style="height: 600px;">
+                                <canvas id="top20ChartFootwear"></canvas>
+                            </div>
+                        </div>
+                        <div id="top20-Accessories" class="tab-content">
+                            <div class="chart-container" style="height: 600px;">
+                                <canvas id="top20ChartAccessories"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Тренды по времени для Accessories -->
@@ -1049,13 +1076,16 @@
                 if (loadingText) loadingText.textContent = 'Загрузка данных аналитики...';
 
                 // Загружаем данные с retry логикой
-                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, subsubcategoryTimeline] = await Promise.all([
+                const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, subsubcategoryTimeline, topAccessories, topClothing, topFootwear] = await Promise.all([
                     fetchWithRetry('/api/analytics/categories-stats'),
                     fetchWithRetry('/api/analytics/subcategories-stats'),
                     fetchWithRetry('/api/analytics/colors-by-category'),
                     fetchWithRetry('/api/analytics/materials-by-category'),
                     fetchWithRetry('/api/analytics/styles-by-category'),
-                    fetchWithRetry('/api/analytics/subsubcategory-timeline')
+                    fetchWithRetry('/api/analytics/subsubcategory-timeline'),
+                    fetchWithRetry('/api/analytics/top-accessories-stats'),
+                    fetchWithRetry('/api/analytics/top-clothing-stats'),
+                    fetchWithRetry('/api/analytics/top-footwear-stats')
                 ]);
 
                 if (loadingText) loadingText.textContent = 'Построение графиков...';
@@ -1115,6 +1145,17 @@
                     drawStylesByCategoryChart('Clothing', stylesByCategory.data.Clothing);
                     drawStylesByCategoryChart('Footwear', stylesByCategory.data.Footwear);
                     drawStylesByCategoryChart('Accessories', stylesByCategory.data.Accessories);
+                }
+
+                // Рисуем графики топ-20
+                if (topClothing.success && topClothing.items) {
+                    drawTop20ByCategoryChart('Clothing', topClothing.items);
+                }
+                if (topFootwear.success && topFootwear.items) {
+                    drawTop20ByCategoryChart('Footwear', topFootwear.items);
+                }
+                if (topAccessories.success && topAccessories.items) {
+                    drawTop20ByCategoryChart('Accessories', topAccessories.items);
                 }
 
                 // Рисуем временные графики
@@ -1364,6 +1405,68 @@
                                 footer: function() {
                                     return 'Кликните для просмотра галереи';
                                 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График топ-20 популярных вещей по категории
+        function drawTop20ByCategoryChart(category, data) {
+            const ctx = document.getElementById(`top20Chart${category}`).getContext('2d');
+
+            // Берем топ-20
+            const top20 = data.slice(0, 20);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top20.map(d => d.name),
+                    datasets: [{
+                        label: 'Количество упоминаний',
+                        data: top20.map(d => d.count),
+                        backgroundColor: chartColors.palette[category === 'Clothing' ? 0 : category === 'Footwear' ? 1 : 2],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const itemName = top20[index].name;
+                            openItemGallery(itemName, category);
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.x + ' упоминаний';
+                                },
+                                footer: function() {
+                                    return 'Кликните для просмотра галереи';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true },
+                            title: {
+                                display: true,
+                                text: 'Количество упоминаний'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 11 }
                             }
                         }
                     }
