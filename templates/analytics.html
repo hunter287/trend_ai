@@ -212,6 +212,16 @@
             flex: 1;
         }
 
+        .legend-label.clickable {
+            transition: all 0.2s ease;
+        }
+
+        .legend-label.clickable:hover {
+            color: #667eea;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
         .legend-item .custom-icon {
             margin-left: 4px;
             font-size: 12px;
@@ -1391,7 +1401,10 @@
                            data-name="${item.name}"
                            checked
                            onchange="toggleSubsubcategoryLine('${category}', '${item.name}', this.checked)">
-                    <label class="legend-label" for="${category}_legend_${index}">${item.name}</label>
+                    <label class="legend-label clickable"
+                           onclick="event.preventDefault(); event.stopPropagation(); openItemGallery('${item.name.replace(/'/g, "\\'")}', '${category}');"
+                           title="Кликните для просмотра галереи"
+                           style="cursor: pointer;">${item.name}</label>
                 `;
                 legendElement.appendChild(div);
             });
@@ -1409,7 +1422,10 @@
                            data-name="${customName}"
                            checked
                            onchange="toggleSubsubcategoryLine('${category}', '${customName}', this.checked)">
-                    <label class="legend-label" for="${category}_legend_custom_${index}">${customName}</label>
+                    <label class="legend-label clickable"
+                           onclick="event.preventDefault(); event.stopPropagation(); openItemGallery('${customName.replace(/'/g, "\\'")}', '${category}');"
+                           title="Кликните для просмотра галереи"
+                           style="cursor: pointer;">${customName}</label>
                     <span class="custom-icon" title="Добавлено вручную">✋</span>
                     <button class="remove-btn" onclick="removeCustomSubsubcategory('${category}', '${customName}')" title="Удалить">×</button>
                 `;
