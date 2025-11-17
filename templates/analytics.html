@@ -463,6 +463,143 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Модальное окно для галереи изображений */
+        .item-gallery-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .item-gallery-modal-content {
+            background-color: white;
+            margin: 2% auto;
+            width: 90%;
+            max-width: 1400px;
+            border-radius: 20px;
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .item-gallery-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-gallery-header h2 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .item-gallery-close {
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .item-gallery-close:hover {
+            transform: scale(1.2);
+        }
+
+        .item-gallery-body {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(90vh - 100px);
+        }
+
+        .item-gallery-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            gap: 20px;
+        }
+
+        .item-gallery-loader.hidden {
+            display: none;
+        }
+
+        .item-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .item-gallery-item {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .item-gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .item-gallery-item img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .item-gallery-item-info {
+            padding: 15px;
+        }
+
+        .item-gallery-item-username {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .item-gallery-item-stats {
+            display: flex;
+            gap: 15px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .item-gallery-item-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -697,6 +834,23 @@
         </div>
     </div>
 
+    <!-- Модальное окно для галереи изображений вещи -->
+    <div id="itemGalleryModal" class="item-gallery-modal">
+        <div class="item-gallery-modal-content">
+            <div class="item-gallery-header">
+                <h2 id="itemGalleryTitle">Галерея изображений</h2>
+                <span class="item-gallery-close">&times;</span>
+            </div>
+            <div class="item-gallery-body">
+                <div id="itemGalleryLoader" class="item-gallery-loader">
+                    <div class="spinner"></div>
+                    <div class="loader-text">Загрузка изображений...</div>
+                </div>
+                <div id="itemGalleryGrid" class="item-gallery-grid"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Конфигурация цветов для графиков
         const chartColors = {
@@ -773,6 +927,88 @@
             const allTabs = parentCard.querySelectorAll('.tab-content');
             allTabs.forEach(tab => tab.classList.remove('active'));
             document.getElementById(`${section}-${category}`).classList.add('active');
+        }
+
+        // ============================================
+        // МОДАЛЬНОЕ ОКНО ГАЛЕРЕИ ВЕЩЕЙ
+        // ============================================
+
+        function openItemGallery(itemName, topCategory) {
+            const modal = document.getElementById('itemGalleryModal');
+            const title = document.getElementById('itemGalleryTitle');
+            const loader = document.getElementById('itemGalleryLoader');
+            const grid = document.getElementById('itemGalleryGrid');
+
+            // Показываем модальное окно и loader
+            modal.style.display = 'block';
+            title.textContent = `Галерея: ${itemName}`;
+            loader.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            // Загружаем изображения
+            fetch(`/api/analytics/item-gallery?item_name=${encodeURIComponent(itemName)}&top_category=${encodeURIComponent(topCategory)}`)
+                .then(response => response.json())
+                .then(data => {
+                    loader.classList.add('hidden');
+
+                    if (!data.success) {
+                        grid.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 40px;">${data.message}</div>`;
+                        return;
+                    }
+
+                    if (data.images.length === 0) {
+                        grid.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">Изображения не найдены</div>';
+                        return;
+                    }
+
+                    // Отображаем изображения
+                    data.images.forEach(image => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'item-gallery-item';
+
+                        const imageUrl = `/images/${image.local_filename}`;
+
+                        itemDiv.innerHTML = `
+                            <img src="${imageUrl}" alt="${itemName}" loading="lazy">
+                            <div class="item-gallery-item-info">
+                                <div class="item-gallery-item-username">@${image.username || 'unknown'}</div>
+                                <div class="item-gallery-item-stats">
+                                    <div class="item-gallery-item-stat">❤️ ${image.likes_count || 0}</div>
+                                    <div class="item-gallery-item-stat">💬 ${image.comments_count || 0}</div>
+                                </div>
+                            </div>
+                        `;
+
+                        grid.appendChild(itemDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading gallery:', error);
+                    loader.classList.add('hidden');
+                    grid.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 40px;">Ошибка загрузки галереи</div>';
+                });
+        }
+
+        function closeItemGallery() {
+            const modal = document.getElementById('itemGalleryModal');
+            modal.style.display = 'none';
+        }
+
+        // Настройка закрытия модального окна (выполняется в DOMContentLoaded в конце скрипта)
+        function initModalHandlers() {
+            const modal = document.getElementById('itemGalleryModal');
+            const closeBtn = document.querySelector('.item-gallery-close');
+
+            if (closeBtn) {
+                closeBtn.onclick = closeItemGallery;
+            }
+
+            // Закрытие при клике вне модального окна
+            window.onclick = function(event) {
+                if (event.target === modal) {
+                    closeItemGallery();
+                }
+            };
         }
 
         // Загрузка данных
@@ -917,12 +1153,23 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const itemName = data[index].name;
+                            const category = data[index].category;
+                            openItemGallery(itemName, category);
+                        }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 title: function(context) {
                                     return data[context[0].dataIndex].name + ' (' + data[context[0].dataIndex].category + ')';
+                                },
+                                footer: function() {
+                                    return 'Кликните для просмотра галереи';
                                 }
                             }
                         }
@@ -957,7 +1204,24 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const colorName = data[index].name;
+                            // Открываем галерею с фильтром по цвету
+                            openItemGallery(colorName, category);
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                footer: function() {
+                                    return 'Кликните для просмотра галереи';
+                                }
+                            }
+                        }
+                    },
                     scales: {
                         x: { beginAtZero: true, grid: { display: true } },
                         y: { grid: { display: false } }
@@ -983,6 +1247,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const materialName = data[index].name;
+                            openItemGallery(materialName, category);
+                        }
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -994,6 +1265,9 @@
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((context.parsed / total) * 100).toFixed(1);
                                     return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                },
+                                footer: function() {
+                                    return 'Кликните для просмотра галереи';
                                 }
                             }
                         }
@@ -1019,6 +1293,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const styleName = data[index].name;
+                            openItemGallery(styleName, category);
+                        }
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -1030,6 +1311,9 @@
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((context.parsed / total) * 100).toFixed(1);
                                     return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                },
+                                footer: function() {
+                                    return 'Кликните для просмотра галереи';
                                 }
                             }
                         }
@@ -1399,6 +1683,7 @@
 
         // Загрузка данных при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
+            initModalHandlers();
             loadAnalytics();
         });
     </script>
