@@ -1011,17 +1011,44 @@
             };
         }
 
+        // Функция для fetch с автоматическим retry
+        async function fetchWithRetry(url, maxRetries = 3, delay = 1000) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.log(`Попытка ${i + 1}/${maxRetries} для ${url} не удалась:`, error.message);
+                    if (i === maxRetries - 1) throw error;
+                    // Экспоненциальная задержка: 1s, 2s, 4s
+                    await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+                }
+            }
+        }
+
         // Загрузка данных
         async function loadAnalytics() {
+            const loadingText = document.querySelector('.loading-text');
+
             try {
+                // Обновляем текст загрузки
+                if (loadingText) loadingText.textContent = 'Загрузка данных аналитики...';
+
+                // Загружаем данные с retry логикой
                 const [categories, subcategories, colorsByCategory, materialsByCategory, stylesByCategory, subsubcategoryTimeline] = await Promise.all([
-                    fetch('/api/analytics/categories-stats').then(r => r.json()),
-                    fetch('/api/analytics/subcategories-stats').then(r => r.json()),
-                    fetch('/api/analytics/colors-by-category').then(r => r.json()),
-                    fetch('/api/analytics/materials-by-category').then(r => r.json()),
-                    fetch('/api/analytics/styles-by-category').then(r => r.json()),
-                    fetch('/api/analytics/subsubcategory-timeline').then(r => r.json())
+                    fetchWithRetry('/api/analytics/categories-stats'),
+                    fetchWithRetry('/api/analytics/subcategories-stats'),
+                    fetchWithRetry('/api/analytics/colors-by-category'),
+                    fetchWithRetry('/api/analytics/materials-by-category'),
+                    fetchWithRetry('/api/analytics/styles-by-category'),
+                    fetchWithRetry('/api/analytics/subsubcategory-timeline')
                 ]);
+
+                if (loadingText) loadingText.textContent = 'Построение графиков...';
 
                 // Сохраняем данные timeline
                 if (subsubcategoryTimeline.success) {
@@ -1092,10 +1119,22 @@
 
             } catch (error) {
                 console.error('Ошибка загрузки аналитики:', error);
+
+                // Показываем понятное сообщение об ошибке
+                if (loadingText) {
+                    loadingText.innerHTML = `
+                        <div style="color: #dc3545; max-width: 500px; text-align: center;">
+                            ⚠️ Не удалось загрузить данные после нескольких попыток.<br>
+                            <small style="opacity: 0.8;">Попробуйте обновить страницу через несколько секунд.</small>
+                        </div>
+                    `;
+                }
+
                 document.querySelector('.content').insertAdjacentHTML('afterbegin',
-                    '<div class="error-message">Ошибка загрузки данных: ' + error.message + '</div>');
-                // Скрываем индикатор загрузки даже при ошибке
-                document.getElementById('loadingOverlay').classList.add('hidden');
+                    '<div class="error-message" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">⚠️ Не удалось загрузить данные: ' + error.message + '<br><small>Страница попыталась загрузить данные 3 раза. Попробуйте обновить страницу.</small></div>');
+
+                // НЕ скрываем индикатор загрузки, чтобы пользователь видел сообщение об ошибке
+                // document.getElementById('loadingOverlay').classList.add('hidden');
             }
         }
 
