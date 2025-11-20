@@ -1434,7 +1434,7 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    onClick: (event, elements) => {
+                    onClick: (event, elements, chart) => {
                         // Клик по столбцу графика
                         if (elements.length > 0) {
                             const index = elements[0].index;
@@ -1443,16 +1443,31 @@
                             return;
                         }
 
-                        // Клик по надписи на оси Y
+                        // Клик по надписи на оси Y - используем нативное событие
+                        const nativeEvent = event.native || event;
                         const chartArea = chart.chartArea;
-                        const clickX = event.x;
-                        const clickY = event.y;
+                        const rect = chart.canvas.getBoundingClientRect();
+                        const clickX = nativeEvent.clientX - rect.left;
+                        const clickY = nativeEvent.clientY - rect.top;
 
                         // Проверяем, был ли клик в области меток оси Y (слева от графика)
                         if (clickX < chartArea.left && clickY >= chartArea.top && clickY <= chartArea.bottom) {
-                            // Определяем по какой метке кликнули
+                            // Определяем по какой метке кликнули, используя scale
                             const yScale = chart.scales.y;
-                            const labelIndex = Math.round((clickY - chartArea.top) / (chartArea.height / top20.length));
+                            const labels = yScale.ticks.map(tick => tick.label);
+
+                            // Находим индекс метки по Y-координате
+                            let labelIndex = -1;
+                            const ticksCount = labels.length;
+                            const tickHeight = (chartArea.bottom - chartArea.top) / ticksCount;
+
+                            for (let i = 0; i < ticksCount; i++) {
+                                const tickY = chartArea.top + (i + 0.5) * tickHeight;
+                                if (Math.abs(clickY - tickY) < tickHeight / 2) {
+                                    labelIndex = i;
+                                    break;
+                                }
+                            }
 
                             if (labelIndex >= 0 && labelIndex < top20.length) {
                                 const itemName = top20[labelIndex].name;
