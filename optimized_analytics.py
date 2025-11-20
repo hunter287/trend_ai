@@ -9,6 +9,54 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+def normalize_subcategory_name(subcategory, category):
+    """
+    Нормализует название подкатегории для группировки В КОНТЕКСТЕ категории.
+    Импортировано из web_parser.py
+    """
+    subcategory_lower = subcategory.lower()
+
+    # Определяем базовые подкатегории для каждой основной категории
+    normalization_rules = {
+        'Accessories': {
+            'Bags': ['bag', 'handbag', 'tote', 'clutch', 'crossbody', 'purse', 'wallet'],
+            'Hats': ['hat', 'cap', 'beanie', 'fedora'],
+            'Sunglasses': ['sunglass', 'eyewear'],
+            'Belts': ['belt'],
+            'Jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'ring', 'earring'],
+            'Watches': ['watch'],
+            'Scarves': ['scarf', 'scarves'],
+            'Gloves': ['glove', 'mitten'],
+        },
+        'Clothing': {
+            'Dresses': ['dress'],
+            'Pants': ['pant', 'trouser', 'jean'],
+            'Skirts': ['skirt'],
+            'Tops': ['top', 'blouse', 'shirt', 't-shirt', 'tank'],
+            'Jackets': ['jacket', 'coat', 'blazer', 'cardigan'],
+            'Shorts': ['short'],
+        },
+        'Footwear': {
+            'Shoes': ['shoe'],
+            'Sneakers': ['sneaker', 'trainer'],
+            'Boots': ['boot'],
+            'Heels': ['heel', 'stiletto', 'pump'],
+            'Sandals': ['sandal', 'flip-flop'],
+            'Flats': ['flat', 'loafer', 'ballet'],
+        }
+    }
+
+    # Ищем соответствие в контексте категории
+    if category in normalization_rules:
+        for base_name, keywords in normalization_rules[category].items():
+            for keyword in keywords:
+                if keyword in subcategory_lower:
+                    return base_name
+
+    # Если не нашли соответствия, возвращаем оригинальное название
+    return subcategory
+
+
 class OptimizedAnalytics:
     """Класс с оптимизированными методами аналитики"""
 
@@ -45,7 +93,9 @@ class OptimizedAnalytics:
     @cached()
     def get_subcategories_stats(self):
         """Получить статистику по подкатегориям (с дедупликацией на уровне изображения)"""
-        # Используем aggregation с проекцией для уменьшения нагрузки
+        logger.info("🔄 Вызов get_subcategories_stats()")
+
+        # Упрощенный pipeline - получаем только нужные данные
         pipeline = [
             {
                 "$match": {
@@ -57,53 +107,45 @@ class OptimizedAnalytics:
             {
                 "$project": {
                     "_id": 1,
-                    "ximilar_objects_structured": {
-                        "$map": {
-                            "input": "$ximilar_objects_structured",
-                            "as": "obj",
-                            "in": {
-                                "top_category": "$$obj.top_category",
-                                "subcategory": {
-                                    "$cond": [
-                                        {"$ne": [{"$ifNull": ["$$obj.properties.other_attributes.Subcategory", null]}, null]},
-                                        {"$arrayElemAt": ["$$obj.properties.other_attributes.Subcategory.name", 0]},
-                                        {
-                                            "$cond": [
-                                                {"$ne": [{"$ifNull": ["$$obj.properties.other_attributes.Category", null]}, null]},
-                                                {"$arrayElemAt": ["$$obj.properties.other_attributes.Category.name", 0]},
-                                                null
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
+                    "ximilar_objects_structured": 1
                 }
             }
         ]
 
-        # Получаем данные с помощью aggregation (более эффективно)
+        # Получаем данные
         images = list(self.collection.aggregate(pipeline, allowDiskUse=True))
+        logger.info(f"   Получено {len(images)} изображений из БД")
 
-        # Подсчитываем подкатегории с дедупликацией на уровне Python (минимальная обработка)
+        # Подсчитываем подкатегории с дедупликацией и нормализацией
         subcategory_counts = defaultdict(int)
 
         for image in images:
             seen = set()
             for obj in image.get('ximilar_objects_structured', []):
                 category = obj.get('top_category', 'Other')
-                subcategory = obj.get('subcategory')
+                subcategory = ''
+
+                # Извлекаем подкатегорию
+                if obj.get('properties', {}).get('other_attributes'):
+                    if obj['properties']['other_attributes'].get('Subcategory'):
+                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                    elif obj['properties']['other_attributes'].get('Category'):
+                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
 
                 if subcategory:
-                    key = f"{category}:{subcategory}"
+                    # Нормализуем название подкатегории
+                    normalized = normalize_subcategory_name(subcategory, category)
+                    key = f"{category}:{normalized}"
+
                     if key not in seen:
                         seen.add(key)
                         subcategory_counts[key] += 1
 
         # Топ-10
         top_subcategories = sorted(subcategory_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        return [{'name': k.split(':')[1], 'category': k.split(':')[0], 'count': v} for k, v in top_subcategories]
+        result = [{'name': k.split(':')[1], 'category': k.split(':')[0], 'count': v} for k, v in top_subcategories]
+        logger.info(f"✅ get_subcategories_stats() вернул {len(result)} подкатегорий")
+        return result
 
     @cached()
     def get_colors_by_category(self):
