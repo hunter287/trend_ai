@@ -3406,8 +3406,18 @@ def api_analytics_item_gallery():
                 obj_subcategory = ''
                 if obj.get('properties', {}).get('other_attributes', {}).get('Subcategory'):
                     obj_subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+                elif obj.get('properties', {}).get('other_attributes', {}).get('Category'):
+                    obj_subcategory = obj['properties']['other_attributes']['Category'][0]['name']
 
-                if obj_subcategory != subcategory:
+                if not obj_subcategory:
+                    continue
+
+                # ИСПРАВЛЕНИЕ: Сравниваем нормализованные названия
+                # Нормализуем как искомую подкатегорию, так и найденную
+                normalized_search = normalize_subcategory_name(subcategory, top_category)
+                normalized_obj = normalize_subcategory_name(obj_subcategory, top_category)
+
+                if normalized_obj != normalized_search:
                     continue
 
                 # Если цвет указан, проверяем и его
