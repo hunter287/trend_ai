@@ -1419,6 +1419,49 @@
             // Берем топ-20
             const top20 = data.slice(0, 20);
 
+            // Плагин для обработки кликов на метки оси Y
+            const yAxisClickPlugin = {
+                id: 'yAxisClickPlugin_' + category,
+                afterEvent(chart, args) {
+                    const event = args.event;
+
+                    if (event.type !== 'click') {
+                        return;
+                    }
+
+                    const chartArea = chart.chartArea;
+                    const {x, y} = event;
+
+                    // Клик в области меток оси Y (слева от графика)
+                    if (x < chartArea.left && y >= chartArea.top && y <= chartArea.bottom) {
+                        // Вычисляем индекс метки по Y-координате
+                        const yScale = chart.scales.y;
+                        const ticks = yScale.ticks;
+
+                        // Находим ближайшую метку
+                        let closestIndex = -1;
+                        let minDistance = Infinity;
+
+                        ticks.forEach((tick, index) => {
+                            const tickY = yScale.getPixelForTick(index);
+                            const distance = Math.abs(y - tickY);
+
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestIndex = index;
+                            }
+                        });
+
+                        // Если нашли метку и расстояние разумное
+                        if (closestIndex >= 0 && closestIndex < top20.length && minDistance < 20) {
+                            const itemName = top20[closestIndex].name;
+                            console.log('Y-axis label clicked:', itemName, 'at index', closestIndex);
+                            openItemGallery(itemName, category);
+                        }
+                    }
+                }
+            };
+
             const chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1440,39 +1483,6 @@
                             const index = elements[0].index;
                             const itemName = top20[index].name;
                             openItemGallery(itemName, category);
-                            return;
-                        }
-
-                        // Клик по надписи на оси Y - используем нативное событие
-                        const nativeEvent = event.native || event;
-                        const chartArea = chart.chartArea;
-                        const rect = chart.canvas.getBoundingClientRect();
-                        const clickX = nativeEvent.clientX - rect.left;
-                        const clickY = nativeEvent.clientY - rect.top;
-
-                        // Проверяем, был ли клик в области меток оси Y (слева от графика)
-                        if (clickX < chartArea.left && clickY >= chartArea.top && clickY <= chartArea.bottom) {
-                            // Определяем по какой метке кликнули, используя scale
-                            const yScale = chart.scales.y;
-                            const labels = yScale.ticks.map(tick => tick.label);
-
-                            // Находим индекс метки по Y-координате
-                            let labelIndex = -1;
-                            const ticksCount = labels.length;
-                            const tickHeight = (chartArea.bottom - chartArea.top) / ticksCount;
-
-                            for (let i = 0; i < ticksCount; i++) {
-                                const tickY = chartArea.top + (i + 0.5) * tickHeight;
-                                if (Math.abs(clickY - tickY) < tickHeight / 2) {
-                                    labelIndex = i;
-                                    break;
-                                }
-                            }
-
-                            if (labelIndex >= 0 && labelIndex < top20.length) {
-                                const itemName = top20[labelIndex].name;
-                                openItemGallery(itemName, category);
-                            }
                         }
                     },
                     plugins: {
@@ -1501,15 +1511,15 @@
                             grid: { display: false },
                             ticks: {
                                 font: { size: 11 },
-                                color: '#667eea',
-                                cursor: 'pointer'
+                                color: '#667eea'
                             }
                         }
                     }
-                }
+                },
+                plugins: [yAxisClickPlugin]
             });
 
-            // Добавляем стиль курсора при наведении на надписи
+            // Изменяем курсор при наведении на метки оси Y
             ctx.canvas.addEventListener('mousemove', function(event) {
                 const rect = ctx.canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
