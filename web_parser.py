@@ -12,6 +12,8 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 from instagram_parser import InstagramParser
+from optimized_analytics import OptimizedAnalytics
+from analytics_cache import analytics_cache
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -33,6 +35,24 @@ def serve_images(filename):
     return send_from_directory(IMAGES_DIR, filename)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ============================================
+# ОПТИМИЗИРОВАННАЯ АНАЛИТИКА
+# ============================================
+
+def get_analytics_collection():
+    """Получить коллекцию для аналитики (переиспользуемое подключение)"""
+    from pymongo import MongoClient
+    mongodb_uri = os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
+    client = MongoClient(mongodb_uri)
+    db = client.get_database()
+    return db['images']
+
+# Глобальный экземпляр оптимизированной аналитики
+_analytics_collection = get_analytics_collection()
+optimized_analytics = OptimizedAnalytics(_analytics_collection)
+
+# ============================================
 
 def normalize_subcategory_name(subcategory, category):
     """
@@ -1517,105 +1537,19 @@ def analytics_trends():
 
 @app.route('/api/analytics/categories-stats', methods=['GET'])
 def api_analytics_categories_stats():
-    """API для получения статистики по категориям"""
+    """API для получения статистики по категориям (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Агрегация для подсчета категорий
-        pipeline = [
-            {
-                "$match": {
-                    "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                    "hidden": {"$ne": True},
-                    "is_duplicate": {"$ne": True}
-                }
-            },
-            {
-                "$unwind": "$ximilar_objects_structured"
-            },
-            {
-                "$group": {
-                    "_id": "$ximilar_objects_structured.top_category",
-                    "count": {"$sum": 1}
-                }
-            },
-            {
-                "$sort": {"count": -1}
-            }
-        ]
-
-        categories = list(parser.collection.aggregate(pipeline))
-
-        return jsonify({
-            'success': True,
-            'categories': [{'name': c['_id'] or 'Other', 'count': c['count']} for c in categories]
-        })
-
+        categories = optimized_analytics.get_categories_stats()
+        return jsonify({'success': True, 'categories': categories})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
 @app.route('/api/analytics/subcategories-stats', methods=['GET'])
 def api_analytics_subcategories_stats():
-    """API для получения статистики по подкатегориям"""
+    """API для получения статистики по подкатегориям (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем подкатегории с дедупликацией
-        subcategory_counts = {}
-
-        for image in images:
-            seen_subcategories = set()
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category', 'Other')
-                subcategory = ''
-
-                if obj.get('properties', {}).get('other_attributes'):
-                    if obj['properties']['other_attributes'].get('Subcategory'):
-                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-                    elif obj['properties']['other_attributes'].get('Category'):
-                        subcategory = obj['properties']['other_attributes']['Category'][0]['name']
-
-                if subcategory:
-                    normalized = normalize_subcategory_name(subcategory, category)
-                    key = f"{category}:{normalized}"
-
-                    if key not in seen_subcategories:
-                        seen_subcategories.add(key)
-                        if key not in subcategory_counts:
-                            subcategory_counts[key] = 0
-                        subcategory_counts[key] += 1
-
-        # Сортируем и берем топ-10
-        top_subcategories = sorted(subcategory_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-
-        return jsonify({
-            'success': True,
-            'subcategories': [{'name': k.split(':')[1], 'category': k.split(':')[0], 'count': v} for k, v in top_subcategories]
-        })
-
+        subcategories = optimized_analytics.get_subcategories_stats()
+        return jsonify({'success': True, 'subcategories': subcategories})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
@@ -3035,80 +2969,10 @@ def api_filtered_images():
 
 @app.route('/api/analytics/top-accessories-stats', methods=['GET'])
 def api_analytics_top_accessories_stats():
-    """API для получения топ-20 популярных аксессуаров (подкатегория + цвет)"""
+    """API для получения топ-20 популярных аксессуаров (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем аксессуары (подкатегория + цвет)
-        item_counts = {}
-
-        for image in images:
-            seen_items = set()
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category', 'Other')
-
-                # Фильтруем только аксессуары
-                if category != 'Accessories':
-                    continue
-
-                # Извлекаем только конкретную подкатегорию (не общую Category)
-                subcategory = ''
-                if obj.get('properties', {}).get('other_attributes'):
-                    if obj['properties']['other_attributes'].get('Subcategory'):
-                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-
-                # Пропускаем записи без конкретной подкатегории
-                if not subcategory:
-                    continue
-
-                # Извлекаем цвет
-                colors = []
-                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                    for color in obj['properties']['visual_attributes']['Color']:
-                        colors.append(color['name'])
-
-                # Создаем комбинацию подкатегория + цвет
-                if colors:
-                    for color in colors:
-                        item_key = f"{subcategory} ({color})"
-                        if item_key not in seen_items:
-                            seen_items.add(item_key)
-                            if item_key not in item_counts:
-                                item_counts[item_key] = 0
-                            item_counts[item_key] += 1
-                else:
-                    # Если нет цвета, используем подкатегорию без цвета
-                    if subcategory not in seen_items:
-                        seen_items.add(subcategory)
-                        if subcategory not in item_counts:
-                            item_counts[subcategory] = 0
-                        item_counts[subcategory] += 1
-
-        # Сортируем и берем топ-20
-        top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-
-        return jsonify({
-            'success': True,
-            'items': [{'name': k, 'count': v} for k, v in top_items]
-        })
-
+        items = optimized_analytics.get_top_items_by_category('Accessories')
+        return jsonify({'success': True, 'items': items})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
@@ -3232,80 +3096,10 @@ def api_analytics_top_accessories_dynamics():
 
 @app.route('/api/analytics/top-clothing-stats', methods=['GET'])
 def api_analytics_top_clothing_stats():
-    """API для получения топ-20 популярной одежды (подкатегория + цвет)"""
+    """API для получения топ-20 популярной одежды (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем одежду (подкатегория + цвет)
-        item_counts = {}
-
-        for image in images:
-            seen_items = set()
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category', 'Other')
-
-                # Фильтруем только одежду
-                if category != 'Clothing':
-                    continue
-
-                # Извлекаем только конкретную подкатегорию (не общую Category)
-                subcategory = ''
-                if obj.get('properties', {}).get('other_attributes'):
-                    if obj['properties']['other_attributes'].get('Subcategory'):
-                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-
-                # Пропускаем записи без конкретной подкатегории
-                if not subcategory:
-                    continue
-
-                # Извлекаем цвет
-                colors = []
-                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                    for color in obj['properties']['visual_attributes']['Color']:
-                        colors.append(color['name'])
-
-                # Создаем комбинацию подкатегория + цвет
-                if colors:
-                    for color in colors:
-                        item_key = f"{subcategory} ({color})"
-                        if item_key not in seen_items:
-                            seen_items.add(item_key)
-                            if item_key not in item_counts:
-                                item_counts[item_key] = 0
-                            item_counts[item_key] += 1
-                else:
-                    # Если нет цвета, используем подкатегорию без цвета
-                    if subcategory not in seen_items:
-                        seen_items.add(subcategory)
-                        if subcategory not in item_counts:
-                            item_counts[subcategory] = 0
-                        item_counts[subcategory] += 1
-
-        # Сортируем и берем топ-20
-        top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-
-        return jsonify({
-            'success': True,
-            'items': [{'name': k, 'count': v} for k, v in top_items]
-        })
-
+        items = optimized_analytics.get_top_items_by_category('Clothing')
+        return jsonify({'success': True, 'items': items})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
@@ -3429,80 +3223,10 @@ def api_analytics_top_clothing_dynamics():
 
 @app.route('/api/analytics/top-footwear-stats', methods=['GET'])
 def api_analytics_top_footwear_stats():
-    """API для получения топ-20 популярной обуви (подкатегория + цвет)"""
+    """API для получения топ-20 популярной обуви (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем обувь (подкатегория + цвет)
-        item_counts = {}
-
-        for image in images:
-            seen_items = set()
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category', 'Other')
-
-                # Фильтруем только обувь
-                if category != 'Footwear':
-                    continue
-
-                # Извлекаем только конкретную подкатегорию (не общую Category)
-                subcategory = ''
-                if obj.get('properties', {}).get('other_attributes'):
-                    if obj['properties']['other_attributes'].get('Subcategory'):
-                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
-
-                # Пропускаем записи без конкретной подкатегории
-                if not subcategory:
-                    continue
-
-                # Извлекаем цвет
-                colors = []
-                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                    for color in obj['properties']['visual_attributes']['Color']:
-                        colors.append(color['name'])
-
-                # Создаем комбинацию подкатегория + цвет
-                if colors:
-                    for color in colors:
-                        item_key = f"{subcategory} ({color})"
-                        if item_key not in seen_items:
-                            seen_items.add(item_key)
-                            if item_key not in item_counts:
-                                item_counts[item_key] = 0
-                            item_counts[item_key] += 1
-                else:
-                    # Если нет цвета, просто используем подкатегорию
-                    if subcategory not in seen_items:
-                        seen_items.add(subcategory)
-                        if subcategory not in item_counts:
-                            item_counts[subcategory] = 0
-                        item_counts[subcategory] += 1
-
-        # Сортируем и берем топ-20
-        top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-
-        return jsonify({
-            'success': True,
-            'items': [{'name': k, 'count': v} for k, v in top_items]
-        })
-
+        items = optimized_analytics.get_top_items_by_category('Footwear')
+        return jsonify({'success': True, 'items': items})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
@@ -3724,196 +3448,37 @@ def api_analytics_item_gallery():
 
 @app.route('/api/analytics/colors-by-category', methods=['GET'])
 def api_analytics_colors_by_category():
-    """API для получения статистики по цветам, разбитой по категориям"""
+    """API для получения статистики по цветам, разбитой по категориям (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем цвета по категориям
-        category_colors = {
-            'Clothing': {},
-            'Footwear': {},
-            'Accessories': {}
-        }
-
-        for image in images:
-            # Для дедупликации: цвета по категориям в этом изображении
-            seen_colors_by_category = {
-                'Clothing': set(),
-                'Footwear': set(),
-                'Accessories': set()
-            }
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category')
-                if category not in category_colors:
-                    continue
-
-                if obj.get('properties', {}).get('visual_attributes', {}).get('Color'):
-                    for color in obj['properties']['visual_attributes']['Color']:
-                        color_name = color['name']
-                        if color_name not in seen_colors_by_category[category]:
-                            seen_colors_by_category[category].add(color_name)
-                            if color_name not in category_colors[category]:
-                                category_colors[category][color_name] = 0
-                            category_colors[category][color_name] += 1
-
-        # Сортируем и берем топ-10 для каждой категории
-        result = {}
-        for category, colors in category_colors.items():
-            top_colors = sorted(colors.items(), key=lambda x: x[1], reverse=True)[:10]
-            result[category] = [{'name': k, 'count': v} for k, v in top_colors]
-
-        return jsonify({
-            'success': True,
-            'data': result
-        })
-
+        colors = optimized_analytics.get_colors_by_category()
+        return jsonify({'success': True, 'data': colors})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
 @app.route('/api/analytics/materials-by-category', methods=['GET'])
 def api_analytics_materials_by_category():
-    """API для получения статистики по материалам, разбитой по категориям"""
+    """API для получения статистики по материалам, разбитой по категориям (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
-
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем материалы по категориям
-        category_materials = {
-            'Clothing': {},
-            'Footwear': {},
-            'Accessories': {}
-        }
-
-        for image in images:
-            # Для дедупликации: материалы по категориям в этом изображении
-            seen_materials_by_category = {
-                'Clothing': set(),
-                'Footwear': set(),
-                'Accessories': set()
-            }
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category')
-                if category not in category_materials:
-                    continue
-
-                if obj.get('properties', {}).get('material_attributes', {}).get('Material'):
-                    for material in obj['properties']['material_attributes']['Material']:
-                        material_name = material['name']
-                        if material_name not in seen_materials_by_category[category]:
-                            seen_materials_by_category[category].add(material_name)
-                            if material_name not in category_materials[category]:
-                                category_materials[category][material_name] = 0
-                            category_materials[category][material_name] += 1
-
-        # Сортируем и берем топ-10 для каждой категории
-        result = {}
-        for category, materials in category_materials.items():
-            top_materials = sorted(materials.items(), key=lambda x: x[1], reverse=True)[:10]
-            result[category] = [{'name': k, 'count': v} for k, v in top_materials]
-
-        return jsonify({
-            'success': True,
-            'data': result
-        })
-
+        materials = optimized_analytics.get_materials_by_category()
+        return jsonify({'success': True, 'data': materials})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
 @app.route('/api/analytics/styles-by-category', methods=['GET'])
 def api_analytics_styles_by_category():
-    """API для получения статистики по стилям, разбитой по категориям"""
+    """API для получения статистики по стилям, разбитой по категориям (оптимизировано)"""
     try:
-        parser = InstagramParser(
-            apify_token=os.getenv("APIFY_API_TOKEN"),
-            mongodb_uri=os.getenv('MONGODB_URI', 'mongodb://trend_ai_user:LoGRomE2zJ0k0fuUhoTn@localhost:27017/instagram_gallery')
-        )
+        styles = optimized_analytics.get_styles_by_category()
+        return jsonify({'success': True, 'data': styles})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
-        if not parser.connect_mongodb():
-            return jsonify({'success': False, 'message': 'Ошибка подключения к базе данных'})
-
-        # Получаем все изображения с тегами
-        images = list(parser.collection.find(
-            {
-                "ximilar_objects_structured": {"$exists": True, "$ne": []},
-                "hidden": {"$ne": True},
-                "is_duplicate": {"$ne": True}
-            },
-            {"ximilar_objects_structured": 1}
-        ))
-
-        # Подсчитываем стили по категориям
-        category_styles = {
-            'Clothing': {},
-            'Footwear': {},
-            'Accessories': {}
-        }
-
-        for image in images:
-            # Для дедупликации: стили по категориям в этом изображении
-            seen_styles_by_category = {
-                'Clothing': set(),
-                'Footwear': set(),
-                'Accessories': set()
-            }
-
-            for obj in image.get('ximilar_objects_structured', []):
-                category = obj.get('top_category')
-                if category not in category_styles:
-                    continue
-
-                if obj.get('properties', {}).get('style_attributes', {}).get('Style'):
-                    for style in obj['properties']['style_attributes']['Style']:
-                        style_name = style['name']
-                        if style_name not in seen_styles_by_category[category]:
-                            seen_styles_by_category[category].add(style_name)
-                            if style_name not in category_styles[category]:
-                                category_styles[category][style_name] = 0
-                            category_styles[category][style_name] += 1
-
-        # Сортируем и берем топ-10 для каждой категории
-        result = {}
-        for category, styles in category_styles.items():
-            top_styles = sorted(styles.items(), key=lambda x: x[1], reverse=True)[:10]
-            result[category] = [{'name': k, 'count': v} for k, v in top_styles]
-
-        return jsonify({
-            'success': True,
-            'data': result
-        })
-
+@app.route('/api/analytics/clear-cache', methods=['POST'])
+def api_analytics_clear_cache():
+    """API для очистки кеша аналитики"""
+    try:
+        analytics_cache.clear()
+        return jsonify({'success': True, 'message': 'Кеш аналитики очищен'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Ошибка: {e}'})
 
