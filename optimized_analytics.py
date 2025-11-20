@@ -1,7 +1,12 @@
 """Оптимизированные функции аналитики с использованием MongoDB aggregation"""
 
+import logging
 from analytics_cache import cached
 from collections import defaultdict
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class OptimizedAnalytics:
@@ -13,6 +18,7 @@ class OptimizedAnalytics:
     @cached()
     def get_categories_stats(self):
         """Получить статистику по категориям (оптимизировано через aggregation)"""
+        logger.info("🔄 Вызов get_categories_stats()")
         pipeline = [
             {
                 "$match": {
@@ -32,7 +38,9 @@ class OptimizedAnalytics:
         ]
 
         categories = list(self.collection.aggregate(pipeline, allowDiskUse=True))
-        return [{'name': c['_id'] or 'Other', 'count': c['count']} for c in categories]
+        result = [{'name': c['_id'] or 'Other', 'count': c['count']} for c in categories]
+        logger.info(f"✅ get_categories_stats() вернул {len(result)} категорий")
+        return result
 
     @cached()
     def get_subcategories_stats(self):
@@ -274,9 +282,12 @@ class OptimizedAnalytics:
 
         return result
 
-    @cached()
+    @cached(key_func=lambda self, category: f"top_items_{category}")
     def get_top_items_by_category(self, category):
-        """Получить топ-20 популярных вещей для категории"""
+        """Получить топ-20 популярных вещей для категории (подкатегория без цвета)"""
+        logger.info(f"🔄 Вызов get_top_items_by_category(category='{category}')")
+
+        # Используем более простой pipeline для извлечения только нужных данных
         pipeline = [
             {
                 "$match": {
@@ -288,58 +299,44 @@ class OptimizedAnalytics:
             {
                 "$project": {
                     "_id": 1,
-                    "ximilar_objects_structured": {
-                        "$filter": {
-                            "input": "$ximilar_objects_structured",
-                            "as": "obj",
-                            "cond": {"$eq": ["$$obj.top_category", category]}
-                        }
-                    }
-                }
-            },
-            {
-                "$match": {
-                    "ximilar_objects_structured": {"$ne": []}
-                }
-            },
-            {
-                "$project": {
-                    "_id": 1,
-                    "items": {
-                        "$map": {
-                            "input": "$ximilar_objects_structured",
-                            "as": "obj",
-                            "in": {
-                                "$cond": [
-                                    {"$ne": [{"$ifNull": ["$$obj.properties.other_attributes.Subcategory", null]}, null]},
-                                    {"$arrayElemAt": ["$$obj.properties.other_attributes.Subcategory.name", 0]},
-                                    {
-                                        "$cond": [
-                                            {"$ne": [{"$ifNull": ["$$obj.properties.other_attributes.Category", null]}, null]},
-                                            {"$arrayElemAt": ["$$obj.properties.other_attributes.Category.name", 0]},
-                                            null
-                                        ]
-                                    }
-                                ]
-                            }
-                        }
-                    }
+                    "ximilar_objects_structured": 1
                 }
             }
         ]
 
         images = list(self.collection.aggregate(pipeline, allowDiskUse=True))
+        logger.info(f"   Получено {len(images)} изображений из БД")
 
-        # Подсчет с дедупликацией
+        # Подсчет с дедупликацией (только подкатегория, без цвета)
         item_counts = defaultdict(int)
 
         for image in images:
             seen = set()
-            for item_name in image.get('items', []):
-                if item_name and item_name not in seen:
-                    seen.add(item_name)
-                    item_counts[item_name] += 1
+
+            for obj in image.get('ximilar_objects_structured', []):
+                obj_category = obj.get('top_category', 'Other')
+
+                # Фильтруем только нужную категорию
+                if obj_category != category:
+                    continue
+
+                # Извлекаем подкатегорию
+                subcategory = None
+                if obj.get('properties', {}).get('other_attributes'):
+                    if obj['properties']['other_attributes'].get('Subcategory'):
+                        subcategory = obj['properties']['other_attributes']['Subcategory'][0]['name']
+
+                # Пропускаем записи без конкретной подкатегории
+                if not subcategory:
+                    continue
+
+                # Дедупликация в рамках одного изображения
+                if subcategory not in seen:
+                    seen.add(subcategory)
+                    item_counts[subcategory] += 1
 
         # Топ-20
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-        return [{'name': k, 'count': v} for k, v in top_items]
+        result = [{'name': k, 'count': v} for k, v in top_items]
+        logger.info(f"✅ get_top_items_by_category('{category}') вернул {len(result)} вещей")
+        return result
