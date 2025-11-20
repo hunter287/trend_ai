@@ -1454,9 +1454,10 @@
 
                         // Если нашли метку и расстояние разумное
                         if (closestIndex >= 0 && closestIndex < top20.length && minDistance < 20) {
-                            const itemName = top20[closestIndex].name;
-                            console.log('Y-axis label clicked:', itemName, 'at index', closestIndex);
-                            openItemGallery(itemName, category);
+                            // Используем subcategory (чистое название) для фильтрации
+                            const itemSubcategory = top20[closestIndex].subcategory || top20[closestIndex].name;
+                            console.log('Y-axis label clicked:', itemSubcategory, 'at index', closestIndex);
+                            openItemGallery(itemSubcategory, category);
                         }
                     }
                 }
@@ -1465,7 +1466,7 @@
             const chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: top20.map(d => d.name),
+                    labels: top20.map(d => d.name),  // Показываем детальное название
                     datasets: [{
                         label: 'Количество упоминаний',
                         data: top20.map(d => d.count),
@@ -1481,8 +1482,9 @@
                         // Клик по столбцу графика
                         if (elements.length > 0) {
                             const index = elements[0].index;
-                            const itemName = top20[index].name;
-                            openItemGallery(itemName, category);
+                            // Используем subcategory (чистое название) для фильтрации
+                            const itemSubcategory = top20[index].subcategory || top20[index].name;
+                            openItemGallery(itemSubcategory, category);
                         }
                     },
                     plugins: {
@@ -1510,7 +1512,7 @@
                         y: {
                             grid: { display: false },
                             ticks: {
-                                font: { size: 11 },
+                                font: { size: 10 },  // Уменьшил шрифт, так как теперь надписи длиннее
                                 color: '#667eea'
                             }
                         }

@@ -326,7 +326,7 @@ class OptimizedAnalytics:
 
     @cached(key_func=lambda self, category: f"top_items_{category}")
     def get_top_items_by_category(self, category):
-        """Получить топ-20 популярных вещей для категории (подкатегория без цвета)"""
+        """Получить топ-20 популярных вещей для категории с детальным описанием (цвет, материал, стиль)"""
         logger.info(f"🔄 Вызов get_top_items_by_category(category='{category}')")
 
         # Используем более простой pipeline для извлечения только нужных данных
@@ -349,8 +349,13 @@ class OptimizedAnalytics:
         images = list(self.collection.aggregate(pipeline, allowDiskUse=True))
         logger.info(f"   Получено {len(images)} изображений из БД")
 
-        # Подсчет с дедупликацией (только подкатегория, без цвета)
+        # Подсчет с дедупликацией + сбор атрибутов
         item_counts = defaultdict(int)
+        item_attributes = defaultdict(lambda: {
+            'colors': defaultdict(int),
+            'materials': defaultdict(int),
+            'styles': defaultdict(int)
+        })
 
         for image in images:
             seen = set()
@@ -377,8 +382,65 @@ class OptimizedAnalytics:
                     seen.add(subcategory)
                     item_counts[subcategory] += 1
 
-        # Топ-20
+                    # Собираем атрибуты для этой подкатегории
+                    props = obj.get('properties', {})
+
+                    # Цвета
+                    colors = props.get('visual_attributes', {}).get('Color', [])
+                    if colors and len(colors) > 0:
+                        top_color = colors[0].get('name')
+                        if top_color:
+                            item_attributes[subcategory]['colors'][top_color] += 1
+
+                    # Материалы
+                    materials = props.get('material_attributes', {}).get('Material', [])
+                    if materials and len(materials) > 0:
+                        top_material = materials[0].get('name')
+                        if top_material:
+                            item_attributes[subcategory]['materials'][top_material] += 1
+
+                    # Стили
+                    styles = props.get('style_attributes', {}).get('Style', [])
+                    if styles and len(styles) > 0:
+                        top_style = styles[0].get('name')
+                        if top_style:
+                            item_attributes[subcategory]['styles'][top_style] += 1
+
+        # Топ-20 подкатегорий
         top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-        result = [{'name': k, 'count': v} for k, v in top_items]
+
+        # Формируем результат с детальным описанием
+        result = []
+        for subcategory, count in top_items:
+            attrs = item_attributes[subcategory]
+
+            # Выбираем самый популярный цвет, материал, стиль
+            top_color = max(attrs['colors'].items(), key=lambda x: x[1])[0] if attrs['colors'] else None
+            top_material = max(attrs['materials'].items(), key=lambda x: x[1])[0] if attrs['materials'] else None
+            top_style = max(attrs['styles'].items(), key=lambda x: x[1])[0] if attrs['styles'] else None
+
+            # Формируем детальное название
+            details = []
+            if top_color:
+                details.append(top_color)
+            if top_material:
+                details.append(top_material)
+            if top_style:
+                details.append(top_style)
+
+            if details:
+                detailed_name = f"{subcategory} ({', '.join(details)})"
+            else:
+                detailed_name = subcategory
+
+            result.append({
+                'name': detailed_name,
+                'subcategory': subcategory,  # Сохраняем чистое имя подкатегории для фильтрации
+                'count': count,
+                'color': top_color,
+                'material': top_material,
+                'style': top_style
+            })
+
         logger.info(f"✅ get_top_items_by_category('{category}') вернул {len(result)} вещей")
         return result
