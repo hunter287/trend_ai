@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Hugging Face cache (if models downloaded locally)
+.cache/
+
+# Временные файлы эксперимента
+debug_*.py
+temp_*.jpg
+/tmp/
