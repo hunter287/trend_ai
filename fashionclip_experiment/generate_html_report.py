@@ -335,6 +335,9 @@ def generate_html_report(data):
     # Генерируем карточки для каждого изображения
     for idx, sample in enumerate(samples):
         image_url = sample['image_url']
+        # Конвертируем абсолютный URL в относительный путь
+        if 'http://158.160.19.119:5000' in image_url:
+            image_url = image_url.replace('http://158.160.19.119:5000', '')
         ximilar = sample.get('ximilar_results', {})
         fashionclip = sample.get('fashionclip_results', {})
 
